@@ -12,25 +12,25 @@ export default function AIExplanation() {
   return (
     <div>
       <h1 className="text-xl font-bold mb-4">AI Explanation</h1>
-      <div className="border p-3 mb-4">
+      <div className="border p-3 mb-4" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
         <div className="font-semibold text-sm mb-1">Original Regulation Text</div>
         <p className="text-sm">{original}</p>
       </div>
       <div className="flex gap-2 mb-4">
         <button
-          className={`border px-3 py-1 text-sm font-semibold ${mode === "simple" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+          className={`border px-3 py-1 text-sm font-semibold ${mode === "simple" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
           onClick={() => setMode("simple")}
         >
           Explain Simply
         </button>
         <button
-          className={`border px-3 py-1 text-sm font-semibold ${mode === "technical" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+          className={`border px-3 py-1 text-sm font-semibold ${mode === "technical" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
           onClick={() => setMode("technical")}
         >
           Explain Technically
         </button>
       </div>
-      <div className="border p-3">
+      <div className="border p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
         <div className="font-semibold text-sm mb-1">
           {mode === "simple" ? "Simplified Explanation" : "Technical Explanation"}
         </div>

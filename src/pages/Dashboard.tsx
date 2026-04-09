@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
   { label: "Total Regulations", value: 1284 },
@@ -28,11 +29,36 @@ const riskColor = (r: string) =>
   r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   return (
     <div>
       <h1 className="text-xl font-bold mb-4">Dashboard</h1>
 
-      <div className="grid grid-cols-4 gap-0 border mb-4">
+      {/* High Priority Action */}
+      <div className="border-2 mb-4 p-3" style={{ borderColor: "hsl(var(--risk-high))" }}>
+        <div className="font-bold text-sm mb-2" style={{ color: "hsl(var(--risk-high))" }}>
+          🔴 High Priority Action Required
+        </div>
+        <table className="w-full text-sm">
+          <tbody>
+            <tr className="border-b">
+              <td className="p-1 font-semibold w-28">Regulation:</td>
+              <td className="p-1">RBI Master Direction on KYC — Annual review now mandatory for high-risk customers</td>
+            </tr>
+            <tr className="border-b">
+              <td className="p-1 font-semibold">Impact:</td>
+              <td className="p-1"><span className="font-bold" style={{ color: "hsl(var(--risk-high))" }}>HIGH</span> — Affects Compliance, Operations, Risk Management</td>
+            </tr>
+            <tr>
+              <td className="p-1 font-semibold">Action:</td>
+              <td className="p-1">Update onboarding verification rules and KYC review schedule immediately. Deadline: 2026-05-15</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid grid-cols-4 gap-0 border mb-4" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
         {stats.map((s) => (
           <div key={s.label} className="border p-3">
             <div className="text-xs text-muted-foreground">{s.label}</div>
@@ -44,7 +70,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="border p-3">
+        <div className="border p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
           <div className="font-semibold text-sm mb-2">Regulations by Month</div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData}>
@@ -57,7 +83,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="border p-3">
+        <div className="border p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
           <div className="font-semibold text-sm mb-2">What should I do?</div>
           <ul className="text-sm space-y-1">
             <li>• Review 23 high-risk alerts requiring immediate attention</li>
@@ -68,7 +94,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="border">
+      <div className="border" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
         <div className="font-semibold text-sm p-2 border-b bg-secondary">Recent Updates</div>
         <table className="w-full text-sm">
           <thead>
@@ -81,7 +107,7 @@ export default function Dashboard() {
           </thead>
           <tbody>
             {recentUpdates.map((u, i) => (
-              <tr key={i} className="border-b hover:bg-accent">
+              <tr key={i} className="border-b hover:bg-accent cursor-pointer" onClick={() => navigate("/regulations")}>
                 <td className="p-2">{u.title}</td>
                 <td className="p-2">{u.source}</td>
                 <td className="p-2">{u.date}</td>

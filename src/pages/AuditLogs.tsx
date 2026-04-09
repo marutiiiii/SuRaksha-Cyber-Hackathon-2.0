@@ -1,3 +1,6 @@
+import { useState, useMemo } from "react";
+import { ArrowUp, ArrowDown } from "lucide-react";
+
 const logs = [
   { source: "RBI/2026/MD/KYC/04", clause: "Section 3.2", reasoning: "Frequency change detected: biennial → annual for high-risk CDD. Triggers re-assessment of customer review schedules.", timestamp: "2026-04-08 14:23:01" },
   { source: "SEBI/2026/CIR/IT/07", clause: "Regulation 4(1)", reasoning: "Definition expansion: 'connected person' scope widened. May affect compliance monitoring framework.", timestamp: "2026-04-07 09:45:22" },
@@ -6,32 +9,60 @@ const logs = [
   { source: "SEBI/2026/AMD/LODR/04", clause: "Regulation 30(4)", reasoning: "Materiality threshold for event disclosure lowered. Increases frequency of required disclosures.", timestamp: "2026-04-04 08:55:33" },
 ];
 
+type SortKey = "source" | "timestamp";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }) {
+  if (sortKey !== col) return null;
+  return sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 ml-1" /> : <ArrowDown className="inline h-3 w-3 ml-1" />;
+}
+
 export default function AuditLogs() {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return logs;
+    return [...logs].sort((a, b) => {
+      const cmp = a[sortKey].localeCompare(b[sortKey]);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [sortKey, sortDir]);
+
   return (
     <div>
       <h1 className="text-xl font-bold mb-4">Audit Logs</h1>
-      <div className="border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-secondary">
-              <th className="text-left p-2">Source</th>
-              <th className="text-left p-2">Clause</th>
-              <th className="text-left p-2">AI Reasoning</th>
-              <th className="text-left p-2">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((l, i) => (
-              <tr key={i} className="border-b hover:bg-accent">
-                <td className="p-2 font-mono text-xs">{l.source}</td>
-                <td className="p-2">{l.clause}</td>
-                <td className="p-2">{l.reasoning}</td>
-                <td className="p-2 text-xs whitespace-nowrap">{l.timestamp}</td>
+      {sorted.length === 0 ? (
+        <div className="border p-8 text-center text-sm text-muted-foreground">No audit logs recorded.</div>
+      ) : (
+        <div className="border" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-secondary">
+                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("source")}>Source<SortIcon col="source" sortKey={sortKey} sortDir={sortDir} /></th>
+                <th className="text-left p-2">Clause</th>
+                <th className="text-left p-2">AI Reasoning</th>
+                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("timestamp")}>Timestamp<SortIcon col="timestamp" sortKey={sortKey} sortDir={sortDir} /></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {sorted.map((l, i) => (
+                <tr key={i} className="border-b hover:bg-accent cursor-pointer">
+                  <td className="p-2 font-mono text-xs">{l.source}</td>
+                  <td className="p-2">{l.clause}</td>
+                  <td className="p-2">{l.reasoning}</td>
+                  <td className="p-2 text-xs whitespace-nowrap">{l.timestamp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
