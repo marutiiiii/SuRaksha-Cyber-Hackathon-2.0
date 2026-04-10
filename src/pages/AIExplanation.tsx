@@ -10,31 +10,37 @@ export default function AIExplanation() {
   const [mode, setMode] = useState<"simple" | "technical">("simple");
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">AI Explanation</h1>
-      <div className="border p-3 mb-4" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-        <div className="font-semibold text-sm mb-1">Original Regulation Text</div>
-        <p className="text-sm">{original}</p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">AI Explanation</h1>
+        <p className="page-subtitle mt-0.5">AI-powered regulatory text interpretation</p>
       </div>
-      <div className="flex gap-2 mb-4">
+
+      <div className="section-container p-4">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Original Regulation Text</div>
+        <p className="text-sm leading-relaxed">{original}</p>
+      </div>
+
+      <div className="flex gap-2">
         <button
-          className={`border px-3 py-1 text-sm font-semibold ${mode === "simple" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
+          className={`border px-4 py-2 text-sm font-medium transition-colors ${mode === "simple" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted border-border"}`}
           onClick={() => setMode("simple")}
         >
           Explain Simply
         </button>
         <button
-          className={`border px-3 py-1 text-sm font-semibold ${mode === "technical" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-accent"}`}
+          className={`border px-4 py-2 text-sm font-medium transition-colors ${mode === "technical" ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted border-border"}`}
           onClick={() => setMode("technical")}
         >
           Explain Technically
         </button>
       </div>
-      <div className="border p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-        <div className="font-semibold text-sm mb-1">
+
+      <div className="section-container p-4 border-l-4 border-l-primary">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
           {mode === "simple" ? "Simplified Explanation" : "Technical Explanation"}
         </div>
-        <p className="text-sm">{mode === "simple" ? simple : technical}</p>
+        <p className="text-sm leading-relaxed">{mode === "simple" ? simple : technical}</p>
       </div>
     </div>
   );
