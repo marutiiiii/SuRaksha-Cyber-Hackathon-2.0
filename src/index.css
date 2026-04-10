@@ -55,8 +55,7 @@
 
 @layer utilities {
   .section-container {
-    @apply bg-card border border-border;
-    box-shadow: 0 1px 3px 0 hsl(220 13% 91% / 0.5);
+    @apply bg-card border border-border shadow-none;
   }
   .table-header {
     @apply bg-muted text-muted-foreground text-xs font-semibold uppercase tracking-wider;
