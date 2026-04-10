@@ -1,11 +1,12 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { AlertTriangle, TrendingUp, Clock, FileBarChart } from "lucide-react";
 
 const stats = [
-  { label: "Total Regulations", value: 1284 },
-  { label: "High Risk Alerts", value: 23, color: "hsl(var(--risk-high))" },
-  { label: "Pending Actions", value: 47, color: "hsl(var(--risk-medium))" },
-  { label: "Reports Generated", value: 156 },
+  { label: "Total Regulations", value: "1,284", icon: TrendingUp },
+  { label: "High Risk Alerts", value: "23", icon: AlertTriangle, accent: true },
+  { label: "Pending Actions", value: "47", icon: Clock, warning: true },
+  { label: "Reports Generated", value: "156", icon: FileBarChart },
 ];
 
 const chartData = [
@@ -28,91 +29,116 @@ const recentUpdates = [
 const riskColor = (r: string) =>
   r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
 
+const riskBg = (r: string) =>
+  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
+
 export default function Dashboard() {
   const navigate = useNavigate();
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Dashboard</h1>
-
-      {/* High Priority Action */}
-      <div className="border-2 mb-4 p-3" style={{ borderColor: "hsl(var(--risk-high))" }}>
-        <div className="font-bold text-sm mb-2" style={{ color: "hsl(var(--risk-high))" }}>
-          🔴 High Priority Action Required
-        </div>
-        <table className="w-full text-sm">
-          <tbody>
-            <tr className="border-b">
-              <td className="p-1 font-semibold w-28">Regulation:</td>
-              <td className="p-1">RBI Master Direction on KYC — Annual review now mandatory for high-risk customers</td>
-            </tr>
-            <tr className="border-b">
-              <td className="p-1 font-semibold">Impact:</td>
-              <td className="p-1"><span className="font-bold" style={{ color: "hsl(var(--risk-high))" }}>HIGH</span> — Affects Compliance, Operations, Risk Management</td>
-            </tr>
-            <tr>
-              <td className="p-1 font-semibold">Action:</td>
-              <td className="p-1">Update onboarding verification rules and KYC review schedule immediately. Deadline: 2026-05-15</td>
-            </tr>
-          </tbody>
-        </table>
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle mt-0.5">Compliance overview and recent activity</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-0 border mb-4" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
+      {/* High Priority Action */}
+      <div className="section-container border-l-4" style={{ borderLeftColor: "hsl(var(--risk-high))" }}>
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4" style={{ color: "hsl(var(--risk-high))" }} />
+            <span className="text-sm font-semibold" style={{ color: "hsl(var(--risk-high))" }}>High Priority Action Required</span>
+          </div>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+            <span className="text-muted-foreground font-medium">Regulation</span>
+            <span>RBI Master Direction on KYC — Annual review now mandatory for high-risk customers</span>
+            <span className="text-muted-foreground font-medium">Impact</span>
+            <span><span className="font-semibold" style={{ color: "hsl(var(--risk-high))" }}>HIGH</span> — Affects Compliance, Operations, Risk Management</span>
+            <span className="text-muted-foreground font-medium">Action</span>
+            <span>Update onboarding verification rules and KYC review schedule immediately. <span className="text-muted-foreground">Deadline: 2026-05-15</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
         {stats.map((s) => (
-          <div key={s.label} className="border p-3">
-            <div className="text-xs text-muted-foreground">{s.label}</div>
-            <div className="text-2xl font-bold" style={s.color ? { color: s.color } : undefined}>
+          <div key={s.label} className="section-container p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{s.label}</span>
+              <s.icon className="h-4 w-4 text-muted-foreground/50" />
+            </div>
+            <div className={`text-2xl font-bold ${s.accent ? 'text-destructive' : s.warning ? 'text-[hsl(var(--risk-medium))]' : 'text-foreground'}`}>
               {s.value}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="border p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-          <div className="font-semibold text-sm mb-2">Regulations by Month</div>
+      {/* Chart + Advisory */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="section-container p-4">
+          <div className="text-sm font-semibold mb-3">Regulations by Month</div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{
+                  border: "1px solid hsl(220 13% 91%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                  fontSize: 12,
+                  borderRadius: 0,
+                }}
+              />
               <Bar dataKey="count" fill="hsl(224,76%,33%)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="border p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-          <div className="font-semibold text-sm mb-2">What should I do?</div>
-          <ul className="text-sm space-y-1">
-            <li>• Review 23 high-risk alerts requiring immediate attention</li>
-            <li>• Complete 12 pending impact assessments before deadline</li>
-            <li>• Update company profile for Q2 compliance mapping</li>
-            <li>• Generate monthly compliance report for management</li>
-          </ul>
+        <div className="section-container p-4">
+          <div className="text-sm font-semibold mb-3">Recommended Actions</div>
+          <div className="space-y-2.5">
+            {[
+              "Review 23 high-risk alerts requiring immediate attention",
+              "Complete 12 pending impact assessments before deadline",
+              "Update company profile for Q2 compliance mapping",
+              "Generate monthly compliance report for management",
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-muted-foreground font-mono text-xs mt-0.5">{String(i + 1).padStart(2, '0')}</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="border" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-        <div className="font-semibold text-sm p-2 border-b bg-secondary">Recent Updates</div>
+      {/* Recent Updates */}
+      <div className="section-container">
+        <div className="px-4 py-3 border-b">
+          <span className="text-sm font-semibold">Recent Updates</span>
+        </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-secondary">
-              <th className="text-left p-2">Title</th>
-              <th className="text-left p-2">Source</th>
-              <th className="text-left p-2">Date</th>
-              <th className="text-left p-2">Risk</th>
+            <tr className="border-b table-header">
+              <th className="text-left px-4 py-2.5">Title</th>
+              <th className="text-left px-4 py-2.5">Source</th>
+              <th className="text-left px-4 py-2.5">Date</th>
+              <th className="text-left px-4 py-2.5">Risk</th>
             </tr>
           </thead>
           <tbody>
             {recentUpdates.map((u, i) => (
-              <tr key={i} className="border-b hover:bg-accent cursor-pointer" onClick={() => navigate("/regulations")}>
-                <td className="p-2">{u.title}</td>
-                <td className="p-2">{u.source}</td>
-                <td className="p-2">{u.date}</td>
-                <td className="p-2">
-                  <span className="font-semibold" style={{ color: riskColor(u.risk) }}>{u.risk}</span>
+              <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate("/regulations")}>
+                <td className="px-4 py-2.5 font-medium">{u.title}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{u.source}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{u.date}</td>
+                <td className="px-4 py-2.5">
+                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold" style={{ color: riskColor(u.risk), background: riskBg(u.risk) }}>
+                    {u.risk}
+                  </span>
                 </td>
               </tr>
             ))}

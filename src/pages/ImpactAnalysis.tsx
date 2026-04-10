@@ -9,52 +9,68 @@ const departments = [
 const riskColor = (r: string) =>
   r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
 
+const riskBg = (r: string) =>
+  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
+
 export default function ImpactAnalysis() {
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Impact Analysis</h1>
-      <div className="border mb-4 p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-        <div className="font-semibold text-sm mb-1">Overall Impact Summary</div>
-        <p className="text-sm">
-          The revised RBI Master Direction on KYC introduces significant changes to customer due diligence requirements.
-          High-risk customer reviews shift from biennial to annual frequency. V-CIP becomes the preferred verification method.
-          New quarterly reporting obligations are introduced. Estimated implementation timeline: 60–90 days.
-        </p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">Impact Analysis</h1>
+        <p className="page-subtitle mt-0.5">Assess regulatory impact across departments</p>
       </div>
-      <div className="border mb-4 p-3" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-        <div className="font-semibold text-sm mb-1">Confidence Score</div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 bg-secondary border h-5 relative">
-            <div className="h-full" style={{ width: "87%", background: "hsl(var(--primary))" }} />
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="section-container p-4">
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Overall Impact Summary</div>
+          <p className="text-sm leading-relaxed">
+            The revised RBI Master Direction on KYC introduces significant changes to customer due diligence requirements.
+            High-risk customer reviews shift from biennial to annual frequency. V-CIP becomes the preferred verification method.
+            New quarterly reporting obligations are introduced. Estimated implementation timeline: 60–90 days.
+          </p>
+        </div>
+
+        <div className="section-container p-4">
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Confidence Score</div>
+          <div className="flex items-end gap-3 mb-2">
+            <span className="text-3xl font-bold text-foreground">87%</span>
+            <span className="text-xs text-muted-foreground mb-1">analysis confidence</span>
           </div>
-          <span className="text-sm font-semibold">87%</span>
+          <div className="w-full bg-muted h-2 relative">
+            <div className="h-full bg-primary" style={{ width: "87%" }} />
+          </div>
         </div>
       </div>
-      {departments.length === 0 ? (
-        <div className="border p-8 text-center text-sm text-muted-foreground">No impact data available.</div>
-      ) : (
-        <div className="border" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
-          <div className="p-2 bg-secondary border-b font-semibold text-sm">Affected Departments</div>
+
+      <div className="section-container">
+        <div className="px-4 py-3 border-b">
+          <span className="text-sm font-semibold">Affected Departments</span>
+        </div>
+        {departments.length === 0 ? (
+          <div className="p-12 text-center text-sm text-muted-foreground">No impact data available.</div>
+        ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-secondary">
-                <th className="text-left p-2">Department</th>
-                <th className="text-left p-2">Risk Level</th>
-                <th className="text-left p-2">Impact</th>
+              <tr className="border-b table-header">
+                <th className="text-left px-4 py-2.5">Department</th>
+                <th className="text-left px-4 py-2.5">Risk Level</th>
+                <th className="text-left px-4 py-2.5">Impact</th>
               </tr>
             </thead>
             <tbody>
               {departments.map((d, i) => (
-                <tr key={i} className="border-b hover:bg-accent cursor-pointer">
-                  <td className="p-2 font-semibold">{d.name}</td>
-                  <td className="p-2"><span className="font-semibold" style={{ color: riskColor(d.risk) }}>{d.risk}</span></td>
-                  <td className="p-2">{d.impact}</td>
+                <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <td className="px-4 py-2.5 font-medium">{d.name}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold" style={{ color: riskColor(d.risk), background: riskBg(d.risk) }}>{d.risk}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{d.impact}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

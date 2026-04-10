@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 
 const data = [
   { title: "Master Direction on KYC", source: "RBI", date: "2026-04-08", risk: "High", status: "Active" },
@@ -15,13 +15,22 @@ const data = [
 const riskColor = (r: string) =>
   r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
 
+const riskBg = (r: string) =>
+  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
+
+const statusStyle = (s: string) => {
+  if (s === "Active") return "text-[hsl(var(--risk-low))] bg-[hsl(142_72%_29%_/_0.08)]";
+  if (s === "Pending") return "text-[hsl(var(--risk-medium))] bg-[hsl(38_92%_50%_/_0.08)]";
+  return "text-muted-foreground bg-muted";
+};
+
 const riskOrder: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
 
 type SortKey = "title" | "date" | "risk";
 type SortDir = "asc" | "desc";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }) {
-  if (sortKey !== col) return null;
+  if (sortKey !== col) return <ChevronsUpDown className="inline h-3 w-3 ml-1 opacity-30" />;
   return sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 ml-1" /> : <ArrowDown className="inline h-3 w-3 ml-1" />;
 }
 
@@ -53,38 +62,56 @@ export default function Regulations() {
   }, [source, risk, sortKey, sortDir]);
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Regulations</h1>
-      <div className="flex gap-4 mb-4">
-        <select className="border px-2 py-1 text-sm bg-background" value={source} onChange={(e) => setSource(e.target.value)}>
-          <option>All</option><option>RBI</option><option>SEBI</option><option>MCA</option>
-        </select>
-        <select className="border px-2 py-1 text-sm bg-background" value={risk} onChange={(e) => setRisk(e.target.value)}>
-          <option>All</option><option>High</option><option>Medium</option><option>Low</option>
-        </select>
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">Regulations</h1>
+        <p className="page-subtitle mt-0.5">Browse and filter regulatory updates</p>
       </div>
-      <div className="border" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
+
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source</label>
+          <select className="border px-2.5 py-1.5 text-sm bg-card" value={source} onChange={(e) => setSource(e.target.value)}>
+            <option>All</option><option>RBI</option><option>SEBI</option><option>MCA</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Risk</label>
+          <select className="border px-2.5 py-1.5 text-sm bg-card" value={risk} onChange={(e) => setRisk(e.target.value)}>
+            <option>All</option><option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+        <span className="text-xs text-muted-foreground ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      <div className="section-container">
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">No regulations found for selected filters.</div>
+          <div className="p-12 text-center">
+            <p className="text-sm text-muted-foreground">No regulations found for selected filters.</p>
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-secondary">
-                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("title")}>Title<SortIcon col="title" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left p-2">Source</th>
-                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("date")}>Date<SortIcon col="date" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("risk")}>Risk<SortIcon col="risk" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left p-2">Status</th>
+              <tr className="border-b table-header">
+                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("title")}>Title<SortIcon col="title" sortKey={sortKey} sortDir={sortDir} /></th>
+                <th className="text-left px-4 py-2.5">Source</th>
+                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>Date<SortIcon col="date" sortKey={sortKey} sortDir={sortDir} /></th>
+                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("risk")}>Risk<SortIcon col="risk" sortKey={sortKey} sortDir={sortDir} /></th>
+                <th className="text-left px-4 py-2.5">Status</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((d, i) => (
-                <tr key={i} className="border-b hover:bg-accent cursor-pointer">
-                  <td className="p-2">{d.title}</td>
-                  <td className="p-2">{d.source}</td>
-                  <td className="p-2">{d.date}</td>
-                  <td className="p-2"><span className="font-semibold" style={{ color: riskColor(d.risk) }}>{d.risk}</span></td>
-                  <td className="p-2">{d.status}</td>
+                <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <td className="px-4 py-2.5 font-medium">{d.title}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{d.source}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{d.date}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold" style={{ color: riskColor(d.risk), background: riskBg(d.risk) }}>{d.risk}</span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${statusStyle(d.status)}`}>{d.status}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

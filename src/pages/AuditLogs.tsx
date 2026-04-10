@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 
 const logs = [
   { source: "RBI/2026/MD/KYC/04", clause: "Section 3.2", reasoning: "Frequency change detected: biennial → annual for high-risk CDD. Triggers re-assessment of customer review schedules.", timestamp: "2026-04-08 14:23:01" },
@@ -13,7 +13,7 @@ type SortKey = "source" | "timestamp";
 type SortDir = "asc" | "desc";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }) {
-  if (sortKey !== col) return null;
+  if (sortKey !== col) return <ChevronsUpDown className="inline h-3 w-3 ml-1 opacity-30" />;
   return sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 ml-1" /> : <ArrowDown className="inline h-3 w-3 ml-1" />;
 }
 
@@ -35,34 +35,38 @@ export default function AuditLogs() {
   }, [sortKey, sortDir]);
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Audit Logs</h1>
-      {sorted.length === 0 ? (
-        <div className="border p-8 text-center text-sm text-muted-foreground">No audit logs recorded.</div>
-      ) : (
-        <div className="border" style={{ boxShadow: "0 1px 2px 0 rgba(0,0,0,0.03)" }}>
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">Audit Logs</h1>
+        <p className="page-subtitle mt-0.5">AI analysis trail and regulatory reasoning</p>
+      </div>
+
+      <div className="section-container">
+        {sorted.length === 0 ? (
+          <div className="p-12 text-center text-sm text-muted-foreground">No audit logs recorded.</div>
+        ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-secondary">
-                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("source")}>Source<SortIcon col="source" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left p-2">Clause</th>
-                <th className="text-left p-2">AI Reasoning</th>
-                <th className="text-left p-2 cursor-pointer select-none" onClick={() => toggleSort("timestamp")}>Timestamp<SortIcon col="timestamp" sortKey={sortKey} sortDir={sortDir} /></th>
+              <tr className="border-b table-header">
+                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("source")}>Source<SortIcon col="source" sortKey={sortKey} sortDir={sortDir} /></th>
+                <th className="text-left px-4 py-2.5">Clause</th>
+                <th className="text-left px-4 py-2.5">AI Reasoning</th>
+                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("timestamp")}>Timestamp<SortIcon col="timestamp" sortKey={sortKey} sortDir={sortDir} /></th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((l, i) => (
-                <tr key={i} className="border-b hover:bg-accent cursor-pointer">
-                  <td className="p-2 font-mono text-xs">{l.source}</td>
-                  <td className="p-2">{l.clause}</td>
-                  <td className="p-2">{l.reasoning}</td>
-                  <td className="p-2 text-xs whitespace-nowrap">{l.timestamp}</td>
+                <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <td className="px-4 py-2.5 font-mono text-xs font-medium">{l.source}</td>
+                  <td className="px-4 py-2.5 font-medium">{l.clause}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{l.reasoning}</td>
+                  <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{l.timestamp}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

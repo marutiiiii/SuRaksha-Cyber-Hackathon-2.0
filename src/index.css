@@ -4,37 +4,38 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 13%;
+    --background: 0 0% 98%;
+    --foreground: 220 20% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 13%;
+    --card-foreground: 220 20% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 13%;
+    --popover-foreground: 220 20% 14%;
     --primary: 224 76% 33%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 0 0% 13%;
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 20% 96%;
-    --accent-foreground: 0 0% 13%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 14%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 220 14% 93%;
+    --accent-foreground: 220 20% 14%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 20% 84%;
-    --input: 214 20% 84%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 224 76% 33%;
     --radius: 0rem;
     --risk-high: 0 72% 51%;
     --risk-medium: 38 92% 50%;
     --risk-low: 142 72% 29%;
-    --sidebar-background: 0 0% 97%;
-    --sidebar-foreground: 0 0% 13%;
-    --sidebar-primary: 224 76% 33%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 94%;
-    --sidebar-accent-foreground: 0 0% 13%;
-    --sidebar-border: 214 20% 84%;
-    --sidebar-ring: 224 76% 33%;
+    --sidebar-background: 224 76% 33%;
+    --sidebar-foreground: 224 30% 90%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 224 76% 33%;
+    --sidebar-accent: 224 76% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 224 60% 42%;
+    --sidebar-ring: 0 0% 100%;
+    --sidebar-muted: 224 40% 60%;
   }
 }
 
@@ -44,7 +45,26 @@
     border-radius: 0 !important;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: Inter, Arial, system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  .section-container {
+    @apply bg-card border border-border;
+    box-shadow: 0 1px 3px 0 hsl(220 13% 91% / 0.5);
+  }
+  .table-header {
+    @apply bg-muted text-muted-foreground text-xs font-semibold uppercase tracking-wider;
+  }
+  .page-title {
+    @apply text-lg font-semibold text-foreground tracking-tight;
+  }
+  .page-subtitle {
+    @apply text-sm text-muted-foreground;
   }
 }

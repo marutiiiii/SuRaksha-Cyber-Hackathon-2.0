@@ -16,34 +16,66 @@ const newText = [
 ];
 
 const bgColor = (type: string) => {
-  if (type === "added") return "#dcfce7";
-  if (type === "removed") return "#fee2e2";
-  if (type === "modified") return "#fef9c3";
+  if (type === "added") return "hsl(142 72% 29% / 0.08)";
+  if (type === "removed") return "hsl(0 72% 51% / 0.08)";
+  if (type === "modified") return "hsl(38 92% 50% / 0.08)";
+  return "transparent";
+};
+
+const borderColor = (type: string) => {
+  if (type === "added") return "hsl(var(--risk-low))";
+  if (type === "removed") return "hsl(var(--risk-high))";
+  if (type === "modified") return "hsl(var(--risk-medium))";
   return "transparent";
 };
 
 export default function ChangeDetection() {
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Change Detection</h1>
-      <div className="flex gap-2 mb-2 text-xs">
-        <span className="px-2 py-0.5 border" style={{ background: "#dcfce7" }}>Added</span>
-        <span className="px-2 py-0.5 border" style={{ background: "#fee2e2" }}>Removed</span>
-        <span className="px-2 py-0.5 border" style={{ background: "#fef9c3" }}>Modified</span>
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">Change Detection</h1>
+        <p className="page-subtitle mt-0.5">Compare old and new regulatory text side by side</p>
       </div>
-      <div className="grid grid-cols-2 border">
+
+      <div className="flex gap-3 text-xs">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 border" style={{ background: "hsl(142 72% 29% / 0.08)", borderColor: "hsl(var(--risk-low))" }}>
+          <span className="w-2 h-2" style={{ background: "hsl(var(--risk-low))" }} />Added
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 border" style={{ background: "hsl(0 72% 51% / 0.08)", borderColor: "hsl(var(--risk-high))" }}>
+          <span className="w-2 h-2" style={{ background: "hsl(var(--risk-high))" }} />Removed
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 border" style={{ background: "hsl(38 92% 50% / 0.08)", borderColor: "hsl(var(--risk-medium))" }}>
+          <span className="w-2 h-2" style={{ background: "hsl(var(--risk-medium))" }} />Modified
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 section-container">
         <div className="border-r">
-          <div className="p-2 bg-secondary border-b font-semibold text-sm">Old Version</div>
+          <div className="px-4 py-2.5 border-b table-header">Old Version</div>
           {oldText.map((line, i) => (
-            <div key={i} className="p-2 border-b text-sm" style={{ background: bgColor(line.type) }}>
+            <div
+              key={i}
+              className="px-4 py-3 border-b last:border-0 text-sm leading-relaxed"
+              style={{
+                background: bgColor(line.type),
+                borderLeft: line.type !== "unchanged" ? `3px solid ${borderColor(line.type)}` : "3px solid transparent",
+              }}
+            >
               {line.text}
             </div>
           ))}
         </div>
         <div>
-          <div className="p-2 bg-secondary border-b font-semibold text-sm">New Version</div>
+          <div className="px-4 py-2.5 border-b table-header">New Version</div>
           {newText.map((line, i) => (
-            <div key={i} className="p-2 border-b text-sm" style={{ background: bgColor(line.type) }}>
+            <div
+              key={i}
+              className="px-4 py-3 border-b last:border-0 text-sm leading-relaxed"
+              style={{
+                background: bgColor(line.type),
+                borderLeft: line.type !== "unchanged" ? `3px solid ${borderColor(line.type)}` : "3px solid transparent",
+              }}
+            >
               {line.text}
             </div>
           ))}
