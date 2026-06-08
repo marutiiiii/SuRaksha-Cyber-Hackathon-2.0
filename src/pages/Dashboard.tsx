@@ -1,145 +1,157 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, TrendingUp, Clock, FileBarChart } from "lucide-react";
+import { AlertTriangle, BookOpen, KanbanSquare, ShieldCheck, Activity, Lightbulb } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import KpiCard from "@/components/shared/KpiCard";
+import { RiskBadge } from "@/components/shared/Badges";
+import { BeginnerHint } from "@/components/shared/States";
+import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
+import { regulations, maps, audits, insights, complianceTrend, mapProgress } from "@/mocks";
 
-const stats = [
-  { label: "Total Regulations", value: "1,284", icon: TrendingUp },
-  { label: "High Risk Alerts", value: "23", icon: AlertTriangle, accent: true },
-  { label: "Pending Actions", value: "47", icon: Clock, warning: true },
-  { label: "Reports Generated", value: "156", icon: FileBarChart },
+const riskDist = [
+  { name: "High", value: regulations.filter((r) => r.risk === "High").length, color: "hsl(var(--risk-high))" },
+  { name: "Medium", value: regulations.filter((r) => r.risk === "Medium").length, color: "hsl(var(--risk-medium))" },
+  { name: "Low", value: regulations.filter((r) => r.risk === "Low").length, color: "hsl(var(--risk-low))" },
 ];
 
-const chartData = [
-  { month: "Jan", count: 42 },
-  { month: "Feb", count: 38 },
-  { month: "Mar", count: 55 },
-  { month: "Apr", count: 47 },
-  { month: "May", count: 62 },
-  { month: "Jun", count: 51 },
-];
-
-const recentUpdates = [
-  { title: "RBI Master Direction on KYC", source: "RBI", date: "2026-04-08", risk: "High" },
-  { title: "SEBI Circular on Insider Trading", source: "SEBI", date: "2026-04-07", risk: "Medium" },
-  { title: "MCA Amendment to Companies Act", source: "MCA", date: "2026-04-06", risk: "Low" },
-  { title: "RBI Guidelines on Digital Lending", source: "RBI", date: "2026-04-05", risk: "High" },
-  { title: "SEBI LODR Amendment", source: "SEBI", date: "2026-04-04", risk: "Medium" },
-];
-
-const riskColor = (r: string) =>
-  r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
-
-const riskBg = (r: string) =>
-  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
+const tooltipStyle = {
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: 6,
+  fontSize: 12,
+};
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const nav = useNavigate();
+  const isBeginner = useIsBeginner();
+  const isExpert = useIsExpert();
+  const healthScore = Math.round(audits.reduce((a, d) => a + d.readinessScore, 0) / audits.length);
+  const highRiskAlerts = regulations.filter((r) => r.risk === "High").length;
+  const pendingMaps = maps.filter((m) => m.status !== "Completed").length;
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle mt-0.5">Compliance overview and recent activity</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Executive Dashboard"
+        subtitle="Compliance posture across regulations, action points, and audit readiness"
+      />
 
-      {/* High Priority Action */}
-      <div className="section-container border-l-4" style={{ borderLeftColor: "hsl(var(--risk-high))" }}>
-        <div className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-4 w-4" style={{ color: "hsl(var(--risk-high))" }} />
-            <span className="text-sm font-semibold" style={{ color: "hsl(var(--risk-high))" }}>High Priority Action Required</span>
+      {isBeginner && (
+        <BeginnerHint>
+          This is the executive overview. Each card below shows a key compliance metric. Click any card
+          to drill into details. Switch to Expert mode in the top bar for a denser layout.
+        </BeginnerHint>
+      )}
+
+      <div className="section-container border-l-4 p-4" style={{ borderLeftColor: "hsl(var(--destructive))" }}>
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive" />
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-destructive">High Priority Action Required</div>
+            <div className="text-sm mt-1">
+              CERT-In CVE-2026-3344 patch window closes in 4 days. 12 nodes still unpatched.
+            </div>
           </div>
-          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-            <span className="text-muted-foreground font-medium">Regulation</span>
-            <span>RBI Master Direction on KYC — Annual review now mandatory for high-risk customers</span>
-            <span className="text-muted-foreground font-medium">Impact</span>
-            <span><span className="font-semibold" style={{ color: "hsl(var(--risk-high))" }}>HIGH</span> — Affects Compliance, Operations, Risk Management</span>
-            <span className="text-muted-foreground font-medium">Action</span>
-            <span>Update onboarding verification rules and KYC review schedule immediately. <span className="text-muted-foreground">Deadline: 2026-05-15</span></span>
-          </div>
+          <button onClick={() => nav("/maps")} className="bg-destructive text-destructive-foreground px-3 py-1.5 text-xs font-medium rounded hover:opacity-90">
+            View MAPs
+          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="section-container p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{s.label}</span>
-              <s.icon className="h-4 w-4 text-muted-foreground/50" />
-            </div>
-            <div className={`text-2xl font-bold ${s.accent ? 'text-destructive' : s.warning ? 'text-[hsl(var(--risk-medium))]' : 'text-foreground'}`}>
-              {s.value}
-            </div>
-          </div>
-        ))}
+      <div className={`grid gap-3 ${isExpert ? "grid-cols-3 lg:grid-cols-6" : "grid-cols-2 lg:grid-cols-3"}`}>
+        <KpiCard label="Compliance Health" value={`${healthScore}%`} tone="success" icon={<Activity className="h-4 w-4" />} delta="+6 vs. last month" />
+        <KpiCard label="Active Regulations" value={regulations.length} icon={<BookOpen className="h-4 w-4" />} delta="3 new this week" />
+        <KpiCard label="Pending MAPs" value={pendingMaps} tone="warning" icon={<KanbanSquare className="h-4 w-4" />} />
+        <KpiCard label="High-Risk Alerts" value={highRiskAlerts} tone="danger" icon={<AlertTriangle className="h-4 w-4" />} />
+        <KpiCard label="Audit Readiness" value={`${healthScore}%`} tone="info" icon={<ShieldCheck className="h-4 w-4" />} />
+        <KpiCard label="Department Exposure" value={audits.filter((a) => a.risk !== "Low").length} tone="warning" delta="2 high-risk" />
       </div>
 
-      {/* Chart + Advisory */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="section-container p-4 lg:col-span-2">
+          <div className="text-sm font-semibold mb-3">Compliance trend</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={complianceTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <YAxis domain={[70, 100]} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
         <div className="section-container p-4">
-          <div className="text-sm font-semibold mb-3">Regulations by Month</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 13% 91%)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{
-                  border: "1px solid hsl(220 13% 91%)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                  fontSize: 12,
-                  borderRadius: 0,
-                }}
-              />
-              <Bar dataKey="count" fill="hsl(224,76%,33%)" />
+          <div className="text-sm font-semibold mb-3">Risk distribution</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={riskDist} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75}>
+                {riskDist.map((d) => <Cell key={d.name} fill={d.color} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="section-container p-4 lg:col-span-2">
+          <div className="text-sm font-semibold mb-3">MAP progress (last 4 weeks)</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={mapProgress}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="week" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="completed" stackId="a" fill="hsl(var(--success))" />
+              <Bar dataKey="inProgress" stackId="a" fill="hsl(var(--info))" />
+              <Bar dataKey="pending" stackId="a" fill="hsl(var(--warning))" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="section-container p-4">
-          <div className="text-sm font-semibold mb-3">Recommended Actions</div>
-          <div className="space-y-2.5">
-            {[
-              "Review 23 high-risk alerts requiring immediate attention",
-              "Complete 12 pending impact assessments before deadline",
-              "Update company profile for Q2 compliance mapping",
-              "Generate monthly compliance report for management",
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                <span className="text-muted-foreground font-mono text-xs mt-0.5">{String(i + 1).padStart(2, '0')}</span>
-                <span>{item}</span>
+          <div className="flex items-center gap-2 text-sm font-semibold mb-3">
+            <Lightbulb className="h-4 w-4 text-primary" /> Executive insights
+          </div>
+          <div className="space-y-3">
+            {insights.map((i) => (
+              <div key={i.title} className="border-l-2 pl-3" style={{ borderLeftColor: i.severity === "High" ? "hsl(var(--destructive))" : i.severity === "Medium" ? "hsl(var(--warning))" : "hsl(var(--success))" }}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-sm font-medium">{i.title}</span>
+                  <RiskBadge risk={i.severity} />
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{i.description}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Recent Updates */}
       <div className="section-container">
-        <div className="px-4 py-3 border-b">
-          <span className="text-sm font-semibold">Recent Updates</span>
+        <div className="px-4 py-3 border-b text-sm font-semibold flex items-center justify-between">
+          Recent regulations
+          <button onClick={() => nav("/regulations")} className="text-xs text-primary hover:underline">View all</button>
         </div>
-        <table className="w-full text-sm">
+        <table className="data-table">
           <thead>
-            <tr className="border-b table-header">
-              <th className="text-left px-4 py-2.5">Title</th>
-              <th className="text-left px-4 py-2.5">Source</th>
-              <th className="text-left px-4 py-2.5">Date</th>
-              <th className="text-left px-4 py-2.5">Risk</th>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Source</th>
+              <th>Published</th>
+              <th>Risk</th>
             </tr>
           </thead>
           <tbody>
-            {recentUpdates.map((u, i) => (
-              <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate("/regulations")}>
-                <td className="px-4 py-2.5 font-medium">{u.title}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{u.source}</td>
-                <td className="px-4 py-2.5 text-muted-foreground">{u.date}</td>
-                <td className="px-4 py-2.5">
-                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold" style={{ color: riskColor(u.risk), background: riskBg(u.risk) }}>
-                    {u.risk}
-                  </span>
-                </td>
+            {regulations.slice(0, 5).map((r) => (
+              <tr key={r.id} className="cursor-pointer" onClick={() => nav("/regulations")}>
+                <td className="font-mono text-xs">{r.id}</td>
+                <td className="font-medium">{r.title}</td>
+                <td className="text-muted-foreground">{r.source}</td>
+                <td className="text-muted-foreground">{r.publishedDate}</td>
+                <td><RiskBadge risk={r.risk} /></td>
               </tr>
             ))}
           </tbody>

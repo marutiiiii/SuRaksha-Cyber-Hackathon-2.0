@@ -1,123 +1,177 @@
-import { useState, useMemo } from "react";
-import { ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
-
-const data = [
-  { title: "Master Direction on KYC", source: "RBI", date: "2026-04-08", risk: "High", status: "Active" },
-  { title: "Circular on Insider Trading", source: "SEBI", date: "2026-04-07", risk: "Medium", status: "Under Review" },
-  { title: "Amendment to Companies Act", source: "MCA", date: "2026-04-06", risk: "Low", status: "Active" },
-  { title: "Digital Lending Guidelines", source: "RBI", date: "2026-04-05", risk: "High", status: "Pending" },
-  { title: "LODR Amendment", source: "SEBI", date: "2026-04-04", risk: "Medium", status: "Active" },
-  { title: "CSR Spending Rules", source: "MCA", date: "2026-04-03", risk: "Low", status: "Active" },
-  { title: "NPA Classification Norms", source: "RBI", date: "2026-04-02", risk: "High", status: "Under Review" },
-  { title: "Mutual Fund Regulations", source: "SEBI", date: "2026-04-01", risk: "Low", status: "Active" },
-];
-
-const riskColor = (r: string) =>
-  r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
-
-const riskBg = (r: string) =>
-  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
-
-const statusStyle = (s: string) => {
-  if (s === "Active") return "text-[hsl(var(--risk-low))] bg-[hsl(142_72%_29%_/_0.08)]";
-  if (s === "Pending") return "text-[hsl(var(--risk-medium))] bg-[hsl(38_92%_50%_/_0.08)]";
-  return "text-muted-foreground bg-muted";
-};
-
-const riskOrder: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
-
-type SortKey = "title" | "date" | "risk";
-type SortDir = "asc" | "desc";
-
-function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: SortDir }) {
-  if (sortKey !== col) return <ChevronsUpDown className="inline h-3 w-3 ml-1 opacity-30" />;
-  return sortDir === "asc" ? <ArrowUp className="inline h-3 w-3 ml-1" /> : <ArrowDown className="inline h-3 w-3 ml-1" />;
-}
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
+import { RiskBadge, StatusBadge } from "@/components/shared/Badges";
+import { EmptyState, BeginnerHint } from "@/components/shared/States";
+import Drawer from "@/components/shared/Drawer";
+import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
+import { regulations, regSources, Regulation } from "@/mocks";
 
 export default function Regulations() {
+  const isBeginner = useIsBeginner();
+  const isExpert = useIsExpert();
   const [source, setSource] = useState("All");
   const [risk, setRisk] = useState("All");
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState<Regulation | null>(null);
 
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortKey(key); setSortDir("asc"); }
-  };
-
-  const filtered = useMemo(() => {
-    let result = data.filter(
-      (d) => (source === "All" || d.source === source) && (risk === "All" || d.risk === risk)
-    );
-    if (sortKey) {
-      result = [...result].sort((a, b) => {
-        let cmp = 0;
-        if (sortKey === "title") cmp = a.title.localeCompare(b.title);
-        else if (sortKey === "date") cmp = a.date.localeCompare(b.date);
-        else if (sortKey === "risk") cmp = riskOrder[a.risk] - riskOrder[b.risk];
-        return sortDir === "asc" ? cmp : -cmp;
-      });
-    }
-    return result;
-  }, [source, risk, sortKey, sortDir]);
+  const filtered = useMemo(
+    () =>
+      regulations.filter(
+        (r) =>
+          (source === "All" || r.source === source) &&
+          (risk === "All" || r.risk === risk) &&
+          (query === "" || r.title.toLowerCase().includes(query.toLowerCase()) || r.id.toLowerCase().includes(query.toLowerCase()))
+      ),
+    [source, risk, query]
+  );
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="page-title">Regulations</h1>
-        <p className="page-subtitle mt-0.5">Browse and filter regulatory updates</p>
+    <div className="space-y-6">
+      <PageHeader title="Regulatory Intelligence Center" subtitle="Live feed of regulations across sources with risk-scored prioritization" />
+
+      {isBeginner && (
+        <BeginnerHint>
+          Each card below is a regulatory source. Click a row in the table to see a regulation's executive
+          summary, obligations, and suggested actions.
+        </BeginnerHint>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {regSources.map((s) => (
+          <div key={s.key} className="section-container p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold">{s.key}</span>
+              <StatusBadge status={s.status} />
+            </div>
+            <div className="text-xs text-muted-foreground mb-2 line-clamp-1">{s.name}</div>
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-2xl font-semibold">{s.activeCount}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Active</div>
+              </div>
+              <RiskBadge risk={s.risk} />
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-2">Updated {s.latestUpdate}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Source</label>
-          <select className="border px-2.5 py-1.5 text-sm bg-card" value={source} onChange={(e) => setSource(e.target.value)}>
-            <option>All</option><option>RBI</option><option>SEBI</option><option>MCA</option>
-          </select>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 border border-border rounded-md px-3 h-9">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by title or ID..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="bg-transparent border-0 text-sm focus:outline-none w-64"
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Risk</label>
-          <select className="border px-2.5 py-1.5 text-sm bg-card" value={risk} onChange={(e) => setRisk(e.target.value)}>
-            <option>All</option><option>High</option><option>Medium</option><option>Low</option>
-          </select>
-        </div>
-        <span className="text-xs text-muted-foreground ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+        <select className="border border-border rounded-md px-2.5 h-9 text-sm bg-card" value={source} onChange={(e) => setSource(e.target.value)}>
+          <option>All</option><option>RBI</option><option>SEBI</option><option>NPCI</option><option>CERT-In</option><option>Internal</option>
+        </select>
+        <select className="border border-border rounded-md px-2.5 h-9 text-sm bg-card" value={risk} onChange={(e) => setRisk(e.target.value)}>
+          <option>All</option><option>High</option><option>Medium</option><option>Low</option>
+        </select>
+        <span className="text-xs text-muted-foreground ml-auto">{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
       <div className="section-container">
         {filtered.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-sm text-muted-foreground">No regulations found for selected filters.</p>
-          </div>
+          <EmptyState title="No regulations found" description="Try clearing filters or adjusting your search." />
         ) : (
-          <table className="w-full text-sm">
+          <table className="data-table">
             <thead>
-              <tr className="border-b table-header">
-                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("title")}>Title<SortIcon col="title" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left px-4 py-2.5">Source</th>
-                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("date")}>Date<SortIcon col="date" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort("risk")}>Risk<SortIcon col="risk" sortKey={sortKey} sortDir={sortDir} /></th>
-                <th className="text-left px-4 py-2.5">Status</th>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Source</th>
+                <th>Published</th>
+                <th>Risk Score</th>
+                <th>Status</th>
+                {isExpert && <th>Departments</th>}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((d, i) => (
-                <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
-                  <td className="px-4 py-2.5 font-medium">{d.title}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{d.source}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{d.date}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold" style={{ color: riskColor(d.risk), background: riskBg(d.risk) }}>{d.risk}</span>
+              {filtered.map((r) => (
+                <tr key={r.id} className="cursor-pointer" onClick={() => setOpen(r)}>
+                  <td className="font-mono text-xs">{r.id}</td>
+                  <td className="font-medium">{r.title}</td>
+                  <td className="text-muted-foreground">{r.source}</td>
+                  <td className="text-muted-foreground">{r.publishedDate}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span className="tabular-nums font-semibold w-8">{r.riskScore}</span>
+                      <RiskBadge risk={r.risk} />
+                    </div>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium ${statusStyle(d.status)}`}>{d.status}</span>
-                  </td>
+                  <td><StatusBadge status={r.status} /></td>
+                  {isExpert && (
+                    <td className="text-xs text-muted-foreground">{r.impactedDepartments.join(", ")}</td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      <Drawer open={!!open} onClose={() => setOpen(null)} title={open?.title} width="max-w-2xl">
+        {open && (
+          <div className="space-y-5 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs">{open.id}</span>
+              <RiskBadge risk={open.risk} />
+              <StatusBadge status={open.status} />
+              <span className="ml-auto text-xs text-muted-foreground">Published {open.publishedDate}</span>
+            </div>
+            <Section title="Executive Summary"><p>{open.summary}</p></Section>
+            <Section title="Key Obligations">
+              <ul className="list-disc ml-5 space-y-1 text-muted-foreground">
+                {open.obligations.map((o) => <li key={o}>{o}</li>)}
+              </ul>
+            </Section>
+            <Section title="Risk Assessment">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl font-semibold">{open.riskScore}</div>
+                <div className="flex-1 h-2 bg-muted rounded">
+                  <div className="h-full rounded" style={{ width: `${open.riskScore}%`, background: "hsl(var(--primary))" }} />
+                </div>
+                <RiskBadge risk={open.risk} />
+              </div>
+            </Section>
+            <Section title="Affected Departments">
+              <div className="flex flex-wrap gap-1.5">
+                {open.impactedDepartments.map((d) => (
+                  <span key={d} className="text-xs border border-border rounded px-2 py-0.5">{d}</span>
+                ))}
+              </div>
+            </Section>
+            <Section title="Suggested Actions">
+              <ul className="list-decimal ml-5 space-y-1 text-muted-foreground">
+                {open.suggestedActions.map((a) => <li key={a}>{a}</li>)}
+              </ul>
+            </Section>
+            {open.related.length > 0 && (
+              <Section title="Related">
+                <div className="flex flex-wrap gap-1.5">
+                  {open.related.map((r) => <span key={r} className="text-xs font-mono border border-border rounded px-2 py-0.5">{r}</span>)}
+                </div>
+              </Section>
+            )}
+          </div>
+        )}
+      </Drawer>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{title}</div>
+      {children}
     </div>
   );
 }

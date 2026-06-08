@@ -1,75 +1,108 @@
-const departments = [
-  { name: "Compliance", risk: "High", impact: "Direct regulatory obligation — must update KYC procedures within 30 days." },
-  { name: "Operations", risk: "Medium", impact: "Process changes required for V-CIP implementation and quarterly reporting." },
-  { name: "IT / Technology", risk: "Medium", impact: "System updates needed for digital KYC integration and automated reporting." },
-  { name: "Legal", risk: "Low", impact: "Review updated penalty provisions and ensure contractual compliance." },
-  { name: "Risk Management", risk: "High", impact: "Re-assess customer risk categorization framework per new annual review requirements." },
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import PageHeader from "@/components/shared/PageHeader";
+import KpiCard from "@/components/shared/KpiCard";
+import { RiskBadge } from "@/components/shared/Badges";
+import { BeginnerHint } from "@/components/shared/States";
+import { useIsBeginner } from "@/state/CopilotContext";
+
+const matrix = [
+  { department: "Compliance", impact: 92, risk: "High", priority: "P1", action: "Update KYC procedures within 30 days" },
+  { department: "Legal", impact: 58, risk: "Medium", priority: "P2", action: "Re-paper FLDG contracts with LSPs" },
+  { department: "Operations", impact: 71, risk: "Medium", priority: "P2", action: "Roll out V-CIP as preferred onboarding" },
+  { department: "IT", impact: 65, risk: "Medium", priority: "P2", action: "Build DLA quarterly reporting pipeline" },
+  { department: "Cybersecurity", impact: 88, risk: "High", priority: "P1", action: "Patch CVE-2026-3344 across CBS nodes" },
+  { department: "Audit", impact: 34, risk: "Low", priority: "P3", action: "Refresh audit evidence repository" },
 ];
 
-const riskColor = (r: string) =>
-  r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
+const riskDist = [
+  { name: "Low", value: matrix.filter((m) => m.risk === "Low").length, color: "hsl(var(--success))" },
+  { name: "Medium", value: matrix.filter((m) => m.risk === "Medium").length, color: "hsl(var(--warning))" },
+  { name: "High", value: matrix.filter((m) => m.risk === "High").length, color: "hsl(var(--destructive))" },
+];
 
-const riskBg = (r: string) =>
-  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
+const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 };
 
 export default function ImpactAnalysis() {
+  const isBeginner = useIsBeginner();
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="page-title">Impact Analysis</h1>
-        <p className="page-subtitle mt-0.5">Assess regulatory impact across departments</p>
+    <div className="space-y-6">
+      <PageHeader title="Impact Analysis Center" subtitle="Cross-departmental impact assessment with risk-weighted prioritization" />
+
+      {isBeginner && (
+        <BeginnerHint>
+          The matrix below shows how new regulations affect each department. Higher impact scores mean
+          more work is needed; P1 items should be addressed first.
+        </BeginnerHint>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard label="Operational Impact" value="High" tone="danger" />
+        <KpiCard label="Financial Exposure" value="₹12.5L" tone="warning" delta="estimated remediation" />
+        <KpiCard label="Regulatory Risk" value="2 P1" tone="danger" />
+        <KpiCard label="Audit Readiness" value="83%" tone="info" delta="+5 vs. last cycle" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="section-container p-4">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Overall Impact Summary</div>
-          <p className="text-sm leading-relaxed">
-            The revised RBI Master Direction on KYC introduces significant changes to customer due diligence requirements.
-            High-risk customer reviews shift from biennial to annual frequency. V-CIP becomes the preferred verification method.
-            New quarterly reporting obligations are introduced. Estimated implementation timeline: 60–90 days.
-          </p>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="section-container p-4 lg:col-span-2">
+          <div className="text-sm font-semibold mb-3">Department impact scores</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={matrix} layout="vertical" margin={{ left: 24 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <YAxis dataKey="department" type="category" tick={{ fontSize: 11 }} width={100} stroke="hsl(var(--muted-foreground))" />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="impact" radius={[0, 4, 4, 0]}>
+                {matrix.map((m, i) => (
+                  <Cell key={i} fill={m.risk === "High" ? "hsl(var(--destructive))" : m.risk === "Medium" ? "hsl(var(--warning))" : "hsl(var(--success))"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-
         <div className="section-container p-4">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Confidence Score</div>
-          <div className="flex items-end gap-3 mb-2">
-            <span className="text-3xl font-bold text-foreground">87%</span>
-            <span className="text-xs text-muted-foreground mb-1">analysis confidence</span>
-          </div>
-          <div className="w-full bg-muted h-2 relative">
-            <div className="h-full bg-primary" style={{ width: "87%" }} />
-          </div>
+          <div className="text-sm font-semibold mb-3">Risk distribution</div>
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Pie data={riskDist} dataKey="value" nameKey="name" innerRadius={40} outerRadius={75} label={{ fontSize: 11 }}>
+                {riskDist.map((d) => <Cell key={d.name} fill={d.color} />)}
+              </Pie>
+              <Tooltip contentStyle={tooltipStyle} />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
       <div className="section-container">
-        <div className="px-4 py-3 border-b">
-          <span className="text-sm font-semibold">Affected Departments</span>
-        </div>
-        {departments.length === 0 ? (
-          <div className="p-12 text-center text-sm text-muted-foreground">No impact data available.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b table-header">
-                <th className="text-left px-4 py-2.5">Department</th>
-                <th className="text-left px-4 py-2.5">Risk Level</th>
-                <th className="text-left px-4 py-2.5">Impact</th>
+        <div className="px-4 py-3 border-b text-sm font-semibold">Department impact matrix</div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Impact Score</th>
+              <th>Risk</th>
+              <th>Priority</th>
+              <th>Recommended Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matrix.map((m) => (
+              <tr key={m.department}>
+                <td className="font-medium">{m.department}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-1.5 bg-muted rounded overflow-hidden">
+                      <div className="h-full" style={{ width: `${m.impact}%`, background: m.risk === "High" ? "hsl(var(--destructive))" : m.risk === "Medium" ? "hsl(var(--warning))" : "hsl(var(--success))" }} />
+                    </div>
+                    <span className="text-xs tabular-nums">{m.impact}</span>
+                  </div>
+                </td>
+                <td><RiskBadge risk={m.risk} /></td>
+                <td><span className="font-mono text-xs font-semibold">{m.priority}</span></td>
+                <td className="text-muted-foreground">{m.action}</td>
               </tr>
-            </thead>
-            <tbody>
-              {departments.map((d, i) => (
-                <tr key={i} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors">
-                  <td className="px-4 py-2.5 font-medium">{d.name}</td>
-                  <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold" style={{ color: riskColor(d.risk), background: riskBg(d.risk) }}>{d.risk}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{d.impact}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
