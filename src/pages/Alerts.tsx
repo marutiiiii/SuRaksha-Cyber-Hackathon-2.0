@@ -1,52 +1,37 @@
-const alerts = [
-  { message: "RBI KYC Master Direction amended — annual review now required for high-risk customers", time: "2 hours ago", risk: "High" },
-  { message: "SEBI Insider Trading circular updated — new compliance window definitions", time: "5 hours ago", risk: "Medium" },
-  { message: "MCA Companies Act Section 135 CSR threshold revised", time: "1 day ago", risk: "Low" },
-  { message: "RBI Digital Lending guidelines — new disclosure requirements effective immediately", time: "1 day ago", risk: "High" },
-  { message: "SEBI LODR Regulation 30 — materiality threshold updated", time: "2 days ago", risk: "Medium" },
-  { message: "RBI NPA classification norms revised for restructured accounts", time: "3 days ago", risk: "High" },
-  { message: "MCA Annual Return filing deadline extended by 30 days", time: "4 days ago", risk: "Low" },
-];
-
-const riskColor = (r: string) =>
-  r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
-
-const riskBg = (r: string) =>
-  r === "High" ? "hsl(0 72% 51% / 0.08)" : r === "Medium" ? "hsl(38 92% 50% / 0.08)" : "hsl(142 72% 29% / 0.08)";
+import PageHeader from "@/components/shared/PageHeader";
+import { RiskBadge } from "@/components/shared/Badges";
+import { EmptyState } from "@/components/shared/States";
+import { alerts } from "@/mocks";
+import { Bell } from "lucide-react";
 
 const borderLeft = (r: string) =>
-  r === "High" ? "hsl(var(--risk-high))" : r === "Medium" ? "hsl(var(--risk-medium))" : "hsl(var(--risk-low))";
+  r === "High" ? "hsl(var(--destructive))" : r === "Medium" ? "hsl(var(--warning))" : "hsl(var(--success))";
 
 export default function Alerts() {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Alerts</h1>
-          <p className="page-subtitle mt-0.5">{alerts.length} regulatory alerts</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Alerts" subtitle={`${alerts.length} regulatory alerts requiring attention`} />
 
       {alerts.length === 0 ? (
-        <div className="section-container p-12 text-center text-sm text-muted-foreground">No alerts available.</div>
+        <EmptyState title="No alerts" description="You're all caught up." />
       ) : (
         <div className="space-y-2">
-          {alerts.map((a, i) => (
+          {alerts.map((a) => (
             <div
-              key={i}
+              key={a.id}
               className="section-container flex items-start justify-between p-4 border-l-4 hover:bg-muted/30 cursor-pointer transition-colors"
               style={{ borderLeftColor: borderLeft(a.risk) }}
             >
-              <div className="flex-1 min-w-0">
-                <div className="text-sm leading-relaxed">{a.message}</div>
-                <div className="text-xs text-muted-foreground mt-1">{a.time}</div>
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <Bell className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm leading-relaxed">{a.message}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {a.time}{a.regulationId && <> · <span className="font-mono">{a.regulationId}</span></>}
+                  </div>
+                </div>
               </div>
-              <span
-                className="text-xs font-semibold ml-4 px-2 py-0.5 flex-shrink-0"
-                style={{ color: riskColor(a.risk), background: riskBg(a.risk) }}
-              >
-                {a.risk}
-              </span>
+              <RiskBadge risk={a.risk} />
             </div>
           ))}
         </div>
