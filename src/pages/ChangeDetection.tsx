@@ -3,7 +3,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { RiskBadge } from "@/components/shared/Badges";
 import { BeginnerHint } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 
 const oldText = [
   { type: "unchanged", text: "Section 3.1: All regulated entities must maintain KYC records for a minimum period of 5 years." },
@@ -63,6 +63,19 @@ export default function ChangeDetection() {
           rows show changes — green is added, red is removed, amber is modified.
         </BeginnerHint>
       )}
+
+      <div className="section-container border-l-4 p-4 flex items-start gap-3" style={{ borderLeftColor: "hsl(var(--destructive))" }}>
+        <AlertTriangle className="h-5 w-5 mt-0.5 text-[hsl(var(--destructive))]" />
+        <div className="flex-1">
+          <div className="text-sm font-semibold">Executive summary</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            <span className="font-semibold text-foreground">{totalChanges} clause changes detected</span> across this regulation update —
+            <span className="text-[hsl(var(--destructive))] font-semibold"> {highRisk} high risk</span>,
+            impacting <span className="font-semibold text-foreground">4 departments</span>.
+            Audit exposure: <span className="text-[hsl(var(--warning))] font-semibold">Medium</span>.
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KPI label="Total Changes" value={totalChanges} />

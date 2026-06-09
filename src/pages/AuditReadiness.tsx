@@ -1,7 +1,7 @@
 import PageHeader from "@/components/shared/PageHeader";
 import KpiCard from "@/components/shared/KpiCard";
 import { RiskBadge } from "@/components/shared/Badges";
-import { audits } from "@/mocks";
+import { audits, findingsHeatmap } from "@/mocks";
 import { ShieldCheck, ShieldAlert, ShieldX, FileWarning } from "lucide-react";
 
 const HEALTH = Math.round(audits.reduce((a, d) => a + d.readinessScore, 0) / audits.length);
@@ -47,7 +47,8 @@ export default function AuditReadiness() {
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="section-container p-6 flex flex-col items-center justify-center text-center">
           <CircleScore score={HEALTH} />
-          <div className="text-sm font-semibold mt-3">Overall audit readiness</div>
+          <div className="text-sm font-semibold mt-3">Audit Ready</div>
+          <div className="text-[11px] text-[hsl(var(--success))] font-semibold mt-0.5">+6 vs last review</div>
           <div className="text-xs text-muted-foreground">Aggregated across {audits.length} departments</div>
         </div>
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
@@ -59,12 +60,18 @@ export default function AuditReadiness() {
       </div>
 
       <div className="section-container">
-        <div className="px-4 py-3 border-b text-sm font-semibold">Department readiness</div>
+        <div className="px-4 py-3 border-b text-sm font-semibold flex items-center justify-between">
+          <span>Department readiness ranking</span>
+          <span className="text-[11px] font-normal text-muted-foreground">Highest → Lowest</span>
+        </div>
         <div className="p-4 space-y-3">
-          {audits.map((d) => (
+          {[...audits].sort((a, b) => b.readinessScore - a.readinessScore).map((d, i) => (
             <div key={d.department}>
               <div className="flex items-center justify-between text-sm mb-1">
-                <span className="font-medium">{d.department}</span>
+                <span className="font-medium flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-muted-foreground w-5 text-right">#{i + 1}</span>
+                  {d.department}
+                </span>
                 <div className="flex items-center gap-2">
                   <RiskBadge risk={d.risk} />
                   <span className="text-muted-foreground tabular-nums w-10 text-right">{d.readinessScore}%</span>
@@ -81,6 +88,57 @@ export default function AuditReadiness() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="section-container">
+        <div className="px-4 py-3 border-b text-sm font-semibold flex items-center justify-between">
+          <span>Findings heatmap</span>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[hsl(var(--destructive))]" /> Critical</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[hsl(var(--warning))]" /> High</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-[hsl(var(--info))]" /> Medium</span>
+          </div>
+        </div>
+        <div className="p-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="text-left py-1 font-semibold">Department</th>
+                <th className="font-semibold">Critical</th>
+                <th className="font-semibold">High</th>
+                <th className="font-semibold">Medium</th>
+                <th className="font-semibold">Evidence Gaps</th>
+              </tr>
+            </thead>
+            <tbody>
+              {findingsHeatmap.map((d) => {
+                const cell = (v: number, c: string) => (
+                  <td className="p-1">
+                    <div
+                      className="h-9 flex items-center justify-center text-xs font-semibold rounded"
+                      style={{
+                        background: v === 0 ? "hsl(var(--muted))" : `hsl(var(${c}) / ${0.15 + Math.min(v, 5) * 0.12})`,
+                        color: v === 0 ? "hsl(var(--muted-foreground))" : `hsl(var(${c}))`,
+                      }}
+                    >
+                      {v}
+                    </div>
+                  </td>
+                );
+                const audit = audits.find((a) => a.department === d.department);
+                return (
+                  <tr key={d.department}>
+                    <td className="font-medium py-1 pr-2 whitespace-nowrap">{d.department}</td>
+                    {cell(d.critical, "--destructive")}
+                    {cell(d.high, "--warning")}
+                    {cell(d.medium, "--info")}
+                    {cell(audit?.missingEvidence || 0, "--destructive")}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

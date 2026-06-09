@@ -4,7 +4,7 @@ import { RiskBadge } from "@/components/shared/Badges";
 import { BeginnerHint, EmptyState } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
 import { clauseChanges } from "@/mocks";
-import { Upload, FileText, CheckCircle2, Loader2, Circle } from "lucide-react";
+import { Upload, FileText, CheckCircle2, Loader2, Circle, FileUp } from "lucide-react";
 
 const STAGES = [
   "Uploading",
@@ -70,6 +70,12 @@ export default function DocumentAnalysis() {
       ? "border-l-[hsl(var(--destructive))]"
       : "border-l-[hsl(var(--warning))]";
 
+  const added = clauseChanges.filter((c) => c.type === "added").length;
+  const removed = clauseChanges.filter((c) => c.type === "removed").length;
+  const modified = clauseChanges.filter((c) => c.type === "modified").length;
+  const depts = Array.from(new Set(clauseChanges.map((c) => c.department)));
+  const risk = clauseChanges.some((c) => c.severity === "Critical") ? "Critical" : clauseChanges.some((c) => c.severity === "High") ? "High" : "Medium";
+
   return (
     <div className="space-y-6">
       <PageHeader title="Document Analysis Workspace" subtitle="Upload regulatory documents and run an automated diff + impact pipeline" />
@@ -85,10 +91,12 @@ export default function DocumentAnalysis() {
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); onFiles(e.dataTransfer.files); }}
-        className={`section-container p-10 text-center transition-colors ${dragging ? "border-primary bg-accent" : ""}`}
+        className={`section-container p-10 text-center transition-all border-2 border-dashed ${dragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-border hover:border-primary/50 hover:bg-muted/30"}`}
       >
-        <Upload className="h-10 w-10 mx-auto text-muted-foreground/60 mb-3" />
-        <div className="text-base font-medium mb-1">Drag & drop a regulatory document</div>
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3">
+          {dragging ? <FileUp className="h-7 w-7 text-primary" /> : <Upload className="h-7 w-7 text-primary" />}
+        </div>
+        <div className="text-base font-semibold mb-1">{dragging ? "Drop your file here" : "Drag & drop a regulatory document"}</div>
         <div className="text-xs text-muted-foreground mb-4">Accepted: PDF, DOCX · Max 25 MB · Frontend-only simulation</div>
         <button
           onClick={() => inputRef.current?.click()}
@@ -102,15 +110,22 @@ export default function DocumentAnalysis() {
       {stage >= 0 && (
         <div className="section-container p-5">
           <div className="text-sm font-semibold mb-4">Processing pipeline</div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
             {STAGES.map((s, i) => {
               const state = stage > i ? "done" : stage === i ? "active" : "pending";
+              const bg =
+                state === "done" ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.08)]"
+                : state === "active" ? "border-primary bg-primary/10 animate-pulse"
+                : "border-border bg-muted/30";
               return (
-                <div key={s} className="flex items-center gap-3 text-sm">
-                  {state === "done" && <CheckCircle2 className="h-4 w-4 text-[hsl(var(--success))]" />}
-                  {state === "active" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                  {state === "pending" && <Circle className="h-4 w-4 text-muted-foreground/40" />}
-                  <span className={state === "pending" ? "text-muted-foreground" : "font-medium"}>{s}</span>
+                <div key={s} className={`border rounded-md p-2.5 transition-colors ${bg}`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {state === "done" && <CheckCircle2 className="h-3.5 w-3.5 text-[hsl(var(--success))]" />}
+                    {state === "active" && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+                    {state === "pending" && <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />}
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Stage {i + 1}</span>
+                  </div>
+                  <div className={`text-xs ${state === "pending" ? "text-muted-foreground" : "font-medium"}`}>{s}</div>
                 </div>
               );
             })}
@@ -120,6 +135,29 @@ export default function DocumentAnalysis() {
 
       {showResults && (
         <div className="space-y-3">
+          <div className="section-container p-4 grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Added</div>
+              <div className="text-xl font-semibold text-[hsl(var(--success))]">{added}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Removed</div>
+              <div className="text-xl font-semibold text-[hsl(var(--destructive))]">{removed}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Modified</div>
+              <div className="text-xl font-semibold text-[hsl(var(--warning))]">{modified}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Affected Departments</div>
+              <div className="text-xl font-semibold">{depts.length}</div>
+              <div className="text-[10px] text-muted-foreground truncate">{depts.join(", ")}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Overall Risk</div>
+              <div className="text-xl font-semibold text-[hsl(var(--destructive))]">{risk}</div>
+            </div>
+          </div>
           <div className="text-sm font-semibold">Detected clause changes ({clauseChanges.length})</div>
           <div className="grid md:grid-cols-2 gap-3">
             {clauseChanges.map((c) => (
