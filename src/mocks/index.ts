@@ -347,3 +347,101 @@ export const currentUser = {
   department: "Compliance",
   expertiseScore: 78,
 };
+
+// ============== Polish-pass additions ==============
+
+import type { JourneyStep } from "@/components/shared/JourneyTracker";
+
+export const journeySteps: JourneyStep[] = [
+  { label: "Regulation Detected", count: 12, progress: 100, status: "complete" },
+  { label: "Clause Changes Found", count: 47, progress: 100, status: "complete" },
+  { label: "Impact Assessed", count: "8 depts", progress: 100, status: "complete" },
+  { label: "MAPs Generated", count: 9, progress: 78, status: "active" },
+  { label: "Departments Assigned", count: 6, progress: 60, status: "active" },
+  { label: "Audit Ready", count: "84%", progress: 84, status: "pending" },
+];
+
+export const focusToday = {
+  title: "RBI Digital Lending Circular — KYC Workflow Update",
+  regulationId: "RBI-2026-001",
+  risk: "High" as const,
+  modifiedClauses: 4,
+  departments: ["Compliance", "IT", "Operations"],
+  recommendation: "Update KYC verification workflow and re-paper FLDG contracts before deadline.",
+  deadline: "2026-06-15",
+};
+
+export const kpiDetails = {
+  health: {
+    current: 87,
+    previous: 81,
+    target: 95,
+    delta: 6,
+  },
+  auditReadiness: {
+    score: 84,
+    openFindings: 29,
+    missingEvidence: 17,
+    controlsVerified: 142,
+  },
+  activeRegulations: {
+    total: 8,
+    newThisWeek: 3,
+    highRisk: 3,
+  },
+  pendingMaps: {
+    pending: 3,
+    overdue: 1,
+    assigned: 2,
+    completed: 1,
+  },
+};
+
+export interface RecentActivity {
+  id: string;
+  title: string;
+  source: string;
+  changeType: "New" | "Modified" | "Updated" | "Archived";
+  risk: Risk;
+  status: string;
+  time: string;
+}
+
+export const recentActivity: RecentActivity[] = [
+  { id: "RBI-2026-001", title: "Digital Lending Master Direction", source: "RBI", changeType: "Modified", risk: "High", status: "Active", time: "2h ago" },
+  { id: "CERT-2026-006", title: "Critical Java Middleware CVE", source: "CERT-In", changeType: "New", risk: "High", status: "Active", time: "4h ago" },
+  { id: "NPCI-2026-005", title: "UPI Velocity & Risk Controls", source: "NPCI", changeType: "Updated", risk: "Medium", status: "Active", time: "1d ago" },
+  { id: "SEBI-2026-003", title: "LODR Materiality Threshold", source: "SEBI", changeType: "Modified", risk: "Medium", status: "Under Review", time: "2d ago" },
+  { id: "MCA-2026-008", title: "CSR Threshold Revision", source: "Internal", changeType: "Updated", risk: "Low", status: "Active", time: "3d ago" },
+];
+
+export const complianceTimeline: JourneyStep[] = [
+  { label: "Regulation detected — RBI Digital Lending update", count: "2026-05-15", status: "complete" },
+  { label: "Impact analyzed across 4 departments", count: "2026-05-17", status: "complete" },
+  { label: "9 MAPs generated and assigned", count: "2026-05-18", status: "complete" },
+  { label: "Evidence uploaded — 14 of 17 items", count: "in progress", status: "active" },
+  { label: "Audit-ready package finalized", count: "pending", status: "pending" },
+];
+
+export interface ExecInsight {
+  title: string;
+  description: string;
+  severity: Risk;
+  trend?: { value: number; suffix?: string; inverse?: boolean };
+}
+
+export const executiveInsights: ExecInsight[] = [
+  { title: "3 regulations require attention this week", description: "RBI, CERT-In and NPCI changes overlap on KYC and payments. Prioritize Compliance & IT.", severity: "High", trend: { value: 12, suffix: "%" } },
+  { title: "Compliance readiness improved by 6%", description: "Driven by faster MAP closure in Legal and Compliance over the last 30 days.", severity: "Low", trend: { value: 6, suffix: "%" } },
+  { title: "Operations has highest risk exposure", description: "7 open findings, 2 critical. Recommend reallocating 2 reviewers to clear backlog.", severity: "Medium", trend: { value: -3, suffix: "%", inverse: true } },
+  { title: "Average MAP closure dropped to 4.2 days", description: "Down from 6.1 days last quarter — strongest indicator of operational maturity.", severity: "Low", trend: { value: -31, suffix: "%", inverse: true } },
+];
+
+export const findingsHeatmap = [
+  { department: "Compliance", critical: 1, high: 2, medium: 0, low: 0 },
+  { department: "Legal", critical: 0, high: 1, medium: 3, low: 0 },
+  { department: "Operations", critical: 2, high: 3, medium: 2, low: 0 },
+  { department: "IT", critical: 1, high: 2, medium: 2, low: 0 },
+  { department: "Cybersecurity", critical: 3, high: 4, medium: 2, low: 0 },
+  { department: "Audit", critical: 0, high: 0, medium: 1, low: 0 },
+];
