@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/state/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Logo } from "@/components/shared/Logo";
+import Logo from "@/components/shared/Logo";
 
 export default function Auth() {
   const { user, loading } = useAuth();
