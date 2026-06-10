@@ -5,6 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/state/ThemeContext";
 import { CopilotProvider } from "@/state/CopilotContext";
+import { AuthProvider } from "@/state/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Auth from "./pages/Auth";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Regulations from "./pages/Regulations";
@@ -30,8 +33,10 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route element={<Layout />}>
+            <AuthProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/regulations" element={<Regulations />} />
                 <Route path="/document-analysis" element={<DocumentAnalysis />} />
@@ -45,9 +50,10 @@ const App = () => (
                 <Route path="/alerts" element={<Alerts />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="/company-profile" element={<CompanyProfile />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </CopilotProvider>

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Download, Printer, Share2, FileText, X } from "lucide-react";
+import { Download, Printer, Share2, FileText, X, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import PageHeader from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/Badges";
+import { api } from "@/lib/api";
 
 const REPORT_TYPES = [
   { id: "executive", title: "Executive Report", desc: "Board-ready summary of compliance posture and risk exposure." },
@@ -15,6 +16,20 @@ const REPORT_TYPES = [
 export default function Reports() {
   const [active, setActive] = useState("executive");
   const [shareOpen, setShareOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const exportPdf = async () => {
+    setExporting(true);
+    try {
+      const { signed_url } = await api.generateReport(active);
+      toast({ title: "Report generated", description: "Opening PDF…" });
+      if (signed_url) window.open(signed_url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Report failed", description: e.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -24,10 +39,11 @@ export default function Reports() {
         actions={
           <>
             <button
-              onClick={() => toast({ title: "Export started", description: "Your PDF will be ready shortly." })}
-              className="border border-border bg-card px-3 h-9 text-sm font-medium rounded hover:bg-muted transition-colors flex items-center gap-2"
+              onClick={exportPdf}
+              disabled={exporting}
+              className="border border-border bg-card px-3 h-9 text-sm font-medium rounded hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-60"
             >
-              <Download className="h-4 w-4" /> Export
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Export PDF
             </button>
             <button
               onClick={() => window.print()}

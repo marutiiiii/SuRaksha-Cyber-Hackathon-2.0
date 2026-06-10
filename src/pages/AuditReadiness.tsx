@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import KpiCard from "@/components/shared/KpiCard";
 import { RiskBadge } from "@/components/shared/Badges";
 import { audits, findingsHeatmap } from "@/mocks";
 import { ShieldCheck, ShieldAlert, ShieldX, FileWarning } from "lucide-react";
+import { api } from "@/lib/api";
 
-const HEALTH = Math.round(audits.reduce((a, d) => a + d.readinessScore, 0) / audits.length);
+const MOCK_HEALTH = Math.round(audits.reduce((a, d) => a + d.readinessScore, 0) / audits.length);
 
 const totals = audits.reduce(
   (a, d) => ({
@@ -40,6 +42,13 @@ function CircleScore({ score }: { score: number }) {
 }
 
 export default function AuditReadiness() {
+  const [live, setLive] = useState<{ score: number; total: number; completed: number; overdue: number } | null>(null);
+  useEffect(() => {
+    api.auditReadiness().then((r) => {
+      if (r.total > 0) setLive(r);
+    }).catch(() => {});
+  }, []);
+  const HEALTH = live?.score ?? MOCK_HEALTH;
   return (
     <div className="space-y-6">
       <PageHeader title="Audit Readiness Center" subtitle="Real-time audit health, findings, and evidence tracking" />
@@ -48,8 +57,12 @@ export default function AuditReadiness() {
         <div className="section-container p-6 flex flex-col items-center justify-center text-center">
           <CircleScore score={HEALTH} />
           <div className="text-sm font-semibold mt-3">Audit Ready</div>
-          <div className="text-[11px] text-[hsl(var(--success))] font-semibold mt-0.5">+6 vs last review</div>
-          <div className="text-xs text-muted-foreground">Aggregated across {audits.length} departments</div>
+          <div className="text-[11px] text-[hsl(var(--success))] font-semibold mt-0.5">
+            {live ? `${live.completed}/${live.total} MAPs completed` : "+6 vs last review"}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {live ? `${live.overdue} overdue · live data` : `Aggregated across ${audits.length} departments`}
+          </div>
         </div>
         <div className="lg:col-span-2 grid grid-cols-2 gap-3">
           <KpiCard label="Open Findings" value={totals.open} tone="warning" icon={<ShieldAlert className="h-4 w-4" />} />

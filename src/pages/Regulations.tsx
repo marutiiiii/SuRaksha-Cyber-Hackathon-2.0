@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { RiskBadge, StatusBadge } from "@/components/shared/Badges";
@@ -6,6 +6,7 @@ import { EmptyState, BeginnerHint } from "@/components/shared/States";
 import Drawer from "@/components/shared/Drawer";
 import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
 import { regulations, regSources, Regulation } from "@/mocks";
+import { api } from "@/lib/api";
 
 export default function Regulations() {
   const isBeginner = useIsBeginner();
@@ -14,6 +15,8 @@ export default function Regulations() {
   const [risk, setRisk] = useState("All");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Regulation | null>(null);
+  const [live, setLive] = useState<any[]>([]);
+  useEffect(() => { api.regulationsLatest().then((r) => setLive(r.regulations ?? [])).catch(() => {}); }, []);
 
   const filtered = useMemo(
     () =>
@@ -29,6 +32,30 @@ export default function Regulations() {
   return (
     <div className="space-y-6">
       <PageHeader title="Regulatory Intelligence Center" subtitle="Live feed of regulations across sources with risk-scored prioritization" />
+
+      {live.length > 0 && (
+        <div className="section-container">
+          <div className="px-4 py-3 border-b text-sm font-semibold flex items-center justify-between">
+            <span>Live regulatory feed</span>
+            <span className="text-[11px] font-normal text-muted-foreground">{live.length} circulars · RBI / SEBI / NPCI / CERT-In</span>
+          </div>
+          <table className="data-table">
+            <thead>
+              <tr><th>Source</th><th>Title</th><th>Date</th><th>Summary</th></tr>
+            </thead>
+            <tbody>
+              {live.slice(0, 8).map((r) => (
+                <tr key={r.id}>
+                  <td className="font-mono text-xs">{r.source}</td>
+                  <td className="font-medium">{r.title}</td>
+                  <td className="text-muted-foreground">{r.date}</td>
+                  <td className="text-muted-foreground text-xs">{r.summary}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {isBeginner && (
         <BeginnerHint>

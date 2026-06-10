@@ -2,21 +2,21 @@ import { useRef, useState, useEffect } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { BeginnerHint } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
-import { ChatMessage, presetAnswers } from "@/mocks";
+import { ChatMessage } from "@/mocks";
 import { Send, Sparkles, BookOpenCheck } from "lucide-react";
+import { api } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 const QUICK = [
-  { key: "simple", label: "Explain Simply" },
-  { key: "technical", label: "Explain Technically" },
-  { key: "maps", label: "Generate MAPs" },
-  { key: "summary", label: "Summarize Changes" },
-  { key: "impact", label: "Show Impact" },
-  { key: "report", label: "Generate Audit Report" },
+  { label: "Summarize my latest regulation in plain English" },
+  { label: "What changed between my two latest documents?" },
+  { label: "Which departments are most impacted right now?" },
+  { label: "List my open MAPs sorted by severity" },
+  { label: "Draft a 5-bullet executive briefing" },
 ];
 
 const initial: ChatMessage[] = [
-  { role: "user", content: "Brief me on the RBI KYC amendment." },
-  presetAnswers.simple,
+  { role: "assistant", content: "Hi. I'm ReguFlow AI Copilot. Ask me about your uploaded regulations, detected changes, or open action points. I cite the clauses I use." },
 ];
 
 export default function AIExplanation() {
@@ -24,27 +24,38 @@ export default function AIExplanation() {
   const [messages, setMessages] = useState<ChatMessage[]>(initial);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
 
-  const reply = (key: string) => {
-    setThinking(true);
-    setTimeout(() => {
-      const answer = presetAnswers[key] || presetAnswers.default;
-      setMessages((m) => [...m, answer]);
-      setThinking(false);
-    }, 600);
-  };
-
-  const send = (content: string, presetKey?: string) => {
-    if (!content.trim()) return;
+  const send = async (content: string) => {
+    if (!content.trim() || thinking) return;
     setMessages((m) => [...m, { role: "user", content }]);
     setInput("");
-    const matched = presetKey || Object.keys(presetAnswers).find((k) => content.toLowerCase().includes(k));
-    reply(matched || "default");
+    setThinking(true);
+    try {
+      const res = await api.copilot(content, sessionId);
+      setSessionId(res.sessionId);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: res.answer,
+          citations: (res.citations ?? []).map((c: any) => ({
+            regulation: c.document,
+            clause: c.clauseId,
+            confidence: Math.round((c.similarity ?? 0) * 100),
+          })),
+        },
+      ]);
+    } catch (e: any) {
+      toast({ title: "Copilot error", description: e.message, variant: "destructive" });
+    } finally {
+      setThinking(false);
+    }
   };
 
   const lastWithCitations = [...messages].reverse().find((m) => m.citations);
@@ -96,10 +107,10 @@ export default function AIExplanation() {
 
           <div className="border-t p-3 space-y-2">
             <div className="flex flex-wrap gap-1.5">
-              {QUICK.map((q) => (
+              {QUICK.map((q, i) => (
                 <button
-                  key={q.key}
-                  onClick={() => send(q.label, q.key)}
+                  key={i}
+                  onClick={() => send(q.label)}
                   className="text-xs border border-border rounded px-2 py-1 hover:bg-muted transition-colors"
                 >
                   {q.label}

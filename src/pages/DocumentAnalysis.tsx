@@ -1,66 +1,80 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { RiskBadge } from "@/components/shared/Badges";
 import { BeginnerHint, EmptyState } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
-import { clauseChanges } from "@/mocks";
-import { Upload, FileText, CheckCircle2, Loader2, Circle, FileUp } from "lucide-react";
+import { Upload, FileText, CheckCircle2, Loader2, Circle, FileUp, GitCompare, Zap, ListChecks } from "lucide-react";
+import { api } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
-const STAGES = [
-  "Uploading",
-  "Extracting Clauses",
-  "Comparing Versions",
-  "Running Impact Analysis",
-  "Generating MAPs",
-  "Preparing Report",
-];
+const STAGES = ["Uploading", "Extracting Text", "Extracting Clauses", "Indexed"];
 
-interface UploadedFile {
-  name: string;
-  size: string;
-  uploadedAt: string;
-  status: "Processed" | "Processing";
+interface DocRow {
+  id: string;
+  title: string;
+  source?: string;
+  status: string;
+  pages?: number;
+  created_at: string;
 }
-
-const initialHistory: UploadedFile[] = [
-  { name: "RBI_KYC_Master_Direction_v2026.pdf", size: "1.2 MB", uploadedAt: "2026-04-08 10:14", status: "Processed" },
-  { name: "SEBI_LODR_Amendment_Apr2026.pdf", size: "842 KB", uploadedAt: "2026-04-04 09:22", status: "Processed" },
-  { name: "CERT-In_Advisory_2026-09.pdf", size: "320 KB", uploadedAt: "2026-05-20 08:02", status: "Processed" },
-];
+interface Clause {
+  id?: string;
+  clauseId?: string;
+  text: string;
+  category?: string;
+  severity?: string;
+  obligation?: string;
+}
 
 export default function DocumentAnalysis() {
   const isBeginner = useIsBeginner();
   const inputRef = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState(-1);
   const [dragging, setDragging] = useState(false);
-  const [history, setHistory] = useState(initialHistory);
-  const [showResults, setShowResults] = useState(false);
+  const [history, setHistory] = useState<DocRow[]>([]);
+  const [clauses, setClauses] = useState<Clause[] | null>(null);
+  const [activeDoc, setActiveDoc] = useState<string | null>(null);
+  const [oldDoc, setOldDoc] = useState<string>("");
+  const [newDoc, setNewDoc] = useState<string>("");
+  const [comparison, setComparison] = useState<any | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const simulate = (filename: string) => {
-    setShowResults(false);
-    setStage(0);
-    setHistory((h) => [
-      { name: filename, size: "967 KB", uploadedAt: new Date().toISOString().slice(0, 16).replace("T", " "), status: "Processing" },
-      ...h,
-    ]);
-    let i = 0;
-    const tick = () => {
-      i++;
-      if (i < STAGES.length) {
-        setStage(i);
-        setTimeout(tick, 700);
-      } else {
-        setStage(STAGES.length);
-        setShowResults(true);
-        setHistory((h) => h.map((f, idx) => (idx === 0 ? { ...f, status: "Processed" } : f)));
-      }
-    };
-    setTimeout(tick, 700);
+  const loadHistory = async () => {
+    try {
+      const { documents } = await api.listDocuments();
+      setHistory(documents);
+    } catch (e: any) {
+      console.error(e);
+    }
+  };
+  useEffect(() => { loadHistory(); }, []);
+
+  const runPipeline = async (file: File) => {
+    try {
+      setClauses(null);
+      setStage(0);
+      const guess = /rbi/i.test(file.name) ? "RBI" : /sebi/i.test(file.name) ? "SEBI" : /npci/i.test(file.name) ? "NPCI" : /cert/i.test(file.name) ? "CERT-In" : "Unknown";
+      const up = await api.uploadDocument(file, guess);
+      setActiveDoc(up.documentId);
+      await loadHistory();
+      setStage(1);
+      await api.extractText(up.documentId);
+      await loadHistory();
+      setStage(2);
+      const res = await api.extractClauses(up.documentId);
+      setClauses(res.clauses);
+      await loadHistory();
+      setStage(3);
+      toast({ title: "Document analyzed", description: `${res.count} clauses extracted.` });
+    } catch (e: any) {
+      toast({ title: "Pipeline failed", description: e.message, variant: "destructive" });
+      setStage(-1);
+    }
   };
 
   const onFiles = (files: FileList | null) => {
     if (!files || !files.length) return;
-    simulate(files[0].name);
+    runPipeline(files[0]);
   };
 
   const typeColor = (t: string) =>
@@ -70,11 +84,46 @@ export default function DocumentAnalysis() {
       ? "border-l-[hsl(var(--destructive))]"
       : "border-l-[hsl(var(--warning))]";
 
-  const added = clauseChanges.filter((c) => c.type === "added").length;
-  const removed = clauseChanges.filter((c) => c.type === "removed").length;
-  const modified = clauseChanges.filter((c) => c.type === "modified").length;
-  const depts = Array.from(new Set(clauseChanges.map((c) => c.department)));
-  const risk = clauseChanges.some((c) => c.severity === "Critical") ? "Critical" : clauseChanges.some((c) => c.severity === "High") ? "High" : "Medium";
+  const runCompare = async () => {
+    if (!oldDoc || !newDoc || oldDoc === newDoc) {
+      toast({ title: "Pick two different documents", variant: "destructive" });
+      return;
+    }
+    setBusy("compare");
+    try {
+      const r = await api.compare(oldDoc, newDoc);
+      setComparison(r);
+      toast({ title: "Comparison complete", description: `+${r.counts.added} / -${r.counts.removed} / ~${r.counts.modified}` });
+    } catch (e: any) {
+      toast({ title: "Compare failed", description: e.message, variant: "destructive" });
+    } finally { setBusy(null); }
+  };
+
+  const runImpact = async () => {
+    if (!comparison?.comparisonId) return;
+    setBusy("impact");
+    try {
+      const r = await api.impact(comparison.comparisonId);
+      toast({ title: "Impact analysis ready", description: `${r.matrix.length} departments scored. View in Impact Analysis.` });
+    } catch (e: any) {
+      toast({ title: "Impact failed", description: e.message, variant: "destructive" });
+    } finally { setBusy(null); }
+  };
+
+  const runMaps = async () => {
+    if (!comparison?.comparisonId) return;
+    setBusy("maps");
+    try {
+      const r = await api.generateMaps(comparison.comparisonId);
+      toast({ title: "MAPs generated", description: `${r.count} action points added. View in MAPs.` });
+    } catch (e: any) {
+      toast({ title: "MAP generation failed", description: e.message, variant: "destructive" });
+    } finally { setBusy(null); }
+  };
+
+  const added = comparison?.added ?? [];
+  const removed = comparison?.removed ?? [];
+  const modified = comparison?.modified ?? [];
 
   return (
     <div className="space-y-6">
@@ -82,8 +131,9 @@ export default function DocumentAnalysis() {
 
       {isBeginner && (
         <BeginnerHint>
-          Drag a PDF or DOCX into the zone below. ReguFlow AI will simulate extracting clauses, comparing
-          versions, and producing a list of action points.
+          Drag a PDF below. ReguFlow AI uploads it, extracts the text, and uses AI to detect regulatory
+          clauses. After two documents are analyzed you can run change detection, impact analysis, and
+          generate action points.
         </BeginnerHint>
       )}
 
@@ -97,20 +147,20 @@ export default function DocumentAnalysis() {
           {dragging ? <FileUp className="h-7 w-7 text-primary" /> : <Upload className="h-7 w-7 text-primary" />}
         </div>
         <div className="text-base font-semibold mb-1">{dragging ? "Drop your file here" : "Drag & drop a regulatory document"}</div>
-        <div className="text-xs text-muted-foreground mb-4">Accepted: PDF, DOCX · Max 25 MB · Frontend-only simulation</div>
+        <div className="text-xs text-muted-foreground mb-4">Accepted: PDF · Max 25 MB · Real pipeline</div>
         <button
           onClick={() => inputRef.current?.click()}
           className="bg-primary text-primary-foreground px-4 py-2 text-sm font-medium rounded hover:opacity-90 transition-opacity"
         >
           Choose file
         </button>
-        <input ref={inputRef} type="file" hidden accept=".pdf,.docx" onChange={(e) => onFiles(e.target.files)} />
+        <input ref={inputRef} type="file" hidden accept=".pdf" onChange={(e) => onFiles(e.target.files)} />
       </div>
 
       {stage >= 0 && (
         <div className="section-container p-5">
           <div className="text-sm font-semibold mb-4">Processing pipeline</div>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             {STAGES.map((s, i) => {
               const state = stage > i ? "done" : stage === i ? "active" : "pending";
               const bg =
@@ -133,50 +183,99 @@ export default function DocumentAnalysis() {
         </div>
       )}
 
-      {showResults && (
+      {clauses && clauses.length > 0 && (
         <div className="space-y-3">
-          <div className="section-container p-4 grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Added</div>
-              <div className="text-xl font-semibold text-[hsl(var(--success))]">{added}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Removed</div>
-              <div className="text-xl font-semibold text-[hsl(var(--destructive))]">{removed}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Modified</div>
-              <div className="text-xl font-semibold text-[hsl(var(--warning))]">{modified}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Affected Departments</div>
-              <div className="text-xl font-semibold">{depts.length}</div>
-              <div className="text-[10px] text-muted-foreground truncate">{depts.join(", ")}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Overall Risk</div>
-              <div className="text-xl font-semibold text-[hsl(var(--destructive))]">{risk}</div>
-            </div>
-          </div>
-          <div className="text-sm font-semibold">Detected clause changes ({clauseChanges.length})</div>
+          <div className="text-sm font-semibold">Extracted clauses ({clauses.length})</div>
           <div className="grid md:grid-cols-2 gap-3">
-            {clauseChanges.map((c) => (
-              <div key={c.id} className={`section-container p-4 border-l-4 ${typeColor(c.type)}`}>
+            {clauses.map((c, i) => (
+              <div key={i} className="section-container p-4 border-l-4 border-l-primary/40">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-semibold">{c.id}</span>
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">{c.type}</span>
+                    <span className="font-mono text-xs font-semibold">{c.clauseId ?? c.id}</span>
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground">{c.category}</span>
                   </div>
-                  <RiskBadge risk={c.severity} />
+                  {c.severity && <RiskBadge risk={c.severity} />}
                 </div>
-                <div className="text-sm mb-2">{c.summary}</div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Dept: <span className="font-medium text-foreground">{c.department}</span></span>
-                  <span>Confidence: <span className="font-medium text-foreground">{c.confidence}%</span></span>
-                </div>
+                <div className="text-sm mb-2 line-clamp-4">{c.text}</div>
+                {c.obligation && <div className="text-xs text-muted-foreground">Obligation: <span className="text-foreground">{c.obligation}</span></div>}
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {history.length >= 2 && (
+        <div className="section-container p-5 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <GitCompare className="h-4 w-4 text-primary" /> Compare two versions
+          </div>
+          <div className="grid md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Old version</label>
+              <select value={oldDoc} onChange={(e) => setOldDoc(e.target.value)} className="border border-border rounded-md w-full px-2 h-9 text-sm bg-background mt-1">
+                <option value="">Select…</option>
+                {history.filter((h) => h.status === "analyzed").map((h) => <option key={h.id} value={h.id}>{h.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">New version</label>
+              <select value={newDoc} onChange={(e) => setNewDoc(e.target.value)} className="border border-border rounded-md w-full px-2 h-9 text-sm bg-background mt-1">
+                <option value="">Select…</option>
+                {history.filter((h) => h.status === "analyzed").map((h) => <option key={h.id} value={h.id}>{h.title}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={runCompare} disabled={busy === "compare"} className="bg-primary text-primary-foreground px-3 h-9 rounded text-sm hover:opacity-90 disabled:opacity-60 w-full">
+                {busy === "compare" ? "Comparing…" : "Run change detection"}
+              </button>
+            </div>
+          </div>
+
+          {comparison && (
+            <>
+              <div className="grid grid-cols-3 gap-3 pt-3">
+                <div className="border border-border rounded-md p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Added</div>
+                  <div className="text-xl font-semibold text-[hsl(var(--success))]">{comparison.counts.added}</div>
+                </div>
+                <div className="border border-border rounded-md p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Removed</div>
+                  <div className="text-xl font-semibold text-[hsl(var(--destructive))]">{comparison.counts.removed}</div>
+                </div>
+                <div className="border border-border rounded-md p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Modified</div>
+                  <div className="text-xl font-semibold text-[hsl(var(--warning))]">{comparison.counts.modified}</div>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={runImpact} disabled={busy === "impact"} className="border border-border bg-card px-3 h-9 rounded text-sm hover:bg-muted disabled:opacity-60 flex items-center gap-2">
+                  <Zap className="h-4 w-4" /> {busy === "impact" ? "Analyzing…" : "Run impact analysis"}
+                </button>
+                <button onClick={runMaps} disabled={busy === "maps"} className="bg-primary text-primary-foreground px-3 h-9 rounded text-sm hover:opacity-90 disabled:opacity-60 flex items-center gap-2">
+                  <ListChecks className="h-4 w-4" /> {busy === "maps" ? "Generating…" : "Generate MAPs"}
+                </button>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3 pt-3">
+                {[...added.map((c: any) => ({ ...c, type: "added" })),
+                  ...modified.map((c: any) => ({ id: c.id, text: c.newText, category: c.category, severity: c.severity, type: "modified" })),
+                  ...removed.map((c: any) => ({ ...c, type: "removed" })),
+                ].slice(0, 10).map((c: any, i: number) => (
+                  <div key={i} className={`section-container p-3 border-l-4 ${typeColor(c.type)}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono text-xs font-semibold">{c.id}</span>
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground">{c.type}</span>
+                    </div>
+                    <div className="text-sm line-clamp-3">{c.text}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {false && (
+        <div className="space-y-3">
         </div>
       )}
 
@@ -189,19 +288,21 @@ export default function DocumentAnalysis() {
             <thead>
               <tr>
                 <th>File</th>
-                <th>Size</th>
+                <th>Source</th>
+                <th>Pages</th>
                 <th>Uploaded</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {history.map((f, i) => (
-                <tr key={i}>
-                  <td className="font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /> {f.name}</td>
-                  <td className="text-muted-foreground">{f.size}</td>
-                  <td className="text-muted-foreground">{f.uploadedAt}</td>
+              {history.map((f) => (
+                <tr key={f.id}>
+                  <td className="font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" /> {f.title}</td>
+                  <td className="text-muted-foreground">{f.source ?? "—"}</td>
+                  <td className="text-muted-foreground">{f.pages ?? "—"}</td>
+                  <td className="text-muted-foreground">{new Date(f.created_at).toLocaleString()}</td>
                   <td>
-                    <span className={`text-xs font-medium ${f.status === "Processed" ? "text-[hsl(var(--success))]" : "text-[hsl(var(--info))]"}`}>{f.status}</span>
+                    <span className={`text-xs font-medium ${f.status === "analyzed" ? "text-[hsl(var(--success))]" : f.status === "extracted" ? "text-[hsl(var(--info))]" : "text-muted-foreground"}`}>{f.status}</span>
                   </td>
                 </tr>
               ))}
