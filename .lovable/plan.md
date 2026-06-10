@@ -1,110 +1,135 @@
 
-# ReguFlow AI — Frontend Polish Pass
+# ReguFlow AI — Backend & AI Implementation Plan
 
-A frontend-only refinement to sharpen storytelling, demo impact, and enterprise feel. No backend, no new workflows, no redesign — additive polish on existing pages and shared components.
+The frontend is frozen. We build the real backend on **Lovable Cloud** (Postgres + Storage + Deno Edge Functions) and **Lovable AI Gateway** (Gemini 2.5 Flash + Gemini embeddings). Each phase ships and is verified before the next.
 
-## 1. New shared components
+## Architecture
 
-Reusable, enterprise-styled, used across pages.
+```text
+React UI (existing, untouched)
+        │  supabase.functions.invoke(...)
+        ▼
+Deno Edge Functions  ──►  Lovable AI Gateway (Gemini 2.5 Flash, embeddings)
+        │
+        ├─► Postgres (documents, clauses, comparisons, maps, reports, chat_history)
+        └─► Supabase Storage (raw PDFs + generated reports)
+```
 
-- `src/components/shared/JourneyTracker.tsx` — horizontal 6-step Regulation → Action → Proof workflow with status, count, progress; variants: `dashboard` (full) and `compact` (timeline).
-- `src/components/shared/FocusTodayCard.tsx` — featured "Today's Compliance Priority" card with risk, modified clauses, affected departments, recommended action, CTA.
-- `src/components/shared/ModeBanner.tsx` — slim banner under TopBar showing active Copilot mode + enabled features; animated swap (200–300ms fade) on mode change.
-- `src/components/shared/TrendIndicator.tsx` — `↑6%` / `↓3%` pill with semantic color (success/danger/muted).
-- `src/components/shared/EnhancedKpiCard.tsx` — extends current `KpiCard` with optional sub-metrics row + mini progress bar + trend indicator (keeps original `KpiCard` untouched as base).
-- `src/components/shared/InsightCard.tsx` — AI-style executive insight card (icon + headline + body + severity stripe).
-- `src/components/shared/StatusPipeline.tsx` — horizontal status bar (Pending → Assigned → In Progress → Review → Completed) with counts; used in MAPs and Document Analysis.
-- `src/components/shared/Skeleton.tsx` extensions — table-row, card, chart skeletons for consistent loading.
+Endpoint → Edge Function mapping (1:1 with the spec):
 
-## 2. Page-level changes (additive only)
+| Spec route | Edge function |
+|---|---|
+| `POST /documents/upload` | `upload-document` |
+| `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/text` | `documents` |
+| `POST /documents/{id}/extract-clauses` | `extract-clauses` |
+| `POST /compare` | `compare-documents` |
+| `POST /impact-analysis` | `impact-analysis` |
+| `POST /generate-maps` | `generate-maps` |
+| `POST /copilot/chat` | `copilot-chat` |
+| `GET /audit-readiness` | `audit-readiness` |
+| `POST /reports/generate` | `generate-report` |
+| `GET /regulations/latest` | `regulations-latest` |
+| `GET /health` | not needed — Supabase has its own health |
 
-### Dashboard (`src/pages/Dashboard.tsx`)
-1. Insert `JourneyTracker` directly below `PageHeader`.
-2. Replace existing "high priority" strip with `FocusTodayCard` (keeps strip data, richer layout).
-3. Swap 4 of the 6 KPI cards to `EnhancedKpiCard`:
-   - Compliance Health → score + trend + previous month + target + mini bar
-   - Audit Readiness → % + open findings + missing evidence + controls verified
-   - Active Regulations → total + new this week + high-risk count
-   - Pending MAPs → pending + overdue + assigned + completed
-4. Add **Recent Regulation Activity** table section (mock data already in `regulations` mock; render change type + status columns).
-5. Add **Compliance Timeline** section using `JourneyTracker` compact variant with mock timestamps.
-6. Convert "Executive insights" block to use `InsightCard` grid with trend indicators.
-7. Chart polish: add hover tooltips with units, legends, `TrendIndicator` next to chart titles.
+## Phase 0 — Enable platform (one shot)
 
-### TopBar / Layout
-- Mount `ModeBanner` in `src/components/Layout.tsx` between `TopBar` and `<main>`. Banner content reads from `CopilotContext`; fades on change.
+- Enable Lovable Cloud.
+- Provision `LOVABLE_API_KEY` for the AI Gateway.
+- Add **Email + Password** auth (per your choice). No profiles table (no profile fields requested); we use `auth.users` directly. Add a minimal `/login` + `/signup` route and an auth guard around the existing app shell. Demo accounts can self-register.
+- Create Storage buckets: `documents` (private), `reports` (private).
 
-### CopilotContext (`src/state/CopilotContext.tsx`)
-- No API change. Add a small `useCopilotFeatures()` helper returning the feature list per mode (used by `ModeBanner` and Beginner/Expert affordances).
+## Phase 1 — Schema (single migration)
 
-### Beginner / Expert affordances
-- Beginner: render existing `BeginnerHint` callouts on Regulations, MAPs, Document Analysis, Audit Readiness with onboarding copy + recommended next action.
-- Expert: tighter row padding on `data-table` (via `data-copilot-mode="expert"` selector in `index.css`), show keyboard shortcut hints (`⌘K`, `J/K`) in TopBar and table footers, show bulk-action toolbar shell on tables.
-- Transition: 200ms CSS fade on body `[data-copilot-mode]` change via existing utility.
+Tables, all with RLS scoped to `auth.uid()`, plus `GRANT`s to `authenticated` + `service_role`:
 
-### Document Analysis (`src/pages/DocumentAnalysis.tsx`)
-- Upgrade dropzone: explicit drag/hover/success states, document icon, file metadata.
-- Replace pipeline stages with `StatusPipeline` + per-stage shimmer while active.
-- Add **Results Summary** card (added / removed / modified clauses, affected departments, risk score) at top of results.
+- `documents` — id, user_id, title, source (RBI/SEBI/…), file_path, pages, extracted_text, status (uploaded|extracted|analyzed), created_at
+- `clauses` — id, document_id, clause_id (C001…), text, category, obligation, severity, embedding (vector(768), pgvector)
+- `comparisons` — id, old_document_id, new_document_id, result_json (added/removed/modified arrays), created_at
+- `maps` — id, comparison_id (nullable), clause_id (nullable), title, description, owner, severity, status (Open/In Progress/Done), deadline, created_at
+- `reports` — id, user_id, type (executive|compliance|risk|audit), file_path, created_at
+- `chat_history` — id, user_id, session_id, role (user|assistant), content, citations_json, created_at
+- `regulations` — id, source, title, date, link, summary  *(seeded; powers Phase 11)*
 
-### Change Detection (`src/pages/ChangeDetection.tsx`)
-- Add **Executive Summary Banner** (changes detected, high risk, affected depts, audit exposure).
-- Tune diff colors via existing tokens: added = `success/10` bg, modified = `warning/10`, removed = `destructive/10`.
-- Make existing summary panel `sticky top-4` on `lg:` viewports.
+Enable `pgvector` extension for clause embeddings (used by change detection).
 
-### MAPs / Kanban (`src/pages/Maps.tsx`)
-- Add `StatusPipeline` above the board.
-- Card polish: severity left border (4px), hover elevation (shadow-md), 200ms transitions on drag-over column.
-- Add severity legend chip row.
+## Phase 2 — Document ingestion (`upload-document`, `documents`)
 
-### Audit Readiness (`src/pages/AuditReadiness.tsx`)
-- Enlarge readiness ring (existing) and add "Audit Ready" label + delta.
-- Add **Department Ranking** sorted list (uses existing `audits` mock).
-- Add **Findings Heatmap** (simple CSS grid colored by severity counts).
-- Add **Executive Summary** text block above timeline.
+- `upload-document`: accepts multipart PDF, stores in `documents` bucket at `${user_id}/${uuid}.pdf`, inserts row, returns `{ documentId, status: "uploaded" }`.
+- `documents`: GET list + GET by id (with signed URL for download).
 
-### All pages — micro UX
-- Use shared `Skeleton` variants in initial render states.
-- Standardize hover (`hover:bg-muted/50`), focus rings (`focus-visible:ring-1`), section spacing (`space-y-6`).
+Frontend wiring: `DocumentAnalysis.tsx` dropzone → real upload + real history table from DB. Mocks kept as fallback if function call fails.
 
-## 3. Mocks (`src/mocks/index.ts`)
+## Phase 3 — PDF text extraction (`extract-text`, merged into pipeline)
 
-Additive only; no changes to existing keys.
-- `journeySteps` — 6 steps with `{label, count, status, progress}`.
-- `focusToday` — single object for the focus card.
-- `kpiDetails` — sub-metrics for the 4 enhanced KPIs.
-- `recentActivity` — derived view of regulations with `changeType` and `status`.
-- `complianceTimeline` — 5–6 timestamped events.
-- `executiveInsights` — 3–4 narrative insights with severity + trend.
-- `findingsHeatmap` — department × severity counts.
-- `copilotFeatures` — feature lists per mode.
+- Edge function uses `unpdf` (Deno-native, ships pdfjs internally) to extract text page-by-page.
+- Updates `documents.extracted_text` and `documents.pages`; sets status = `extracted`.
+- Exposed as `GET /documents/{id}/text` via the `documents` function.
 
-## 4. Styling
+## Phase 4 — Clause extraction (`extract-clauses`)
 
-Inside existing tokens — no new color system.
-- Add utility classes in `src/index.css`: `.pipeline-step`, `.mode-banner`, `.insight-card`, `[data-copilot-mode="expert"] .data-table td { @apply py-1.5; }`, `[data-copilot-mode="expert"] .data-table th { @apply py-1.5; }`.
-- Use existing `animate-fade-in` for mode transitions; no new keyframes.
+- Calls Gemini 2.5 Flash with structured-output (JSON) prompt: return array of `{ clauseId, text, category, obligation, severity }`.
+- Computes embeddings via `google/gemini-embedding-001` and stores in `clauses.embedding`.
+- Sets `documents.status = analyzed`.
 
-## 5. Responsive sweep
+## Phase 5 — Change detection (`compare-documents`)
 
-Manual pass via preview at 1366, 1024, 768, 414:
-- Sidebar collapses (existing behavior verified).
-- Tables: `overflow-x-auto` wrappers on Dashboard, Regulations, AuditLogs, Reports.
-- Kanban: horizontal scroll on `<lg`.
-- Charts: `ResponsiveContainer` already in use; verify heights.
-- Drawers: full-width on mobile.
+- Pulls clauses for old + new doc.
+- Cosine similarity on embeddings (in SQL via pgvector `<=>`):
+  - high similarity (>0.92) + text equal → unchanged
+  - high similarity + text differs → **modified**
+  - new clause with no match → **added**
+  - old clause with no match in new → **removed**
+- Persists to `comparisons.result_json`. Powers `ChangeDetection.tsx`.
 
-## 6. Out of scope (explicit)
+## Phase 6 — Impact analysis (`impact-analysis`)
 
-- No new routes, no backend, no APIs, no auth, no AI calls.
-- No redesign of color system, no border-radius/shadow overhaul beyond existing tokens.
-- No rewrite of existing page logic — purely additive composition with new shared components.
+- Input: comparison id (or clause id list).
+- For each changed clause, Gemini returns `{ department, impactScore (0-100), reason }` across the 6 fixed departments.
+- Aggregated to a per-department matrix for `ImpactAnalysis.tsx`.
+
+## Phase 7 — MAP generation (`generate-maps`)
+
+- Input: comparison id.
+- Gemini turns each changed clause into a MAP task `{ title, description, owner, severity, deadline }`.
+- Inserts into `maps`. Powers `Maps.tsx` Kanban (drag-and-drop already wired; status updates write back via a small `update-map-status` function or direct supabase-js call from client).
+
+## Phase 8 — AI Copilot (`copilot-chat`)
+
+- RAG-lite: retrieves top-K relevant clauses by embedding similarity against the user's question + pulls latest comparison summary + open MAPs as context.
+- Streams Gemini response via AI SDK (`streamText`) with citations to clause ids.
+- Persists turns to `chat_history`. Powers `AIExplanation.tsx`.
+
+## Phase 9 — Audit readiness (`audit-readiness`)
+
+- Pure SQL aggregation on `maps`: total, completed, overdue, by-department.
+- Readiness % = completed / total (per spec). Returns dataset shaped to feed `AuditReadiness.tsx` (overall score, department ranking, findings counts).
+
+## Phase 10 — Report generation (`generate-report`)
+
+- Inputs: `{ type: "executive"|"compliance"|"risk"|"audit" }`.
+- Pulls live data, renders PDF with `pdf-lib` (Deno-friendly), uploads to `reports` bucket, inserts into `reports`, returns signed URL.
+- `Reports.tsx` Export button calls this.
+
+## Phase 11 — Regulatory intelligence (`regulations-latest`)
+
+- Seed `regulations` table with ~20 realistic RBI / SEBI / NPCI / CERT-In items (title, date, source, link, summary).
+- Function returns sorted list. Powers `Regulations.tsx`. No scraping.
+
+## Phase 12 — Frontend wiring (no UI changes)
+
+Page-by-page, replace each page's mock data import with a thin `useQuery` hook calling the corresponding function. Mock fallback preserved for offline demo. Pages touched: `DocumentAnalysis`, `ChangeDetection`, `ImpactAnalysis`, `Maps`, `AIExplanation`, `AuditReadiness`, `Reports`, `Regulations`, `Dashboard` (KPIs become live).
+
+## Out of scope
+
+No Python/FastAPI, no Docker, no Kubernetes, no RBAC beyond per-user RLS, no vector DB beyond pgvector, no live scraping. No UI redesign.
+
+## Technical notes
+
+- All AI calls server-side via Lovable AI Gateway using the AI SDK provider helper; `LOVABLE_API_KEY` never reaches the browser.
+- Default model: `google/gemini-3-flash-preview` (current Gemini Flash on the gateway; spec says "Gemini 2.5 Flash" — equivalent or newer on Lovable AI). Embeddings: `google/gemini-embedding-001` (768-dim).
+- Functions deployed with `verify_jwt = false` default; each function validates the caller via `supabase.auth.getClaims()` and scopes all queries by `auth.uid()`.
+- Long-running pipelines (extract → embed → analyze) are split into per-stage function calls invoked sequentially from the client so each stays well within edge-function timeouts and the existing 6-stage pipeline UI keeps animating accurately.
 
 ## Execution order
 
-1. Shared components + mocks (parallel writes).
-2. Layout + TopBar + ModeBanner + Copilot mode CSS.
-3. Dashboard (largest impact).
-4. Document Analysis, Change Detection, MAPs, Audit Readiness.
-5. Responsive + skeleton/empty/error state sweep across remaining pages.
-6. Preview verification at desktop + tablet + mobile widths.
+Phases run strictly one per turn: 0 → 1 → 2 → 3 → … → 12. After each phase I verify (DB query, function invoke, or preview interaction) before moving on.
