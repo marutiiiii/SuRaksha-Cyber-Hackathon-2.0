@@ -50,9 +50,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 md:p-8 bg-gradient-to-tr from-[#9bbce5]/40 via-[#c4dcfc]/40 to-[#e4effd]/40">
-      {/* Premium floating wrapper card */}
-      <div className="relative w-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl border border-slate-800/10 bg-gradient-to-br from-[#0a122c] via-[#060b1b] to-[#03060f] flex flex-col justify-between min-h-[680px]">
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-[#0a122c] via-[#060b1b] to-[#03060f] flex flex-col justify-between overflow-x-hidden">
+
         
         {/* Style block for animations */}
         <style dangerouslySetInnerHTML={{__html: `
@@ -386,50 +385,51 @@ export default function Auth() {
           
         </div>
 
-        {/* Footer Bar (Inside card, spans bottom) */}
-        <div className="w-full bg-slate-950/45 border-t border-slate-800/50 py-5 px-8 lg:px-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
-              <Target className="w-4 h-4 text-blue-500" />
+        {/* Footer Bar (Spans full bottom width) */}
+        <div className="w-full bg-slate-950/45 border-t border-slate-800/50 py-5">
+          <div className="max-w-7xl mx-auto px-8 lg:px-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
+                <Target className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <span className="block text-white font-bold text-xs">End-to-End Compliance</span>
+                <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">From regulatory change detection to audit-ready evidence.</span>
+              </div>
             </div>
-            <div>
-              <span className="block text-white font-bold text-xs">End-to-End Compliance</span>
-              <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">From regulatory change detection to audit-ready evidence.</span>
+            
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
+                <Sparkles className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <span className="block text-white font-bold text-xs">AI-Powered Insights</span>
+                <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">LLM + graph intelligence for faster, smarter analysis.</span>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
-              <Sparkles className="w-4 h-4 text-blue-500" />
-            </div>
-            <div>
-              <span className="block text-white font-bold text-xs">AI-Powered Insights</span>
-              <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">LLM + graph intelligence for faster, smarter analysis.</span>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
-              <ShieldCheck className="w-4 h-4 text-blue-500" />
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
+                <ShieldCheck className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <span className="block text-white font-bold text-xs">Enterprise Security</span>
+                <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">Bank-grade security with SOC 2, ISO 27001 & GDPR compliance.</span>
+              </div>
             </div>
-            <div>
-              <span className="block text-white font-bold text-xs">Enterprise Security</span>
-              <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">Bank-grade security with SOC 2, ISO 27001 & GDPR compliance.</span>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
-              <Puzzle className="w-4 h-4 text-blue-500" />
-            </div>
-            <div>
-              <span className="block text-white font-bold text-xs">Seamless Integrations</span>
-              <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">Works with your GRC, policy, and risk systems.</span>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-500/20">
+                <Puzzle className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <span className="block text-white font-bold text-xs">Seamless Integrations</span>
+                <span className="block text-slate-400 text-[10.5px] mt-0.5 leading-relaxed">Works with your GRC, policy, and risk systems.</span>
+              </div>
             </div>
           </div>
         </div>
 
-      </div>
     </div>
   );
 }
