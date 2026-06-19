@@ -1,0 +1,857 @@
+{
+  "D:\\SuRaksha Hack26\\acris-dashboard\\components.json": {
+    "mtime": 1781505606.3778582,
+    "ast_hash": "237367fea9ecc053a2edc802502d67ae",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\eslint.config.js": {
+    "mtime": 1781505606.3788753,
+    "ast_hash": "bc484741cdf3591af5da7d9f3da3a647",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\package.json": {
+    "mtime": 1781509893.63362,
+    "ast_hash": "120d6d7bdf44850adc31c3a5a93ec49c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\playwright-fixture.ts": {
+    "mtime": 1781509906.2549834,
+    "ast_hash": "02026ffdf463c18de2153abbf4936378",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\playwright.config.ts": {
+    "mtime": 1781509900.4783547,
+    "ast_hash": "52e0a35b2ece76e3cbc75351bb96a6a7",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\postcss.config.js": {
+    "mtime": 1781505606.3838613,
+    "ast_hash": "33fad9c02cb0ec6d6030369ef6347d57",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\App.tsx": {
+    "mtime": 1781882176.3966646,
+    "ast_hash": "e0c0c154b00a65eef7b98f1cf62a6337",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\Layout.tsx": {
+    "mtime": 1781620727.8292923,
+    "ast_hash": "49e8c59cb84a88e96e2ec6951005699d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\NavLink.tsx": {
+    "mtime": 1781505606.3898604,
+    "ast_hash": "889a81fd2eb948eb406c9ccabe175918",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ProtectedRoute.tsx": {
+    "mtime": 1781505606.3908596,
+    "ast_hash": "3b230250f1dec5bc08cdcd4b6a781e14",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\Sidebar.tsx": {
+    "mtime": 1781882153.7414505,
+    "ast_hash": "fdb274cfad60b94ca32399b28386ef8e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\TopBar.tsx": {
+    "mtime": 1781619925.9432418,
+    "ast_hash": "b3feaa544cd7ab337a54dbae64fa2b63",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\Badges.tsx": {
+    "mtime": 1781507292.6565464,
+    "ast_hash": "02dae021bf2da881fb0623a7171e776f",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\Drawer.tsx": {
+    "mtime": 1781505606.392859,
+    "ast_hash": "4e9a18c06acb7635fb8ced5cd8d62c1d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\EnhancedKpiCard.tsx": {
+    "mtime": 1781505606.39388,
+    "ast_hash": "068084d7ac9dff330ce7d363f98002c0",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\FocusTodayCard.tsx": {
+    "mtime": 1781505606.39388,
+    "ast_hash": "d66f9d4e82b2c8857ab77876a66b2d83",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\InsightCard.tsx": {
+    "mtime": 1781505606.3948612,
+    "ast_hash": "1204c8c53ac048ca7d5cf5660887681a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\JourneyTracker.tsx": {
+    "mtime": 1781505606.3948612,
+    "ast_hash": "6a914d799263195812bc42d46c212c53",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\KpiCard.tsx": {
+    "mtime": 1781505606.3958757,
+    "ast_hash": "89e683175778a141e8bc91e1d88be8f4",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\Logo.tsx": {
+    "mtime": 1781882395.296085,
+    "ast_hash": "947e10f74747b38958ef5fbfdeb77a02",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\ModeBanner.tsx": {
+    "mtime": 1781620112.390777,
+    "ast_hash": "0ef32ba4e9b22d4f61ee73c6ddfb3c70",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\PageHeader.tsx": {
+    "mtime": 1781505606.398856,
+    "ast_hash": "920300e0ad05ea60c334b73e54f8b0b6",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\States.tsx": {
+    "mtime": 1781507438.8142235,
+    "ast_hash": "70a387d6cd68cce2867f8adc5086165b",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\StatusPipeline.tsx": {
+    "mtime": 1781505606.4018574,
+    "ast_hash": "a7df311e654fc1b9e863b6b381aeebfe",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\TrendIndicator.tsx": {
+    "mtime": 1781505606.4028585,
+    "ast_hash": "ba97e2fa47d422f88589cb7b82255dc8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\accordion.tsx": {
+    "mtime": 1781505606.403856,
+    "ast_hash": "ff8f54b79a7a2bc4fed8c092dd7a1f4b",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\alert-dialog.tsx": {
+    "mtime": 1781505606.4058554,
+    "ast_hash": "9e4e4984ede953adcc023d60c017a968",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\alert.tsx": {
+    "mtime": 1781505606.4058554,
+    "ast_hash": "eba34d3096d7c23bcdf5dfb1e725ecff",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\aspect-ratio.tsx": {
+    "mtime": 1781505606.4058554,
+    "ast_hash": "14c12661aad8c80328c86a18b506c088",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\avatar.tsx": {
+    "mtime": 1781505606.4068618,
+    "ast_hash": "7b447f617f7d654c70050259fbf6dbc0",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\badge.tsx": {
+    "mtime": 1781505606.4078915,
+    "ast_hash": "09261d891c581ebf021af2989fe75d60",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\breadcrumb.tsx": {
+    "mtime": 1781505606.4078915,
+    "ast_hash": "c277fb2bb0886444a6c8a00296ad924e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\button.tsx": {
+    "mtime": 1781505606.4088697,
+    "ast_hash": "854ce263491269d5b7db6d0828a63f9a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\calendar.tsx": {
+    "mtime": 1781505606.4088697,
+    "ast_hash": "1a2e76319e667991b06dc99e74b9b631",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\card.tsx": {
+    "mtime": 1781505606.4098601,
+    "ast_hash": "0e2d94c650cf4fae76b4c5e0f14dd858",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\carousel.tsx": {
+    "mtime": 1781505606.4108605,
+    "ast_hash": "7d3e5a6ed21d4690d498e8a60b52868a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\chart.tsx": {
+    "mtime": 1781505606.4118795,
+    "ast_hash": "d5ad2e4cef5058faef398b9e8236cf25",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\checkbox.tsx": {
+    "mtime": 1781505606.4118795,
+    "ast_hash": "76ca6b8de39bdac0ff7620b301077963",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\collapsible.tsx": {
+    "mtime": 1781505606.4128592,
+    "ast_hash": "72fafa9d8b58f83ec9b7c8f141bfdd42",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\command.tsx": {
+    "mtime": 1781505606.4128592,
+    "ast_hash": "0390099f76c1a9eeb97041c572c752c0",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\context-menu.tsx": {
+    "mtime": 1781505606.4138765,
+    "ast_hash": "bf02a92d910af3af76b1e417a76cbd6a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\dialog.tsx": {
+    "mtime": 1781505606.4138765,
+    "ast_hash": "8c4a577dcf79d0ba30c2749f909fa932",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\drawer.tsx": {
+    "mtime": 1781505606.414857,
+    "ast_hash": "a73521d8fbccde731eae7f2f81f5875b",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\dropdown-menu.tsx": {
+    "mtime": 1781505606.415863,
+    "ast_hash": "deab6e248bcccb2e52ad13736bf5952e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\form.tsx": {
+    "mtime": 1781505606.4168577,
+    "ast_hash": "4d27bc8211e0505103bbd930275570c6",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\hover-card.tsx": {
+    "mtime": 1781505606.4168577,
+    "ast_hash": "a7927cc49ef796b0c725ecd0869c9f95",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\input-otp.tsx": {
+    "mtime": 1781505606.4178789,
+    "ast_hash": "7217a7c6bceca8030298e2252204ae40",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\input.tsx": {
+    "mtime": 1781505606.4178789,
+    "ast_hash": "c9e808ff72f69a97513b516a31d5705a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\label.tsx": {
+    "mtime": 1781505606.418866,
+    "ast_hash": "a8c075269b5971c2ab072603b5166cc2",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\menubar.tsx": {
+    "mtime": 1781505606.418866,
+    "ast_hash": "8d6dd42e35e9410e97a725c64c02f0a6",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\navigation-menu.tsx": {
+    "mtime": 1781505606.4198585,
+    "ast_hash": "2d91ffeee8627f37b4733949b3373a23",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\pagination.tsx": {
+    "mtime": 1781505606.420861,
+    "ast_hash": "4d09c500f83dd4b754b74d03b79527ba",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\popover.tsx": {
+    "mtime": 1781505606.420861,
+    "ast_hash": "63380a8f575f8a1a5277caeb4971919f",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\progress.tsx": {
+    "mtime": 1781505606.4218657,
+    "ast_hash": "b0d4b1791f1da120f5eed107f235edce",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\radio-group.tsx": {
+    "mtime": 1781505606.4228585,
+    "ast_hash": "6c2a4c39fb3f889fe94b854b7198b5ed",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\resizable.tsx": {
+    "mtime": 1781505606.4238622,
+    "ast_hash": "ed49053e380e461e2ca75f7a3fe67236",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\scroll-area.tsx": {
+    "mtime": 1781505606.4238622,
+    "ast_hash": "f86e3f716ed7c692309c1a48d85ce2c9",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\select.tsx": {
+    "mtime": 1781505606.4248679,
+    "ast_hash": "7a89fad24599af514ca0e28a9f5c4370",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\separator.tsx": {
+    "mtime": 1781505606.4258697,
+    "ast_hash": "1810b24a008c00cd43c0b5ad9f3e4c6b",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\sheet.tsx": {
+    "mtime": 1781505606.4258697,
+    "ast_hash": "d01d85069ebcb54849277fce060ebfea",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\sidebar.tsx": {
+    "mtime": 1781505606.4268563,
+    "ast_hash": "47158040377f0ab1d4610e976529ef9c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\skeleton.tsx": {
+    "mtime": 1781505606.427867,
+    "ast_hash": "6433d7c535e132083b2c1bcb57373fff",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\slider.tsx": {
+    "mtime": 1781505606.4288597,
+    "ast_hash": "977286428ad957ed73e428525450f9cb",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\sonner.tsx": {
+    "mtime": 1781505606.4288597,
+    "ast_hash": "f375774f847d020348cd21d524d28c75",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\switch.tsx": {
+    "mtime": 1781505606.4298587,
+    "ast_hash": "57fa755b8dcfe75538bc523ac3e0bb0e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\table.tsx": {
+    "mtime": 1781505606.4298587,
+    "ast_hash": "d73905fa73678181cb9f8baa91b3f222",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\tabs.tsx": {
+    "mtime": 1781505606.43186,
+    "ast_hash": "33c494eaa3811114e89a89fbbb0a1a02",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\textarea.tsx": {
+    "mtime": 1781505606.43186,
+    "ast_hash": "05d1ec7d6c3a836dc5b28d56935174fd",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\toast.tsx": {
+    "mtime": 1781505606.4328604,
+    "ast_hash": "0e2ba363f7d8b176dea467284711fea5",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\toaster.tsx": {
+    "mtime": 1781505606.4338622,
+    "ast_hash": "0f5d0fdbcc2d4611e59994af4393e27e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\toggle-group.tsx": {
+    "mtime": 1781505606.4348626,
+    "ast_hash": "fc5bff5bf4bb6714e6eaf85dcdeb65b9",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\toggle.tsx": {
+    "mtime": 1781505606.435859,
+    "ast_hash": "2342cfa40b5b31148997f87d1642359e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\tooltip.tsx": {
+    "mtime": 1781505606.435859,
+    "ast_hash": "c050f1e97cf8e200ecf88681073c90cb",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\ui\\use-toast.ts": {
+    "mtime": 1781505606.4368608,
+    "ast_hash": "5bff9ea3904b15a9e1908b128c88e75f",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\hooks\\use-mobile.tsx": {
+    "mtime": 1781505606.4378562,
+    "ast_hash": "1bb3ebac7752b497a78d34e341975bbd",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\hooks\\use-toast.ts": {
+    "mtime": 1781505606.438857,
+    "ast_hash": "895be3e18021c7c5cd4fac68ea522dd4",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\integrations\\supabase\\client.ts": {
+    "mtime": 1781505606.4408588,
+    "ast_hash": "8cbc837200552502e544dcd4d195de98",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\integrations\\supabase\\types.ts": {
+    "mtime": 1781505606.4408588,
+    "ast_hash": "2b31d92a91ab2bed289dc85632fe9ca8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\lib\\api.ts": {
+    "mtime": 1781511240.7481325,
+    "ast_hash": "23d3a343a7a23a04054cbdddf2c879d9",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\lib\\utils.ts": {
+    "mtime": 1781505606.442452,
+    "ast_hash": "e3f848f1b39f863e6164cf58b5a8e752",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\main.tsx": {
+    "mtime": 1781505606.4434845,
+    "ast_hash": "3ad492668e71c9fb3069381cb93760ed",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\mocks\\index.ts": {
+    "mtime": 1781505606.444478,
+    "ast_hash": "9b0e0ffa730776369717a578d1198109",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\AIExplanation.tsx": {
+    "mtime": 1781505606.445478,
+    "ast_hash": "3fd089122cec43f8ff7a75c0baae0235",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Alerts.tsx": {
+    "mtime": 1781508545.4677672,
+    "ast_hash": "19b499a5fb0217834ab7befe4f09f21d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\AuditLogs.tsx": {
+    "mtime": 1781508533.7256637,
+    "ast_hash": "3913b3309fb3cf1ebf8ed0c752f1ecec",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\AuditReadiness.tsx": {
+    "mtime": 1781508519.9139314,
+    "ast_hash": "c2bab5a04dda5c771ed4986255aac702",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Auth.tsx": {
+    "mtime": 1781882414.3223376,
+    "ast_hash": "3aa7f53c06bb265eea7edb5d94dd0ae7",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\ChangeDetection.tsx": {
+    "mtime": 1781505606.4474778,
+    "ast_hash": "69a735c43a5bf668f169a2cddcfb251a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\CompanyProfile.tsx": {
+    "mtime": 1781507379.4292123,
+    "ast_hash": "501918132353b10ebf0bc6ffbdca3b29",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Dashboard.tsx": {
+    "mtime": 1781620727.8199215,
+    "ast_hash": "38436e236562df4fb0349e9033ee8c44",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\DocumentAnalysis.tsx": {
+    "mtime": 1781505606.4494753,
+    "ast_hash": "6f99156dacfcfc5dc9cb236c9d48e7ec",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\ImpactAnalysis.tsx": {
+    "mtime": 1781505606.4504685,
+    "ast_hash": "8836018df3335584ba712bbeb84f1a9f",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Index.tsx": {
+    "mtime": 1781509863.4144034,
+    "ast_hash": "a2d585bf4af0cad219cb471b4adfd258",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Maps.tsx": {
+    "mtime": 1781508501.4590068,
+    "ast_hash": "c4cd2e435d46175598408b50161f291c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\NotFound.tsx": {
+    "mtime": 1781505606.4514606,
+    "ast_hash": "56c0e8759328865e67fc2c480b916804",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Regulations.tsx": {
+    "mtime": 1781508492.455526,
+    "ast_hash": "cb71f1af49c7e7ac63cc2676348af483",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Reports.tsx": {
+    "mtime": 1781505606.452483,
+    "ast_hash": "592a6a78c47211b24ce883f90ab31925",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\state\\AuthContext.tsx": {
+    "mtime": 1781506592.8656883,
+    "ast_hash": "84f7ea920696972940ad951c592b4e5a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\state\\CopilotContext.tsx": {
+    "mtime": 1781505606.4534776,
+    "ast_hash": "6936d392a607310055b7641acf76b187",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\state\\ThemeContext.tsx": {
+    "mtime": 1781620137.3701394,
+    "ast_hash": "64c1c2f3fab004dd30925f85beae649d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\test\\example.test.ts": {
+    "mtime": 1781505606.4544613,
+    "ast_hash": "e9e7bb15aba58b53a65f23498219603e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\test\\setup.ts": {
+    "mtime": 1781505606.4554603,
+    "ast_hash": "e70c804c294f3f04e80e7a8351de899e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\vite-env.d.ts": {
+    "mtime": 1781505606.4554603,
+    "ast_hash": "8f68c27c3fc38817b2726b20e2d4f1ee",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\_shared\\ai.ts": {
+    "mtime": 1781509880.6931376,
+    "ast_hash": "2be4bfe32b9bd3408e2ac5bf1b400a2d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\_shared\\auth.ts": {
+    "mtime": 1781505606.4574797,
+    "ast_hash": "852557b0e7d0951fbf176c93da542fa5",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\_shared\\cors.ts": {
+    "mtime": 1781505606.458469,
+    "ast_hash": "a76bf0d3e9c9731b79e0f320f5e7c7e8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\audit-readiness\\index.ts": {
+    "mtime": 1781505606.4594634,
+    "ast_hash": "122a57684e4ede09c733931c83fdddd1",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\compare-documents\\index.ts": {
+    "mtime": 1781505606.4604692,
+    "ast_hash": "56cae5d519e06ac0578536708ee98458",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\copilot-chat\\index.ts": {
+    "mtime": 1781505606.4604692,
+    "ast_hash": "e828d327a20394f4b568df6783b21528",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\documents\\index.ts": {
+    "mtime": 1781505606.4614792,
+    "ast_hash": "374298d590ca20a342e28f936b279c65",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\extract-clauses\\index.ts": {
+    "mtime": 1781505606.4624636,
+    "ast_hash": "cd3fd3d6ac536900c3ea530506610f1d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\extract-text\\index.ts": {
+    "mtime": 1781505606.4634635,
+    "ast_hash": "9a4cc3511ba3077868c2fcfa59a01316",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\generate-maps\\index.ts": {
+    "mtime": 1781505606.464481,
+    "ast_hash": "7b302d4a5f4c4cb4a0b831e347d41756",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\generate-report\\index.ts": {
+    "mtime": 1781505606.465465,
+    "ast_hash": "1284603408f8063828bbc47ddf2ae0e5",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\impact-analysis\\index.ts": {
+    "mtime": 1781505606.466478,
+    "ast_hash": "8e3eae8a14e58d4f433e54799641f651",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\regulations-latest\\index.ts": {
+    "mtime": 1781505606.4674628,
+    "ast_hash": "6bbeb734a067b8d55693824f8a3de8bc",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\functions\\upload-document\\index.ts": {
+    "mtime": 1781505606.4674628,
+    "ast_hash": "357b0710f34961d7c8e3aa246da03c8c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\migrations\\20260610064220_1197bfa1-e499-49db-9810-f38527746fc1.sql": {
+    "mtime": 1781505606.4684892,
+    "ast_hash": "4402c7df91cf0267c8b9d02543a7a9da",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\supabase\\migrations\\20260610064244_b0c663d1-2c0e-49fa-8579-83b24d95c0b2.sql": {
+    "mtime": 1781505606.4694643,
+    "ast_hash": "965e02fa7f58c2d6d9e85137d1b90a98",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\tailwind.config.ts": {
+    "mtime": 1781505606.4694643,
+    "ast_hash": "69ea942e70e23f174e3de6fbebb3ef6a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\tsconfig.app.json": {
+    "mtime": 1781505606.4694643,
+    "ast_hash": "963759319ae526e3ad7d33bd24bec5c1",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\tsconfig.json": {
+    "mtime": 1781505606.470466,
+    "ast_hash": "941963f07e098f081b0793707b88eaf8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\tsconfig.node.json": {
+    "mtime": 1781505606.471488,
+    "ast_hash": "ea3b5c2d9c1cc5d2b3fb3af706f2ca1a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\vite.config.ts": {
+    "mtime": 1781509888.7590694,
+    "ast_hash": "acfd3a8a07e1502c11e01a80537b7fe0",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\vitest.config.ts": {
+    "mtime": 1781505606.472515,
+    "ast_hash": "8800905cca6b71b675e406a15d2d5b13",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\audit_logs.py": {
+    "mtime": 1781508416.5312212,
+    "ast_hash": "b48063b156ac1926b1f7ce7e60d917e1",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\comparisons.py": {
+    "mtime": 1781508402.7881567,
+    "ast_hash": "3d7e1d3c617dbae71a4c37ab1aab5b7a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\copilot.py": {
+    "mtime": 1781508431.3052251,
+    "ast_hash": "5eeff4183140c7f6af82fef2649b093c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\dashboard.py": {
+    "mtime": 1781508411.4030232,
+    "ast_hash": "8132aa0cd6dc5034b79daaaa04c81a1d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\documents.py": {
+    "mtime": 1781508931.2775993,
+    "ast_hash": "2cf7e50b899322dfbcce0eb1eee6d62a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\maps.py": {
+    "mtime": 1781508376.4468398,
+    "ast_hash": "8c09affb3b1572efd70bc104c266a077",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\notifications.py": {
+    "mtime": 1781508423.21446,
+    "ast_hash": "3300c3f02a3452a4f54ee1763724aad8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\regulations.py": {
+    "mtime": 1781508380.5828164,
+    "ast_hash": "7dcc474a9de8407544437396ba4e9e80",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\endpoints\\reports.py": {
+    "mtime": 1781508438.2313669,
+    "ast_hash": "6914b606813f139252b07b097e9387f4",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\api\\router.py": {
+    "mtime": 1781508444.6121948,
+    "ast_hash": "9b35d7b0113fcbba9ccef335733bcd87",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\core\\config.py": {
+    "mtime": 1781878612.6391094,
+    "ast_hash": "08bd304ecc7f6f95f46148c1200c076e",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\core\\database.py": {
+    "mtime": 1781511221.0162563,
+    "ast_hash": "b2497b44b7c4acdb9b8d924eac5de271",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\core\\security.py": {
+    "mtime": 1781511384.607181,
+    "ast_hash": "c40a8ffd5aef230f00ba1327f1bc9f7d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\main.py": {
+    "mtime": 1781511234.9828117,
+    "ast_hash": "1557d8c9151e3d388679728d9355965d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\models\\models.py": {
+    "mtime": 1781508671.709284,
+    "ast_hash": "5375c7df350794f9f951537fccd541a8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\schemas\\schemas.py": {
+    "mtime": 1781508364.1543777,
+    "ast_hash": "1366bdde7005a3071805b2b7d2be7f94",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\tests\\test_backend.py": {
+    "mtime": 1781508692.2850747,
+    "ast_hash": "0a3aa785ddb04dfee12c8330a5154654",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\PROTOTYPE PHASE CRITERIA.md": {
+    "mtime": 1781032584.3920746,
+    "ast_hash": "04472b1f4e1289ab95016b5f35b51b09",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\RuleBook.md": {
+    "mtime": 1781029889.9078822,
+    "ast_hash": "41b96ad66cd9a31c87947e2c5140e9d6",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\.reguflow\\plan.md": {
+    "mtime": 1781509843.5605328,
+    "ast_hash": "510736d2688563979006256996e68625",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\README.md": {
+    "mtime": 1781509869.6153738,
+    "ast_hash": "6198a89efb508fb5ecc004a87109690c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\index.html": {
+    "mtime": 1781620967.213468,
+    "ast_hash": "5c22a0758a880490c5d83ab04fecf566",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\public\\robots.txt": {
+    "mtime": 1781505606.386869,
+    "ast_hash": "a9b03494151fe90e5decd2405400e106",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\requirements.txt": {
+    "mtime": 1781508311.1374705,
+    "ast_hash": "eb2138faa776e9864043108dd5bdfef9",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\AI CONTEXT.md": {
+    "mtime": 1781030721.520884,
+    "ast_hash": "2e5f30ae030d4c48d7393644928fbc03",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\AI DEVELOPMENT OS.md": {
+    "mtime": 1781031723.4222016,
+    "ast_hash": "b234df89946968ea72757d3e57449fb9",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\API SPEC.md": {
+    "mtime": 1781031248.370265,
+    "ast_hash": "4f86625ae8c9d8a0ab25b1e7df6d243f",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\ARCHITECTURE.md": {
+    "mtime": 1781030853.5868073,
+    "ast_hash": "4dae446973097c60e3e69a5789115639",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\AUTHORIZATION MATRIX.md": {
+    "mtime": 1781031396.706182,
+    "ast_hash": "167e8a33bd9ee3c6a069e884da934ccf",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\BACKEND SCHEMA.md": {
+    "mtime": 1781031140.6667686,
+    "ast_hash": "ca718ad5ab2991f9667465af5141e821",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\BUSINESS RULES.md": {
+    "mtime": 1781030582.2362034,
+    "ast_hash": "a64745b56f9550a884e3c915a78011e1",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\CHANGELOG.md": {
+    "mtime": 1781031988.173764,
+    "ast_hash": "de301348259522546df8139c2f3fe5e4",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\DATABASE SCHEMA.md": {
+    "mtime": 1781031210.4339836,
+    "ast_hash": "3b69cc96e6165dc214031a0334aa48f7",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\DECISIONS.md": {
+    "mtime": 1781030631.1864727,
+    "ast_hash": "0a46da22ecfcbaa9718d41d4f87ceb36",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\DESIGN SYSTEM.md": {
+    "mtime": 1781031497.1866488,
+    "ast_hash": "ed2f555564c7b45a6cbda4942145d32c",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\FRONTEND SCHEMA.md": {
+    "mtime": 1781031074.2116213,
+    "ast_hash": "fa4f4afcc971b4647c3edd9c853918d7",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\PRD.md": {
+    "mtime": 1781030535.1713974,
+    "ast_hash": "17663162761f6a668e7fcce3b8cb6eaf",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\PROMPTS.md": {
+    "mtime": 1781032087.7480052,
+    "ast_hash": "bfa672246542ce6b217e51b4ddbcaf2a",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\TASKS.md": {
+    "mtime": 1781031610.4275064,
+    "ast_hash": "a6ee749e6b850607fcfb1b3058cfcc23",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\TRD.md": {
+    "mtime": 1781031662.9076774,
+    "ast_hash": "0fc29f4c6139fac10c43acf2a38f2014",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\docs\\UIUX.md": {
+    "mtime": 1781031416.5072608,
+    "ast_hash": "1b42bae0139e55995a153b34954d69a8",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\public\\favicon.svg": {
+    "mtime": 1781620956.6348279,
+    "ast_hash": "774e71c8bc6aeea0ebd71d5b22061d96",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\public\\placeholder.svg": {
+    "mtime": 1781505606.3858745,
+    "ast_hash": "4a57334f2b44f8eed3356ede2944d8a4",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\.antigravity\\project-context.md": {
+    "mtime": 1781879555.9301467,
+    "ast_hash": "27e1a9cab28c53bfc68472043d94d36f",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\public\\logo.png": {
+    "mtime": 1781881615.3942215,
+    "ast_hash": "5f26ed09c47835ff4a6a68f2b7a7f18d",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Landing.tsx": {
+    "mtime": 1781882405.85611,
+    "ast_hash": "d4a161329d45c2d3269a47a5df7ea28c",
+    "semantic_hash": ""
+  }
+}

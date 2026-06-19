@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/state/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -8,7 +8,9 @@ import { Lock, User, Eye, EyeOff, Check, Play, Target, Sparkles, ShieldCheck, Pu
 export default function Auth() {
   const { user, loading, signInDemo } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [searchParams] = useSearchParams();
+  const initialMode = searchParams.get("mode") === "signin" ? "signin" : "signup";
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -16,7 +18,7 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
 
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -26,14 +28,14 @@ export default function Auth() {
     try {
       if (email.toLowerCase() === "demo@safebank.com" && password === "demo123") {
         signInDemo();
-        navigate("/");
+        navigate("/dashboard");
         return;
       }
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
         });
         if (error) throw error;
         toast({ title: "Account created", description: "You're signed in." });
@@ -41,7 +43,7 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate("/");
+      navigate("/dashboard");
     } catch (err: any) {
       toast({ title: "Auth error", description: err.message ?? String(err), variant: "destructive" });
     } finally {
@@ -79,14 +81,13 @@ export default function Auth() {
           {/* Left: Brand panel (7 columns) */}
           <div className="lg:col-span-7 flex flex-col justify-between h-full space-y-8 lg:space-y-0">
             {/* Top Logo */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <span className="text-white font-extrabold text-lg tracking-tighter">R</span>
-              </div>
-              <div>
-                <span className="text-white font-bold text-lg tracking-tight">ReguFlow <span className="text-blue-500">AI</span></span>
-                <span className="block text-[8px] font-semibold tracking-widest text-blue-400 uppercase -mt-0.5">COMPLIANCE ENGINE</span>
-              </div>
+            <div className="flex items-center gap-2.5 relative h-12 w-48">
+              <img 
+                src="/logo.png" 
+                alt="ReguFlow AI Logo" 
+                className="absolute left-0 top-[-24px] h-28 w-auto object-contain animate-float z-10" 
+                style={{ filter: "drop-shadow(0 0 20px rgba(59,130,246,0.5))" }}
+              />
             </div>
 
             {/* Title & Copy */}
@@ -360,7 +361,7 @@ export default function Auth() {
                   type="button"
                   onClick={() => {
                     signInDemo();
-                    navigate("/");
+                    navigate("/dashboard");
                   }}
                   className="w-full border border-blue-200 hover:border-blue-300 bg-white hover:bg-blue-50/20 text-blue-600 py-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
                 >

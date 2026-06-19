@@ -8,6 +8,7 @@ import { CopilotProvider } from "@/state/CopilotContext";
 import { AuthProvider } from "@/state/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Auth from "./pages/Auth";
+import Landing from "./pages/Landing";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Regulations from "./pages/Regulations";
@@ -36,8 +37,9 @@ const App = () => (
             <AuthProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={<Landing />} />
                 <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/regulations" element={<Regulations />} />
                 <Route path="/document-analysis" element={<DocumentAnalysis />} />
                 <Route path="/change-detection" element={<ChangeDetection />} />

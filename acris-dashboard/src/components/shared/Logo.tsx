@@ -1,14 +1,26 @@
 export default function Logo({ size = "md" }: { size?: "sm" | "md" }) {
-  const dim = size === "sm" ? "w-7 h-7" : "w-8 h-8";
+  const containerHeight = size === "sm" ? "h-10" : "h-12";
+  const logoHeight = size === "sm" ? "h-16" : "h-20";
+  const logoTop = size === "sm" ? "top-[-12px]" : "top-[-16px]";
+  
   return (
-    <div className="flex items-center gap-2">
-      <div className={`${dim} bg-primary text-primary-foreground flex items-center justify-center rounded font-bold text-sm`}>
-        R
-      </div>
-      <div className="leading-tight">
-        <div className="font-bold text-sidebar-primary-foreground text-sm tracking-tight">ReguFlow AI</div>
-        <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/70">Compliance Engine</div>
-      </div>
+    <div className={`relative ${containerHeight} w-48`}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes logo-float-shared {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-4px); }
+          100% { transform: translateY(0px); }
+        }
+        .logo-floating-shared {
+          animation: logo-float-shared 4s ease-in-out infinite;
+          filter: drop-shadow(0 0 12px rgba(59,130,246,0.3));
+        }
+      `}} />
+      <img 
+        src="/logo.png" 
+        alt="ReguFlow AI Logo" 
+        className={`absolute left-0 ${logoTop} ${logoHeight} w-auto object-contain logo-floating-shared z-10`} 
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Search, Moon, Sun, LogOut } from "lucide-react";
+import { Bell, Search, Moon, Sun, LogOut, ChevronDown, Command } from "lucide-react";
 import { useTheme } from "@/state/ThemeContext";
 import { useCopilot, CopilotMode } from "@/state/CopilotContext";
 import { useAuth } from "@/state/AuthContext";
@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 
 const MODES: { value: CopilotMode; label: string }[] = [
   { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
+  { value: "intermediate", label: "Standard" },
   { value: "expert", label: "Expert" },
 ];
 
@@ -19,6 +19,7 @@ export default function TopBar() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchValue, setSearchValue] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const name = user?.user_metadata?.name ?? user?.email ?? "Aarav Mehta";
@@ -26,7 +27,7 @@ export default function TopBar() {
   const initials = name
     .split(" ")
     .filter(Boolean)
-    .map((word) => word[0])
+    .map((word: string) => word[0])
     .join("")
     .slice(0, 2)
     .toUpperCase() || name.slice(0, 2).toUpperCase();
@@ -66,86 +67,150 @@ export default function TopBar() {
   };
 
   const handleSearchFocus = () => {
+    setSearchFocused(true);
     if (!isRegulationsPage) {
       toast({
-        title: "Search Feature",
-        description: "Search filters are coming soon for this page! Try search on the Regulations page.",
+        title: "Global Search",
+        description: "Navigate to the Regulations page to use full text search.",
       });
     }
   };
 
   return (
-    <header className="h-14 border-b border-slate-800/40 bg-[#070d1e] flex items-center justify-between px-6 flex-shrink-0 select-none">
-      {/* Search Input */}
-      <div className="flex items-center gap-2.5 text-slate-400 bg-[#0c142b]/60 border border-slate-800/40 rounded-lg px-3 h-9 w-80">
-        <Search className="h-4 w-4 text-slate-400" />
+    <header className="topbar-enterprise flex items-center justify-between px-6 flex-shrink-0">
+      {/* Search */}
+      <div
+        className="flex items-center gap-2.5 px-3 h-9 rounded-lg transition-all duration-300"
+        style={{
+          width: 320,
+          background: searchFocused ? "rgba(59,130,246,0.08)" : "rgba(255,255,255,0.04)",
+          border: searchFocused
+            ? "1px solid rgba(59,130,246,0.35)"
+            : "1px solid rgba(255,255,255,0.07)",
+          boxShadow: searchFocused ? "0 0 20px rgba(59,130,246,0.1)" : "none",
+        }}
+      >
+        <Search className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "rgba(148,163,184,0.5)" }} />
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search regulations, MAPs, documents..."
-          className="border-0 bg-transparent text-xs flex-1 placeholder:text-slate-500/80 focus:outline-none text-white"
+          placeholder="Search regulations, entities..."
+          className="border-0 bg-transparent text-sm flex-1 focus:outline-none"
+          style={{
+            color: "#F8FAFC",
+            fontSize: 13,
+            caretColor: "#3B82F6",
+          }}
           value={searchValue}
           onChange={(e) => handleSearchChange(e.target.value)}
           onFocus={handleSearchFocus}
+          onBlur={() => setSearchFocused(false)}
         />
-        <kbd className="hidden sm:inline text-[9px] font-bold text-slate-500/80 border border-slate-800/50 px-1.5 py-0.5 rounded bg-slate-900">⌘K</kbd>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          <kbd className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium"
+            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(148,163,184,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <Command className="h-2.5 w-2.5" />K
+          </kbd>
+        </div>
       </div>
 
       {/* Right controls */}
-      <div className="flex items-center gap-4 text-xs">
-        {/* Mode Toggler */}
-        <div className="flex items-center gap-0.5 bg-[#0c142b]/80 border border-slate-800/40 rounded-lg p-0.5">
+      <div className="flex items-center gap-3">
+
+        {/* Mode switcher */}
+        <div className="flex items-center p-0.5 rounded-lg" style={{
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.07)"
+        }}>
           {MODES.map((m) => (
             <button
               key={m.value}
               onClick={() => setMode(m.value)}
-              className={`px-3 py-1.5 text-[11px] font-semibold rounded-md transition-all ${
-                mode === m.value
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/15"
-                  : "text-slate-400 hover:text-white"
-              }`}
+              className="px-3 py-1 text-xs font-semibold rounded-md transition-all duration-200"
+              style={mode === m.value ? {
+                background: "rgba(59,130,246,0.2)",
+                color: "#60A5FA",
+                border: "1px solid rgba(59,130,246,0.3)",
+                boxShadow: "0 0 12px rgba(59,130,246,0.15)"
+              } : {
+                color: "rgba(148,163,184,0.6)",
+                border: "1px solid transparent"
+              }}
             >
               {m.label}
             </button>
           ))}
         </div>
 
-        {/* Theme Toggle */}
-        <button 
-          onClick={toggle} 
-          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg border border-transparent hover:border-slate-800/40 transition-all" 
+        {/* Divider */}
+        <div className="divider-v h-6" />
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          className="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+            (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.12)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+            (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
+          }}
           title="Toggle theme"
         >
-          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {theme === "dark"
+            ? <Sun className="h-3.5 w-3.5" style={{ color: "rgba(148,163,184,0.7)" }} />
+            : <Moon className="h-3.5 w-3.5" style={{ color: "rgba(148,163,184,0.7)" }} />}
         </button>
 
-        {/* Notification Bell */}
-        <button className="relative p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg border border-transparent hover:border-slate-800/40 transition-all">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[9px] font-extrabold flex items-center justify-center rounded-full">3</span>
+        {/* Notifications */}
+        <button className="relative w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "rgba(244,63,94,0.08)";
+            (e.currentTarget as HTMLElement).style.borderColor = "rgba(244,63,94,0.25)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+            (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
+          }}
+        >
+          <Bell className="h-3.5 w-3.5" style={{ color: "rgba(148,163,184,0.7)" }} />
+          <span className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-black text-white"
+            style={{ background: "#F43F5E", boxShadow: "0 0 8px rgba(244,63,94,0.5)" }}>
+            3
+          </span>
         </button>
 
-        <div className="w-px h-6 bg-slate-800/40" />
+        {/* Divider */}
+        <div className="divider-v h-6" />
 
-        {/* User Block */}
-        <div className="flex items-center gap-2.5 px-2 py-1">
-          <div className="w-8 h-8 bg-blue-600 text-white flex items-center justify-center text-xs font-bold rounded-lg shadow-lg shadow-blue-500/15 border border-blue-500/25">
+        {/* User profile */}
+        <div className="flex items-center gap-2.5 pl-1 cursor-pointer group">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white flex-shrink-0"
+            style={{
+              background: "linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)",
+              boxShadow: "0 0 16px rgba(59,130,246,0.3)"
+            }}>
             {initials}
           </div>
-          <div className="text-left hidden md:block">
-            <div className="text-xs font-bold text-white leading-tight max-w-[120px] truncate">{name}</div>
-            <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{role}</div>
+          <div className="text-left hidden sm:block">
+            <div className="text-sm font-semibold leading-tight max-w-[140px] truncate" style={{ color: "#F8FAFC" }}>{name}</div>
+            <div className="text-[11px] leading-tight truncate" style={{ color: "rgba(148,163,184,0.6)" }}>{role}</div>
           </div>
+          <ChevronDown className="h-3 w-3 hidden sm:block" style={{ color: "rgba(148,163,184,0.4)" }} />
           <button
             onClick={signOut}
             title="Sign out"
-            className="ml-1 p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all"
+            className="ml-1 w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
+            style={{ background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.15)" }}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3 w-3" style={{ color: "#FB7185" }} />
           </button>
         </div>
       </div>
     </header>
   );
 }
-
