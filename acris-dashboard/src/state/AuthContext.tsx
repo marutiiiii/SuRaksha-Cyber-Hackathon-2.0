@@ -7,7 +7,7 @@ interface AuthCtx {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  signInDemo: () => void;
+  signInDemo: (customUser?: { email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => void;
 }
 
 const Ctx = createContext<AuthCtx>({
@@ -79,22 +79,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signInDemo = () => {
-    localStorage.setItem("mock_user_session", JSON.stringify(mockSession));
+  const signInDemo = (customUser?: { email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => {
+    const sessionToSave = customUser ? {
+      ...mockSession,
+      user: {
+        ...mockUser,
+        email: customUser.email,
+        user_metadata: {
+          name: customUser.name,
+          role: "Compliance Officer",
+          org_name: customUser.orgName,
+          industry_type: customUser.industryType
+        }
+      }
+    } : mockSession;
+
+    localStorage.setItem("mock_user_session", JSON.stringify(sessionToSave));
     
-    // Set default demo organization profile
-    const demoProfile = {
+    // Set organization profile state
+    const profile = customUser ? {
+      isSetup: false,
+      orgName: customUser.orgName,
+      industryType: customUser.industryType,
+      orgSize: "" as any,
+      departments: [],
+      services: [],
+      enabledSources: ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"]
+    } : {
       isSetup: true,
       orgName: "SafeBank India",
-      industryType: "Banking",
-      orgSize: "Enterprise",
+      industryType: "Banking" as const,
+      orgSize: "Enterprise" as const,
       departments: ["Compliance", "Legal", "IT", "Cybersecurity", "Operations", "Audit", "Risk Management"],
       services: ["Retail Banking", "Corporate Banking", "Internet Banking", "Mobile Banking", "UPI", "Loans", "Credit Cards", "KYC Services"],
       enabledSources: ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"]
     };
-    localStorage.setItem("acris.org_profile", JSON.stringify(demoProfile));
+    
+    if (customUser || !localStorage.getItem("acris.org_profile")) {
+      localStorage.setItem("acris.org_profile", JSON.stringify(profile));
+    }
 
-    setSession(mockSession);
+    setSession(sessionToSave);
   };
 
   const signOut = async () => {
