@@ -1,9 +1,17 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/state/AuthContext";
 import {
-  LayoutDashboard, BookOpen, GitCompareArrows, Target,
-  BrainCircuit, FileText, Bell, ClipboardList, Building2,
-  FileUp, KanbanSquare, ShieldCheck, Zap
+  LayoutDashboard, 
+  BookOpen, 
+  GitCompareArrows, 
+  Target,
+  BrainCircuit, 
+  FileText, 
+  FileUp, 
+  KanbanSquare, 
+  ShieldCheck, 
+  LogOut
 } from "lucide-react";
 
 const navGroups: { title: string; items: { label: string; path: string; icon: any; color: string }[] }[] = [
@@ -37,19 +45,13 @@ const navGroups: { title: string; items: { label: string; path: string; icon: an
     items: [
       { label: "Audit Readiness", path: "/audit-readiness", icon: ShieldCheck, color: "#3B82F6" },
       { label: "Reports", path: "/reports", icon: FileText, color: "#06B6D4" },
-      { label: "Alerts", path: "/alerts", icon: Bell, color: "#EF4444" },
-      { label: "Audit Logs", path: "/audit-logs", icon: ClipboardList, color: "#8B5CF6" },
-    ],
-  },
-  {
-    title: "Administration",
-    items: [
-      { label: "Company Profile", path: "/company-profile", icon: Building2, color: "#94A3B8" },
     ],
   },
 ];
 
 export default function Sidebar() {
+  const { signOut } = useAuth();
+
   return (
     <aside className="sidebar-enterprise w-[260px] min-h-screen flex-shrink-0 flex flex-col">
       <style dangerouslySetInnerHTML={{__html: `
@@ -83,29 +85,6 @@ export default function Sidebar() {
 
       {/* Divider */}
       <div className="divider mx-4 mb-3" />
-
-      {/* Compliance health mini-widget */}
-      <div className="mx-3 mb-4 p-3 rounded-10" style={{
-        background: "rgba(59,130,246,0.06)",
-        border: "1px solid rgba(59,130,246,0.15)",
-        borderRadius: 10
-      }}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold" style={{ color: "rgba(148,163,184,0.7)" }}>Compliance Health</span>
-          <Zap className="h-3 w-3" style={{ color: "#60A5FA" }} />
-        </div>
-        <div className="flex items-end gap-2">
-          <span className="text-xl font-black" style={{ color: "#60A5FA", textShadow: "0 0 20px rgba(96,165,250,0.4)" }}>84%</span>
-          <span className="text-[11px] mb-0.5" style={{ color: "#34D399" }}>↑ +6%</span>
-        </div>
-        <div className="mt-2 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
-          <div className="h-1 rounded-full" style={{
-            width: "84%",
-            background: "linear-gradient(90deg, #3B82F6, #06B6D4)",
-            boxShadow: "0 0 8px rgba(59,130,246,0.5)"
-          }} />
-        </div>
-      </div>
 
       {/* Navigation */}
       <nav className="flex flex-col gap-4 px-3 flex-1 overflow-y-auto pb-4">
@@ -144,8 +123,15 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 pb-4">
+      {/* Footer / Logout */}
+      <div className="px-4 pb-4 mt-auto">
+        <button
+          onClick={signOut}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-none transition-colors text-xs font-semibold uppercase tracking-wider mb-3 border border-transparent hover:border-rose-500/25"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Sign Out</span>
+        </button>
         <div className="divider mb-3" />
         <div className="px-2 flex items-center justify-between">
           <span className="text-[11px]" style={{ color: "rgba(100,116,139,0.5)" }}>v3.0.0</span>

@@ -999,7 +999,7 @@
       "source_file": "acris-dashboard/src/App.tsx",
       "source_location": "L1",
       "id": "src_app",
-      "community": 28,
+      "community": 23,
       "norm_label": "app.tsx"
     },
     {
@@ -1008,7 +1008,7 @@
       "source_file": "acris-dashboard/src/App.tsx",
       "source_location": "L27",
       "id": "src_app_queryclient",
-      "community": 28,
+      "community": 23,
       "norm_label": "queryclient"
     },
     {
@@ -1017,7 +1017,7 @@
       "source_file": "acris-dashboard/src/App.tsx",
       "source_location": "L29",
       "id": "src_app_app",
-      "community": 28,
+      "community": 23,
       "norm_label": "app()"
     },
     {
@@ -1026,7 +1026,7 @@
       "source_file": "acris-dashboard/src/components/Layout.tsx",
       "source_location": "L1",
       "id": "components_layout",
-      "community": 28,
+      "community": 23,
       "norm_label": "layout.tsx"
     },
     {
@@ -1035,7 +1035,7 @@
       "source_file": "acris-dashboard/src/components/Layout.tsx",
       "source_location": "L6",
       "id": "components_layout_layout",
-      "community": 28,
+      "community": 23,
       "norm_label": "layout()"
     },
     {
@@ -1089,16 +1089,16 @@
       "source_file": "acris-dashboard/src/components/Sidebar.tsx",
       "source_location": "L1",
       "id": "components_sidebar",
-      "community": 6,
+      "community": 23,
       "norm_label": "sidebar.tsx"
     },
     {
       "label": "navGroups",
       "file_type": "code",
       "source_file": "acris-dashboard/src/components/Sidebar.tsx",
-      "source_location": "L9",
+      "source_location": "L17",
       "id": "components_sidebar_navgroups",
-      "community": 6,
+      "community": 23,
       "norm_label": "navgroups"
     },
     {
@@ -1107,7 +1107,7 @@
       "source_file": "acris-dashboard/src/components/Sidebar.tsx",
       "source_location": "L52",
       "id": "components_sidebar_sidebar",
-      "community": 6,
+      "community": 23,
       "norm_label": "sidebar()"
     },
     {
@@ -1123,7 +1123,7 @@
       "label": "MODES",
       "file_type": "code",
       "source_file": "acris-dashboard/src/components/TopBar.tsx",
-      "source_location": "L9",
+      "source_location": "L10",
       "id": "components_topbar_modes",
       "community": 28,
       "norm_label": "modes"
@@ -1132,7 +1132,7 @@
       "label": "TopBar()",
       "file_type": "code",
       "source_file": "acris-dashboard/src/components/TopBar.tsx",
-      "source_location": "L15",
+      "source_location": "L16",
       "id": "components_topbar_topbar",
       "community": 28,
       "norm_label": "topbar()"
@@ -1143,7 +1143,7 @@
       "source_file": "acris-dashboard/src/components/shared/Badges.tsx",
       "source_location": "L1",
       "id": "shared_badges",
-      "community": 34,
+      "community": 27,
       "norm_label": "badges.tsx"
     },
     {
@@ -1152,7 +1152,7 @@
       "source_file": "acris-dashboard/src/components/shared/Badges.tsx",
       "source_location": "L3",
       "id": "shared_badges_riskcolor",
-      "community": 34,
+      "community": 27,
       "norm_label": "riskcolor()"
     },
     {
@@ -1161,7 +1161,7 @@
       "source_file": "acris-dashboard/src/components/shared/Badges.tsx",
       "source_location": "L12",
       "id": "shared_badges_riskbadge",
-      "community": 34,
+      "community": 27,
       "norm_label": "riskbadge()"
     },
     {
@@ -1170,7 +1170,7 @@
       "source_file": "acris-dashboard/src/components/shared/Badges.tsx",
       "source_location": "L20",
       "id": "shared_badges_statusbadge",
-      "community": 25,
+      "community": 27,
       "norm_label": "statusbadge()"
     },
     {
@@ -1251,7 +1251,7 @@
       "source_file": "acris-dashboard/src/components/shared/FocusTodayCard.tsx",
       "source_location": "L1",
       "id": "shared_focustodaycard",
-      "community": 34,
+      "community": 27,
       "norm_label": "focustodaycard.tsx"
     },
     {
@@ -1260,7 +1260,7 @@
       "source_file": "acris-dashboard/src/components/shared/FocusTodayCard.tsx",
       "source_location": "L5",
       "id": "shared_focustodaycard_props",
-      "community": 34,
+      "community": 27,
       "norm_label": "props"
     },
     {
@@ -1269,7 +1269,7 @@
       "source_file": "acris-dashboard/src/components/shared/FocusTodayCard.tsx",
       "source_location": "L17",
       "id": "shared_focustodaycard_focustodaycard",
-      "community": 34,
+      "community": 27,
       "norm_label": "focustodaycard()"
     },
     {
@@ -1503,7 +1503,7 @@
       "source_file": "acris-dashboard/src/components/shared/States.tsx",
       "source_location": "L31",
       "id": "shared_states_beginnerhint",
-      "community": 20,
+      "community": 25,
       "norm_label": "beginnerhint()"
     },
     {
@@ -1602,7 +1602,7 @@
       "source_file": "acris-dashboard/src/components/ui/accordion.tsx",
       "source_location": "L1",
       "id": "ui_accordion",
-      "community": 116,
+      "community": 6,
       "norm_label": "accordion.tsx"
     },
     {
@@ -1611,7 +1611,7 @@
       "source_file": "acris-dashboard/src/components/ui/accordion.tsx",
       "source_location": "L9",
       "id": "ui_accordion_accordionitem",
-      "community": 116,
+      "community": 6,
       "norm_label": "accordionitem"
     },
     {
@@ -1620,7 +1620,7 @@
       "source_file": "acris-dashboard/src/components/ui/accordion.tsx",
       "source_location": "L17",
       "id": "ui_accordion_accordiontrigger",
-      "community": 116,
+      "community": 6,
       "norm_label": "accordiontrigger"
     },
     {
@@ -1629,7 +1629,7 @@
       "source_file": "acris-dashboard/src/components/ui/accordion.tsx",
       "source_location": "L37",
       "id": "ui_accordion_accordioncontent",
-      "community": 116,
+      "community": 6,
       "norm_label": "accordioncontent"
     },
     {
@@ -1719,7 +1719,7 @@
       "source_file": "acris-dashboard/src/components/ui/alert.tsx",
       "source_location": "L1",
       "id": "ui_alert",
-      "community": 6,
+      "community": 116,
       "norm_label": "alert.tsx"
     },
     {
@@ -1728,7 +1728,7 @@
       "source_file": "acris-dashboard/src/components/ui/alert.tsx",
       "source_location": "L6",
       "id": "ui_alert_alertvariants",
-      "community": 6,
+      "community": 116,
       "norm_label": "alertvariants"
     },
     {
@@ -1737,7 +1737,7 @@
       "source_file": "acris-dashboard/src/components/ui/alert.tsx",
       "source_location": "L21",
       "id": "ui_alert_alert",
-      "community": 6,
+      "community": 116,
       "norm_label": "alert"
     },
     {
@@ -1746,7 +1746,7 @@
       "source_file": "acris-dashboard/src/components/ui/alert.tsx",
       "source_location": "L29",
       "id": "ui_alert_alerttitle",
-      "community": 6,
+      "community": 116,
       "norm_label": "alerttitle"
     },
     {
@@ -1755,7 +1755,7 @@
       "source_file": "acris-dashboard/src/components/ui/alert.tsx",
       "source_location": "L36",
       "id": "ui_alert_alertdescription",
-      "community": 6,
+      "community": 116,
       "norm_label": "alertdescription"
     },
     {
@@ -1773,7 +1773,7 @@
       "source_file": "acris-dashboard/src/components/ui/avatar.tsx",
       "source_location": "L1",
       "id": "ui_avatar",
-      "community": 117,
+      "community": 6,
       "norm_label": "avatar.tsx"
     },
     {
@@ -1782,7 +1782,7 @@
       "source_file": "acris-dashboard/src/components/ui/avatar.tsx",
       "source_location": "L6",
       "id": "ui_avatar_avatar",
-      "community": 117,
+      "community": 6,
       "norm_label": "avatar"
     },
     {
@@ -1791,7 +1791,7 @@
       "source_file": "acris-dashboard/src/components/ui/avatar.tsx",
       "source_location": "L18",
       "id": "ui_avatar_avatarimage",
-      "community": 117,
+      "community": 6,
       "norm_label": "avatarimage"
     },
     {
@@ -1800,7 +1800,7 @@
       "source_file": "acris-dashboard/src/components/ui/avatar.tsx",
       "source_location": "L26",
       "id": "ui_avatar_avatarfallback",
-      "community": 117,
+      "community": 6,
       "norm_label": "avatarfallback"
     },
     {
@@ -1809,7 +1809,7 @@
       "source_file": "acris-dashboard/src/components/ui/badge.tsx",
       "source_location": "L1",
       "id": "ui_badge",
-      "community": 54,
+      "community": 17,
       "norm_label": "badge.tsx"
     },
     {
@@ -1818,7 +1818,7 @@
       "source_file": "acris-dashboard/src/components/ui/badge.tsx",
       "source_location": "L6",
       "id": "ui_badge_badgevariants",
-      "community": 54,
+      "community": 17,
       "norm_label": "badgevariants"
     },
     {
@@ -1827,7 +1827,7 @@
       "source_file": "acris-dashboard/src/components/ui/badge.tsx",
       "source_location": "L23",
       "id": "ui_badge_badgeprops",
-      "community": 54,
+      "community": 17,
       "norm_label": "badgeprops"
     },
     {
@@ -1836,7 +1836,7 @@
       "source_file": "acris-dashboard/src/components/ui/badge.tsx",
       "source_location": "L25",
       "id": "ui_badge_badge",
-      "community": 54,
+      "community": 17,
       "norm_label": "badge()"
     },
     {
@@ -2547,7 +2547,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L1",
       "id": "ui_drawer",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawer.tsx"
     },
     {
@@ -2556,7 +2556,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L6",
       "id": "ui_drawer_drawer",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawer()"
     },
     {
@@ -2565,7 +2565,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L17",
       "id": "ui_drawer_draweroverlay",
-      "community": 55,
+      "community": 17,
       "norm_label": "draweroverlay"
     },
     {
@@ -2574,7 +2574,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L25",
       "id": "ui_drawer_drawercontent",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawercontent"
     },
     {
@@ -2583,7 +2583,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L46",
       "id": "ui_drawer_drawerheader",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawerheader()"
     },
     {
@@ -2592,7 +2592,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L51",
       "id": "ui_drawer_drawerfooter",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawerfooter()"
     },
     {
@@ -2601,7 +2601,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L56",
       "id": "ui_drawer_drawertitle",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawertitle"
     },
     {
@@ -2610,7 +2610,7 @@
       "source_file": "acris-dashboard/src/components/ui/drawer.tsx",
       "source_location": "L68",
       "id": "ui_drawer_drawerdescription",
-      "community": 55,
+      "community": 17,
       "norm_label": "drawerdescription"
     },
     {
@@ -3753,7 +3753,7 @@
       "source_file": "acris-dashboard/src/components/ui/sonner.tsx",
       "source_location": "L1",
       "id": "ui_sonner",
-      "community": 28,
+      "community": 23,
       "norm_label": "sonner.tsx"
     },
     {
@@ -3762,7 +3762,7 @@
       "source_file": "acris-dashboard/src/components/ui/sonner.tsx",
       "source_location": "L4",
       "id": "ui_sonner_toasterprops",
-      "community": 28,
+      "community": 23,
       "norm_label": "toasterprops"
     },
     {
@@ -3771,7 +3771,7 @@
       "source_file": "acris-dashboard/src/components/ui/sonner.tsx",
       "source_location": "L6",
       "id": "ui_sonner_toaster",
-      "community": 28,
+      "community": 23,
       "norm_label": "toaster()"
     },
     {
@@ -3879,7 +3879,7 @@
       "source_file": "acris-dashboard/src/components/ui/tabs.tsx",
       "source_location": "L1",
       "id": "ui_tabs",
-      "community": 147,
+      "community": 6,
       "norm_label": "tabs.tsx"
     },
     {
@@ -3888,7 +3888,7 @@
       "source_file": "acris-dashboard/src/components/ui/tabs.tsx",
       "source_location": "L8",
       "id": "ui_tabs_tabslist",
-      "community": 147,
+      "community": 6,
       "norm_label": "tabslist"
     },
     {
@@ -3897,7 +3897,7 @@
       "source_file": "acris-dashboard/src/components/ui/tabs.tsx",
       "source_location": "L23",
       "id": "ui_tabs_tabstrigger",
-      "community": 147,
+      "community": 6,
       "norm_label": "tabstrigger"
     },
     {
@@ -3906,7 +3906,7 @@
       "source_file": "acris-dashboard/src/components/ui/tabs.tsx",
       "source_location": "L38",
       "id": "ui_tabs_tabscontent",
-      "community": 147,
+      "community": 6,
       "norm_label": "tabscontent"
     },
     {
@@ -4185,7 +4185,7 @@
       "source_file": "acris-dashboard/src/hooks/use-toast.ts",
       "source_location": "L24",
       "id": "hooks_use_toast_genid",
-      "community": 25,
+      "community": 55,
       "norm_label": "genid()"
     },
     {
@@ -4275,7 +4275,7 @@
       "source_file": "acris-dashboard/src/hooks/use-toast.ts",
       "source_location": "L135",
       "id": "hooks_use_toast_toast",
-      "community": 25,
+      "community": 55,
       "norm_label": "toast"
     },
     {
@@ -4311,7 +4311,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L1",
       "id": "supabase_types",
-      "community": 23,
+      "community": 34,
       "norm_label": "types.ts"
     },
     {
@@ -4320,7 +4320,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L1",
       "id": "supabase_types_json",
-      "community": 23,
+      "community": 34,
       "norm_label": "json"
     },
     {
@@ -4329,7 +4329,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L9",
       "id": "supabase_types_database",
-      "community": 23,
+      "community": 34,
       "norm_label": "database"
     },
     {
@@ -4338,7 +4338,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L292",
       "id": "supabase_types_databasewithoutinternals",
-      "community": 23,
+      "community": 34,
       "norm_label": "databasewithoutinternals"
     },
     {
@@ -4347,7 +4347,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L294",
       "id": "supabase_types_defaultschema",
-      "community": 23,
+      "community": 34,
       "norm_label": "defaultschema"
     },
     {
@@ -4356,7 +4356,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L296",
       "id": "supabase_types_tables",
-      "community": 23,
+      "community": 34,
       "norm_label": "tables"
     },
     {
@@ -4365,7 +4365,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L325",
       "id": "supabase_types_tablesinsert",
-      "community": 23,
+      "community": 34,
       "norm_label": "tablesinsert"
     },
     {
@@ -4374,7 +4374,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L350",
       "id": "supabase_types_tablesupdate",
-      "community": 23,
+      "community": 34,
       "norm_label": "tablesupdate"
     },
     {
@@ -4383,7 +4383,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L375",
       "id": "supabase_types_enums",
-      "community": 23,
+      "community": 34,
       "norm_label": "enums"
     },
     {
@@ -4392,7 +4392,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L392",
       "id": "supabase_types_compositetypes",
-      "community": 23,
+      "community": 34,
       "norm_label": "compositetypes"
     },
     {
@@ -4401,7 +4401,7 @@
       "source_file": "acris-dashboard/src/integrations/supabase/types.ts",
       "source_location": "L409",
       "id": "supabase_types_constants",
-      "community": 23,
+      "community": 34,
       "norm_label": "constants"
     },
     {
@@ -4410,7 +4410,7 @@
       "source_file": "acris-dashboard/src/lib/api.ts",
       "source_location": "L1",
       "id": "lib_api",
-      "community": 25,
+      "community": 27,
       "norm_label": "api.ts"
     },
     {
@@ -4419,7 +4419,7 @@
       "source_file": "acris-dashboard/src/lib/api.ts",
       "source_location": "L3",
       "id": "lib_api_authheaders",
-      "community": 25,
+      "community": 27,
       "norm_label": "authheaders()"
     },
     {
@@ -4428,7 +4428,7 @@
       "source_file": "acris-dashboard/src/lib/api.ts",
       "source_location": "L22",
       "id": "lib_api_callapi",
-      "community": 25,
+      "community": 27,
       "norm_label": "callapi()"
     },
     {
@@ -4437,7 +4437,7 @@
       "source_file": "acris-dashboard/src/lib/api.ts",
       "source_location": "L46",
       "id": "lib_api_api",
-      "community": 25,
+      "community": 27,
       "norm_label": "api"
     },
     {
@@ -4446,7 +4446,7 @@
       "source_file": "acris-dashboard/src/lib/api.ts",
       "source_location": "L138",
       "id": "lib_api_apitype",
-      "community": 25,
+      "community": 27,
       "norm_label": "apitype"
     },
     {
@@ -4473,7 +4473,7 @@
       "source_file": "acris-dashboard/src/main.tsx",
       "source_location": "L1",
       "id": "src_main",
-      "community": 28,
+      "community": 23,
       "norm_label": "main.tsx"
     },
     {
@@ -4500,7 +4500,7 @@
       "source_file": "acris-dashboard/src/mocks/index.ts",
       "source_location": "L2",
       "id": "mocks_index_severity",
-      "community": 34,
+      "community": 27,
       "norm_label": "severity"
     },
     {
@@ -4509,7 +4509,7 @@
       "source_file": "acris-dashboard/src/mocks/index.ts",
       "source_location": "L4",
       "id": "mocks_index_regulation",
-      "community": 20,
+      "community": 27,
       "norm_label": "regulation"
     },
     {
@@ -4518,7 +4518,7 @@
       "source_file": "acris-dashboard/src/mocks/index.ts",
       "source_location": "L19",
       "id": "mocks_index_regulations",
-      "community": 20,
+      "community": 27,
       "norm_label": "regulations"
     },
     {
@@ -4536,7 +4536,7 @@
       "source_file": "acris-dashboard/src/mocks/index.ts",
       "source_location": "L165",
       "id": "mocks_index_regsources",
-      "community": 20,
+      "community": 27,
       "norm_label": "regsources"
     },
     {
@@ -4617,7 +4617,7 @@
       "source_file": "acris-dashboard/src/mocks/index.ts",
       "source_location": "L248",
       "id": "mocks_index_alerts",
-      "community": 27,
+      "community": 28,
       "norm_label": "alerts"
     },
     {
@@ -4635,7 +4635,7 @@
       "source_file": "acris-dashboard/src/mocks/index.ts",
       "source_location": "L263",
       "id": "mocks_index_auditlogs",
-      "community": 25,
+      "community": 55,
       "norm_label": "auditlogs"
     },
     {
@@ -4851,7 +4851,7 @@
       "source_file": "acris-dashboard/src/pages/AuditLogs.tsx",
       "source_location": "L1",
       "id": "pages_auditlogs",
-      "community": 25,
+      "community": 55,
       "norm_label": "auditlogs.tsx"
     },
     {
@@ -4860,7 +4860,7 @@
       "source_file": "acris-dashboard/src/pages/AuditLogs.tsx",
       "source_location": "L10",
       "id": "pages_auditlogs_sortkey",
-      "community": 25,
+      "community": 55,
       "norm_label": "sortkey"
     },
     {
@@ -4869,7 +4869,7 @@
       "source_file": "acris-dashboard/src/pages/AuditLogs.tsx",
       "source_location": "L11",
       "id": "pages_auditlogs_sortdir",
-      "community": 25,
+      "community": 55,
       "norm_label": "sortdir"
     },
     {
@@ -4878,7 +4878,7 @@
       "source_file": "acris-dashboard/src/pages/AuditLogs.tsx",
       "source_location": "L13",
       "id": "pages_auditlogs_displaylog",
-      "community": 25,
+      "community": 55,
       "norm_label": "displaylog"
     },
     {
@@ -4887,7 +4887,7 @@
       "source_file": "acris-dashboard/src/pages/AuditLogs.tsx",
       "source_location": "L20",
       "id": "pages_auditlogs_sorticon",
-      "community": 25,
+      "community": 55,
       "norm_label": "sorticon()"
     },
     {
@@ -4896,7 +4896,7 @@
       "source_file": "acris-dashboard/src/pages/AuditLogs.tsx",
       "source_location": "L25",
       "id": "pages_auditlogs_auditlogs",
-      "community": 23,
+      "community": 55,
       "norm_label": "auditlogs()"
     },
     {
@@ -4950,7 +4950,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L1",
       "id": "pages_changedetection",
-      "community": 34,
+      "community": 25,
       "norm_label": "changedetection.tsx"
     },
     {
@@ -4959,7 +4959,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L8",
       "id": "pages_changedetection_oldtext",
-      "community": 34,
+      "community": 25,
       "norm_label": "oldtext"
     },
     {
@@ -4968,7 +4968,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L16",
       "id": "pages_changedetection_newtext",
-      "community": 34,
+      "community": 25,
       "norm_label": "newtext"
     },
     {
@@ -4977,7 +4977,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L25",
       "id": "pages_changedetection_bgcolor",
-      "community": 34,
+      "community": 25,
       "norm_label": "bgcolor()"
     },
     {
@@ -4986,7 +4986,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L32",
       "id": "pages_changedetection_bordercolor",
-      "community": 34,
+      "community": 25,
       "norm_label": "bordercolor()"
     },
     {
@@ -4995,7 +4995,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L39",
       "id": "pages_changedetection_changedetection",
-      "community": 34,
+      "community": 25,
       "norm_label": "changedetection()"
     },
     {
@@ -5004,7 +5004,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L125",
       "id": "pages_changedetection_kpi",
-      "community": 34,
+      "community": 25,
       "norm_label": "kpi()"
     },
     {
@@ -5013,7 +5013,7 @@
       "source_file": "acris-dashboard/src/pages/ChangeDetection.tsx",
       "source_location": "L134",
       "id": "pages_changedetection_pane",
-      "community": 34,
+      "community": 25,
       "norm_label": "pane()"
     },
     {
@@ -5166,7 +5166,7 @@
       "source_file": "acris-dashboard/src/pages/DocumentAnalysis.tsx",
       "source_location": "L29",
       "id": "pages_documentanalysis_documentanalysis",
-      "community": 27,
+      "community": 25,
       "norm_label": "documentanalysis()"
     },
     {
@@ -5175,7 +5175,7 @@
       "source_file": "acris-dashboard/src/pages/ImpactAnalysis.tsx",
       "source_location": "L1",
       "id": "pages_impactanalysis",
-      "community": 20,
+      "community": 25,
       "norm_label": "impactanalysis.tsx"
     },
     {
@@ -5184,7 +5184,7 @@
       "source_file": "acris-dashboard/src/pages/ImpactAnalysis.tsx",
       "source_location": "L8",
       "id": "pages_impactanalysis_matrix",
-      "community": 20,
+      "community": 25,
       "norm_label": "matrix"
     },
     {
@@ -5193,7 +5193,7 @@
       "source_file": "acris-dashboard/src/pages/ImpactAnalysis.tsx",
       "source_location": "L17",
       "id": "pages_impactanalysis_riskdist",
-      "community": 20,
+      "community": 25,
       "norm_label": "riskdist"
     },
     {
@@ -5202,7 +5202,7 @@
       "source_file": "acris-dashboard/src/pages/ImpactAnalysis.tsx",
       "source_location": "L23",
       "id": "pages_impactanalysis_tooltipstyle",
-      "community": 20,
+      "community": 25,
       "norm_label": "tooltipstyle"
     },
     {
@@ -5211,7 +5211,7 @@
       "source_file": "acris-dashboard/src/pages/ImpactAnalysis.tsx",
       "source_location": "L25",
       "id": "pages_impactanalysis_impactanalysis",
-      "community": 20,
+      "community": 25,
       "norm_label": "impactanalysis()"
     },
     {
@@ -5245,7 +5245,7 @@
       "label": "Landing()",
       "file_type": "code",
       "source_file": "acris-dashboard/src/pages/Landing.tsx",
-      "source_location": "L5",
+      "source_location": "L21",
       "id": "pages_landing_landing",
       "community": 23,
       "norm_label": "landing()"
@@ -5292,7 +5292,7 @@
       "source_file": "acris-dashboard/src/pages/Maps.tsx",
       "source_location": "L83",
       "id": "pages_maps_maps",
-      "community": 20,
+      "community": 25,
       "norm_label": "maps()"
     },
     {
@@ -5301,7 +5301,7 @@
       "source_file": "acris-dashboard/src/pages/NotFound.tsx",
       "source_location": "L1",
       "id": "pages_notfound",
-      "community": 28,
+      "community": 23,
       "norm_label": "notfound.tsx"
     },
     {
@@ -5310,7 +5310,7 @@
       "source_file": "acris-dashboard/src/pages/NotFound.tsx",
       "source_location": "L4",
       "id": "pages_notfound_notfound",
-      "community": 28,
+      "community": 23,
       "norm_label": "notfound()"
     },
     {
@@ -5319,7 +5319,7 @@
       "source_file": "acris-dashboard/src/pages/Regulations.tsx",
       "source_location": "L1",
       "id": "pages_regulations",
-      "community": 20,
+      "community": 27,
       "norm_label": "regulations.tsx"
     },
     {
@@ -5337,7 +5337,7 @@
       "source_file": "acris-dashboard/src/pages/Reports.tsx",
       "source_location": "L1",
       "id": "pages_reports",
-      "community": 25,
+      "community": 27,
       "norm_label": "reports.tsx"
     },
     {
@@ -5346,7 +5346,7 @@
       "source_file": "acris-dashboard/src/pages/Reports.tsx",
       "source_location": "L8",
       "id": "pages_reports_report_types",
-      "community": 25,
+      "community": 27,
       "norm_label": "report_types"
     },
     {
@@ -5355,7 +5355,7 @@
       "source_file": "acris-dashboard/src/pages/Reports.tsx",
       "source_location": "L16",
       "id": "pages_reports_reports",
-      "community": 25,
+      "community": 27,
       "norm_label": "reports()"
     },
     {
@@ -5364,7 +5364,7 @@
       "source_file": "acris-dashboard/src/pages/Reports.tsx",
       "source_location": "L116",
       "id": "pages_reports_reportpreview",
-      "community": 25,
+      "community": 27,
       "norm_label": "reportpreview()"
     },
     {
@@ -5373,7 +5373,7 @@
       "source_file": "acris-dashboard/src/pages/Reports.tsx",
       "source_location": "L175",
       "id": "pages_reports_section",
-      "community": 25,
+      "community": 27,
       "norm_label": "section()"
     },
     {
@@ -5499,7 +5499,7 @@
       "source_file": "acris-dashboard/src/state/CopilotContext.tsx",
       "source_location": "L33",
       "id": "state_copilotcontext_useisbeginner",
-      "community": 20,
+      "community": 25,
       "norm_label": "useisbeginner()"
     },
     {
@@ -9279,7 +9279,7 @@
       "source_file": "docs/API SPEC.md",
       "source_location": "L800",
       "id": "docs_api_spec_notifications_module",
-      "community": 36,
+      "community": 117,
       "norm_label": "notifications module"
     },
     {
@@ -9288,7 +9288,7 @@
       "source_file": "docs/API SPEC.md",
       "source_location": "L804",
       "id": "docs_api_spec_get_804",
-      "community": 36,
+      "community": 117,
       "norm_label": "get"
     },
     {
@@ -9297,7 +9297,7 @@
       "source_file": "docs/API SPEC.md",
       "source_location": "L816",
       "id": "docs_api_spec_patch_816",
-      "community": 36,
+      "community": 117,
       "norm_label": "patch"
     },
     {
@@ -16376,9 +16376,9 @@
       "source_file": "acris-dashboard/src/App.tsx",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app",
-      "target": "pages_landing",
-      "confidence_score": 1.0
+      "target": "pages_landing"
     },
     {
       "relation": "imports_from",
@@ -16747,6 +16747,39 @@
       "target": "lib_utils_cn"
     },
     {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "acris-dashboard/src/components/Sidebar.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "components_sidebar",
+      "target": "state_authcontext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "acris-dashboard/src/components/Sidebar.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "components_sidebar",
+      "target": "state_authcontext_useauth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "acris-dashboard/src/components/Sidebar.tsx",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "components_sidebar_sidebar",
+      "target": "state_authcontext_useauth"
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "acris-dashboard/src/components/TopBar.tsx",
@@ -16787,6 +16820,50 @@
       "confidence_score": 1.0,
       "source": "components_topbar",
       "target": "hooks_use_toast_toast"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "acris-dashboard/src/components/TopBar.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "components_topbar",
+      "target": "lib_api",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "acris-dashboard/src/components/TopBar.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "components_topbar",
+      "target": "lib_api_api",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "acris-dashboard/src/components/TopBar.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "components_topbar",
+      "target": "mocks_index",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "acris-dashboard/src/components/TopBar.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "components_topbar",
+      "target": "mocks_index_alerts",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -24307,9 +24384,9 @@
       "source_file": "acris-dashboard/src/pages/Landing.tsx",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "pages_landing",
-      "target": "pages_landing_landing",
-      "confidence_score": 1.0
+      "target": "pages_landing_landing"
     },
     {
       "relation": "imports_from",
@@ -24318,9 +24395,9 @@
       "source_file": "acris-dashboard/src/pages/Landing.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "pages_landing",
-      "target": "state_authcontext",
-      "confidence_score": 1.0
+      "target": "state_authcontext"
     },
     {
       "relation": "imports",
@@ -24329,9 +24406,9 @@
       "source_file": "acris-dashboard/src/pages/Landing.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "pages_landing",
-      "target": "state_authcontext_useauth",
-      "confidence_score": 1.0
+      "target": "state_authcontext_useauth"
     },
     {
       "relation": "calls",
@@ -37578,5 +37655,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "727af86838af5ff31c54d9fa51883b633ec60ab0"
+  "built_at_commit": "a0c60054133c4561dffb646da901ef43198d6087"
 }

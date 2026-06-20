@@ -80,7 +80,10 @@ function Column({ status, cards, onOpen }: { status: MapStatus; cards: MAP[]; on
   );
 }
 
+import { useOrgProfile } from "@/state/OrgProfileContext";
+
 export default function Maps() {
+  const { orgProfile } = useOrgProfile();
   const [items, setItems] = useState<MAP[]>([]);
   const [open, setOpen] = useState<MAP | null>(null);
   const isBeginner = useIsBeginner();
@@ -106,8 +109,87 @@ export default function Maps() {
           impact: m.description
         }));
         
-        // Fallback to mock data if DB has no maps yet (for pristine demo run)
-        setItems(mapped.length > 0 ? mapped : mockMaps);
+        let baseList = mapped.length > 0 ? mapped : mockMaps;
+        const personalizedTasks: MAP[] = [];
+
+        // Appending tasks based on selected products/services
+        if (orgProfile.services.includes("UPI")) {
+          if (!baseList.some(item => item.id === "MAP-UPI-01")) {
+            personalizedTasks.push({
+              id: "MAP-UPI-01",
+              title: "Deploy NPCI UPI Velocity & Fraud Rules",
+              description: "Configure daily transactional limits and alert thresholds for high-frequency UPI accounts per NPCI guidelines.",
+              owner: "Payments IT Team",
+              ownerInitials: "IT",
+              department: "IT",
+              dueDate: "2026-07-15",
+              severity: "High",
+              status: "Pending",
+              regulationId: "NPCI-2026-005",
+              evidenceRequired: ["UPI Switch velocity config screenshot", "Fraud risk assessment report"],
+              impact: "Protects UPI transactions and reduces exposure to payment frauds."
+            });
+          }
+        }
+        
+        if (orgProfile.services.includes("KYC Services")) {
+          if (!baseList.some(item => item.id === "MAP-KYC-01")) {
+            personalizedTasks.push({
+              id: "MAP-KYC-01",
+              title: "Implement RBI V-CIP Compliance Journey",
+              description: "Upgrade the remote customer onboarding platform to enforce live video verification, facial matching, and geo-tagging for V-CIP compliance.",
+              owner: "Operations Team",
+              ownerInitials: "OP",
+              department: "Operations",
+              dueDate: "2026-06-30",
+              severity: "Critical",
+              status: "In Progress",
+              regulationId: "RBI-2026-002",
+              evidenceRequired: ["V-CIP platform workflow diagram", "Compliance officer verification logs"],
+              impact: "Mandatory for digital onboarding verification."
+            });
+          }
+        }
+
+        if (orgProfile.services.includes("Loans")) {
+          if (!baseList.some(item => item.id === "MAP-LOAN-01")) {
+            personalizedTasks.push({
+              id: "MAP-LOAN-01",
+              title: "Audit Digital Lending FLDG Cap Compliance",
+              description: "Verify that First Loss Default Guarantee (FLDG) arrangements with Lending Service Providers (LSPs) do not exceed the 5% cap.",
+              owner: "Risk Management Team",
+              ownerInitials: "RM",
+              department: "Risk Management",
+              dueDate: "2026-07-20",
+              severity: "High",
+              status: "Assigned",
+              regulationId: "RBI-2026-001",
+              evidenceRequired: ["LSP partner FLDG agreement audits", "Board risk management approval"],
+              impact: "Affects partner lending portfolios."
+            });
+          }
+        }
+
+        if (orgProfile.services.includes("Credit Cards")) {
+          if (!baseList.some(item => item.id === "MAP-CARD-01")) {
+            personalizedTasks.push({
+              id: "MAP-CARD-01",
+              title: "Configure Credit Card Billing Cycle Alerts",
+              description: "Deploy automated notifications notifying customers of billing cycles and payment deadlines to comply with RBI credit card guidelines.",
+              owner: "Compliance Team",
+              ownerInitials: "CT",
+              department: "Compliance",
+              dueDate: "2026-08-05",
+              severity: "Medium",
+              status: "Pending",
+              regulationId: "RBI-2026-CC",
+              evidenceRequired: ["Email notification template", "System log validation of alerts"],
+              impact: "Applies to all retail credit card accounts."
+            });
+          }
+        }
+        
+        setItems([...baseList, ...personalizedTasks]);
         setLoading(false);
       })
       .catch((err) => {
@@ -119,16 +201,23 @@ export default function Maps() {
 
   useEffect(() => {
     loadMaps();
-  }, []);
+  }, [orgProfile.services]);
+
+  // Filter task listings by selected departments
+  const filteredItems = useMemo(() => {
+    const selectedDepts = orgProfile.departments || [];
+    if (selectedDepts.length === 0) return items;
+    return items.filter(item => selectedDepts.includes(item.department));
+  }, [items, orgProfile.departments]);
 
   const kpis = useMemo(() => ({
-    total: items.length,
-    pending: items.filter((m) => m.status === "Pending").length,
-    assigned: items.filter((m) => m.status === "Assigned").length,
-    inProgress: items.filter((m) => m.status === "In Progress").length,
-    completed: items.filter((m) => m.status === "Completed").length,
-    overdue: items.filter((m) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length,
-  }), [items]);
+    total: filteredItems.length,
+    pending: filteredItems.filter((m) => m.status === "Pending").length,
+    assigned: filteredItems.filter((m) => m.status === "Assigned").length,
+    inProgress: filteredItems.filter((m) => m.status === "In Progress").length,
+    completed: filteredItems.filter((m) => m.status === "Completed").length,
+    overdue: filteredItems.filter((m) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length,
+  }), [filteredItems]);
 
   const onDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
@@ -207,13 +296,13 @@ export default function Maps() {
           label="Assigned"
           value={kpis.assigned}
           tone="info"
-          subMetrics={[{ label: "Owners", value: "3 depts" }]}
+          subMetrics={[{ label: "Owners", value: `${new Set(filteredItems.map(m => m.department)).size} depts` }]}
         />
         <EnhancedKpiCard
           label="In Progress"
           value={kpis.inProgress}
           tone="info"
-          subMetrics={[{ label: "Active", value: "2 owners" }]}
+          subMetrics={[{ label: "Active", value: `${new Set(filteredItems.filter(m => m.status === "In Progress").map(m => m.owner)).size} owners` }]}
         />
         <EnhancedKpiCard
           label="Completed"
@@ -235,7 +324,7 @@ export default function Maps() {
           { label: "Pending", count: kpis.pending, tone: "warning" },
           { label: "Assigned", count: kpis.assigned, tone: "info" },
           { label: "In Progress", count: kpis.inProgress, tone: "info" },
-          { label: "Review", count: items.filter((m) => m.status === "Review").length, tone: "warning" },
+          { label: "Review", count: filteredItems.filter((m) => m.status === "Review").length, tone: "warning" },
           { label: "Completed", count: kpis.completed, tone: "success" },
         ]}
       />
@@ -257,7 +346,7 @@ export default function Maps() {
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {COLUMNS.map((c) => (
-            <Column key={c} status={c} cards={items.filter((m) => m.status === c)} onOpen={setOpen} />
+            <Column key={c} status={c} cards={filteredItems.filter((m) => m.status === c)} onOpen={setOpen} />
           ))}
         </div>
       </DndContext>

@@ -81,11 +81,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInDemo = () => {
     localStorage.setItem("mock_user_session", JSON.stringify(mockSession));
+    
+    // Set default demo organization profile
+    const demoProfile = {
+      isSetup: true,
+      orgName: "SafeBank India",
+      industryType: "Banking",
+      orgSize: "Enterprise",
+      departments: ["Compliance", "Legal", "IT", "Cybersecurity", "Operations", "Audit", "Risk Management"],
+      services: ["Retail Banking", "Corporate Banking", "Internet Banking", "Mobile Banking", "UPI", "Loans", "Credit Cards", "KYC Services"],
+      enabledSources: ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"]
+    };
+    localStorage.setItem("acris.org_profile", JSON.stringify(demoProfile));
+
     setSession(mockSession);
   };
 
   const signOut = async () => {
     localStorage.removeItem("mock_user_session");
+    localStorage.removeItem("acris.org_profile");
+    localStorage.removeItem("acris.registered_name");
+    localStorage.removeItem("acris.registered_org");
+    localStorage.removeItem("acris.registered_industry");
     await supabase.auth.signOut();
     setSession(null);
   };

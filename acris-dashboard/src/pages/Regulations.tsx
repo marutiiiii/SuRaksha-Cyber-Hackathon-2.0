@@ -8,10 +8,12 @@ import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
 import { regulations as mockRegulations, regSources, Regulation } from "@/mocks";
 import { api } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
+import { useOrgProfile } from "@/state/OrgProfileContext";
 
 export default function Regulations() {
   const isBeginner = useIsBeginner();
   const isExpert = useIsExpert();
+  const { orgProfile } = useOrgProfile();
   const [source, setSource] = useState("All");
   const [risk, setRisk] = useState("All");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,7 +48,12 @@ export default function Regulations() {
     // If not, use mockRegulations as a demo fallback.
     const base = live.length > 0 ? live : mockRegulations;
     
-    return base.filter(
+    // Filter base by enabled sources
+    const baseFiltered = base.filter((r: any) => 
+      orgProfile.enabledSources.length === 0 || orgProfile.enabledSources.includes(r.source)
+    );
+    
+    return baseFiltered.filter(
       (r: any) =>
         (source === "All" || r.source === source) &&
         (risk === "All" || r.risk === risk || r.risk_level === risk) &&
@@ -56,7 +63,13 @@ export default function Regulations() {
          (r.summary && r.summary.toLowerCase().includes(query.toLowerCase()))
         )
     );
-  }, [source, risk, query, live]);
+  }, [source, risk, query, live, orgProfile.enabledSources]);
+
+  const enabledRegSources = useMemo(() => {
+    return regSources.filter(s => 
+      orgProfile.enabledSources.length === 0 || orgProfile.enabledSources.includes(s.key)
+    );
+  }, [orgProfile.enabledSources]);
 
   if (loading) return <SkeletonPage />;
 
@@ -72,7 +85,7 @@ export default function Regulations() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {regSources.map((s) => (
+        {enabledRegSources.map((s) => (
           <div key={s.key} className="section-container p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold">{s.key}</span>
@@ -104,7 +117,7 @@ export default function Regulations() {
             >
               All sources
             </button>
-            {regSources.map((s) => (
+            {enabledRegSources.map((s) => (
               <button
                 key={s.key}
                 onClick={() => setSource(s.key)}

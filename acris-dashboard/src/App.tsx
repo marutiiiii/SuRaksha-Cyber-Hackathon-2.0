@@ -6,9 +6,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/state/ThemeContext";
 import { CopilotProvider } from "@/state/CopilotContext";
 import { AuthProvider } from "@/state/AuthContext";
+import { OrgProfileProvider } from "./state/OrgProfileContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
+import OrgSetup from "./pages/OrgSetup";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Regulations from "./pages/Regulations";
@@ -35,25 +37,28 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AuthProvider>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={<Landing />} />
-                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/regulations" element={<Regulations />} />
-                <Route path="/document-analysis" element={<DocumentAnalysis />} />
-                <Route path="/change-detection" element={<ChangeDetection />} />
-                <Route path="/impact-analysis" element={<ImpactAnalysis />} />
-                <Route path="/copilot" element={<AIExplanation />} />
-                <Route path="/maps" element={<Maps />} />
-                <Route path="/audit-readiness" element={<AuditReadiness />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/alerts" element={<Alerts />} />
-                <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route path="/company-profile" element={<CompanyProfile />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <OrgProfileProvider>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/setup" element={<ProtectedRoute><OrgSetup /></ProtectedRoute>} />
+                  <Route path="/" element={<Landing />} />
+                  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/regulations" element={<Regulations />} />
+                    <Route path="/document-analysis" element={<DocumentAnalysis />} />
+                    <Route path="/change-detection" element={<ChangeDetection />} />
+                    <Route path="/impact-analysis" element={<ImpactAnalysis />} />
+                    <Route path="/copilot" element={<AIExplanation />} />
+                    <Route path="/maps" element={<Maps />} />
+                    <Route path="/audit-readiness" element={<AuditReadiness />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/alerts" element={<Alerts />} />
+                    <Route path="/audit-logs" element={<AuditLogs />} />
+                    <Route path="/company-profile" element={<CompanyProfile />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </OrgProfileProvider>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>

@@ -1,16 +1,16 @@
-# Graph Report - SuRaksha Hack26  (2026-06-19)
+# Graph Report - SuRaksha Hack26  (2026-06-20)
 
 ## Corpus Check
-- 165 files · ~77,018 words
+- 165 files · ~90,152 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1688 nodes · 2185 edges · 149 communities (144 shown, 5 thin omitted)
+- 1688 nodes · 2192 edges · 148 communities (143 shown, 5 thin omitted)
 - Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 136 edges (avg confidence: 0.51)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `727af868`
+- Built from commit: `a0c60054`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -145,7 +145,6 @@
 - [[_COMMUNITY_Community 128|Community 128]]
 - [[_COMMUNITY_Community 130|Community 130]]
 - [[_COMMUNITY_Community 131|Community 131]]
-- [[_COMMUNITY_Community 147|Community 147]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 71 edges
@@ -177,7 +176,7 @@
 - 1-file cycle: `backend/app/api/endpoints/maps.py -> backend/app/api/endpoints/maps.py`
 - 1-file cycle: `backend/app/api/endpoints/notifications.py -> backend/app/api/endpoints/notifications.py`
 
-## Communities (149 total, 5 thin omitted)
+## Communities (148 total, 5 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -204,8 +203,8 @@ Cohesion: 0.05
 Nodes (41): ANTI-HALLUCINATION RULE, ARCHITECTURE RULES, BEFORE IMPLEMENTATION, COMPLETION REPORT, CONTEXT WINDOW OPTIMIZATION, CORE PRINCIPLE, DATABASE SAFETY, DECISION AUTHORITY (+33 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.06
-Nodes (19): NavLink, NavLinkCompatProps, navGroups, Alert, AlertDescription, AlertTitle, alertVariants, Checkbox (+11 more)
+Cohesion: 0.05
+Nodes (23): NavLink, NavLinkCompatProps, AccordionContent, AccordionItem, AccordionTrigger, Avatar, AvatarFallback, AvatarImage (+15 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.05
@@ -248,8 +247,8 @@ Cohesion: 0.06
 Nodes (32): ADAPTIVE COMPLIANCE MODES, Admin, AI COPILOT, API AUTHORIZATION ENFORCEMENT, AUDIT LOGS, AUDIT READINESS, AUDIT REQUIREMENTS, Auditor (+24 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.12
-Nodes (24): cn(), AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay (+16 more)
+Cohesion: 0.08
+Nodes (33): cn(), AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay (+25 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.08
@@ -260,8 +259,8 @@ Cohesion: 0.07
 Nodes (26): AUDITABILITY REQUIREMENTS, DATABASE PRINCIPLES, Database Schema Specification, Design Principles, ENTITY RELATIONSHIP OVERVIEW, INDEXING STRATEGY, MVP TABLES, Purpose (+18 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.11
-Nodes (14): regSources, Regulation, regulations, CardMeta, Dashboard(), ImpactAnalysis(), matrix, riskDist (+6 more)
+Cohesion: 0.18
+Nodes (4): CardMeta, Dashboard(), Regulations(), useIsExpert()
 
 ### Community 21 - "Community 21"
 Cohesion: 0.30
@@ -272,8 +271,8 @@ Cohesion: 0.12
 Nodes (22): Action, ActionType, actionTypes, addToRemoveQueue(), dispatch(), listeners, memoryState, reducer() (+14 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.10
-Nodes (21): ProtectedRoute(), AuditLogs(), Auth(), Landing(), AuthCtx, AuthProvider(), Ctx, mockSession (+13 more)
+Cohesion: 0.11
+Nodes (15): ProtectedRoute(), navGroups, Sidebar(), Auth(), Landing(), queryClient, AuthCtx, AuthProvider() (+7 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.09
@@ -281,19 +280,19 @@ Nodes (23): Added, Added, Added, Added, Added, Added, Added, Added (+15 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.10
-Nodes (17): genId(), Toast, api, ApiType, authHeaders(), callApi(), auditLogs, ChatMessage (+9 more)
+Nodes (16): ChatMessage, AIExplanation(), initial, QUICK, ChangeDetection(), newText, oldText, DocumentAnalysis() (+8 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.09
 Nodes (21): compilerOptions, allowImportingTsExtensions, isolatedModules, jsx, lib, module, moduleDetection, moduleResolution (+13 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.14
-Nodes (9): alerts, Risk, DisplayAlert, Clause, DocRow, DocumentAnalysis(), STAGES, EmptyState() (+1 more)
+Cohesion: 0.09
+Nodes (20): api, ApiType, authHeaders(), callApi(), regSources, Regulation, regulations, Risk (+12 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.10
-Nodes (20): MODES, TopBar(), currentUser, CompanyProfile(), LABEL, ModeBanner(), queryClient, CopilotMode (+12 more)
+Cohesion: 0.13
+Nodes (18): MODES, TopBar(), alerts, currentUser, CompanyProfile(), LABEL, ModeBanner(), CopilotMode (+10 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.11
@@ -316,16 +315,16 @@ Cohesion: 0.29
 Nodes (6): Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
 
 ### Community 34 - "Community 34"
-Cohesion: 0.16
-Nodes (7): Severity, ChangeDetection(), newText, oldText, RiskBadge(), riskColor(), Props
+Cohesion: 0.18
+Nodes (10): CompositeTypes, Constants, Database, DatabaseWithoutInternals, DefaultSchema, Enums, Json, Tables (+2 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.14
 Nodes (11): FormControl, FormDescription, FormFieldContext, FormFieldContextValue, FormItem, FormItemContext, FormItemContextValue, FormLabel (+3 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.14
-Nodes (13): API DESIGN PRINCIPLES, API Principles, API Specification, AUDIT LOGS MODULE, AUTHORIZATION RULE, GET, GET, GET (+5 more)
+Cohesion: 0.18
+Nodes (10): API DESIGN PRINCIPLES, API Principles, API Specification, AUDIT LOGS MODULE, AUTHORIZATION RULE, GET, GET, HEALTH (+2 more)
 
 ### Community 37 - "Community 37"
 Cohesion: 0.14
@@ -396,12 +395,12 @@ Cohesion: 0.25
 Nodes (8): Planned, Planned, Planned, Planned, Planned, Planned, Planned, Upcoming Version 1.1.0
 
 ### Community 54 - "Community 54"
-Cohesion: 0.17
-Nodes (10): Badge(), BadgeProps, badgeVariants, Breadcrumb, BreadcrumbEllipsis(), BreadcrumbItem, BreadcrumbLink, BreadcrumbList (+2 more)
+Cohesion: 0.25
+Nodes (7): Breadcrumb, BreadcrumbEllipsis(), BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator()
 
 ### Community 55 - "Community 55"
-Cohesion: 0.25
-Nodes (6): DrawerContent, DrawerDescription, DrawerFooter(), DrawerHeader(), DrawerOverlay, DrawerTitle
+Cohesion: 0.22
+Nodes (7): genId(), Toast, auditLogs, AuditLogs(), DisplayLog, SortDir, SortKey
 
 ### Community 56 - "Community 56"
 Cohesion: 0.25
@@ -636,12 +635,12 @@ Cohesion: 0.50
 Nodes (4): SEC-001, SEC-002, SEC-003, Security Requirements
 
 ### Community 116 - "Community 116"
-Cohesion: 0.50
-Nodes (3): AccordionContent, AccordionItem, AccordionTrigger
+Cohesion: 0.40
+Nodes (4): Alert, AlertDescription, AlertTitle, alertVariants
 
 ### Community 117 - "Community 117"
-Cohesion: 0.50
-Nodes (3): Avatar, AvatarFallback, AvatarImage
+Cohesion: 0.67
+Nodes (3): GET, NOTIFICATIONS MODULE, PATCH
 
 ### Community 119 - "Community 119"
 Cohesion: 0.67
@@ -679,10 +678,6 @@ Nodes (3): OBS-001, OBS-002, Observability Requirements
 Cohesion: 0.67
 Nodes (3): Reporting Requirements, RP-001, RP-002
 
-### Community 147 - "Community 147"
-Cohesion: 0.50
-Nodes (3): TabsContent, TabsList, TabsTrigger
-
 ## Knowledge Gaps
 - **1152 isolated node(s):** `$schema`, `style`, `rsc`, `tsx`, `config` (+1147 more)
   These have ≤1 connection - possible missing edges or undocumented components.
@@ -691,10 +686,12 @@ Nodes (3): TabsContent, TabsList, TabsTrigger
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `Community 17` to `Community 6`, `Community 10`, `Community 147`, `Community 22`, `Community 30`, `Community 33`, `Community 35`, `Community 38`, `Community 41`, `Community 44`, `Community 45`, `Community 46`, `Community 51`, `Community 52`, `Community 54`, `Community 55`, `Community 56`, `Community 57`, `Community 61`, `Community 76`, `Community 116`, `Community 117`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
+- **Why does `cn()` connect `Community 17` to `Community 6`, `Community 10`, `Community 22`, `Community 23`, `Community 30`, `Community 33`, `Community 35`, `Community 38`, `Community 41`, `Community 44`, `Community 45`, `Community 46`, `Community 51`, `Community 52`, `Community 54`, `Community 56`, `Community 57`, `Community 61`, `Community 76`, `Community 116`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `Community 2` to `Community 12`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `useAuth()` connect `Community 23` to `Community 28`, `Community 55`?**
+  _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **Are the 19 inferred relationships involving `AuditLog` (e.g. with `Session` and `str`) actually correct?**
   _`AuditLog` has 19 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `$schema`, `style`, `rsc` to the rest of the system?**
@@ -703,5 +700,3 @@ _Questions this graph is uniquely positioned to answer:_
   _Cohesion score 0.06709435979684576 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.03636363636363636 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.037037037037037035 - nodes in this community are weakly interconnected._

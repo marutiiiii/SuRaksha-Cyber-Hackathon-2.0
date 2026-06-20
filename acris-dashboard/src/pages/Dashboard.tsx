@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend
@@ -351,16 +351,20 @@ function InsightRow({ title, desc, severity, trend }: {
 /* ────────────────────────────────────────────────
    MAIN DASHBOARD
 ──────────────────────────────────────────────── */
+import { useOrgProfile } from "@/state/OrgProfileContext";
+
 export default function Dashboard() {
   const nav = useNavigate();
   const isBeginner = useIsBeginner();
   const isExpert = useIsExpert();
+  const { orgProfile } = useOrgProfile();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [activeRegsCount, setActiveRegsCount] = useState(8);
   const [highRiskCount, setHighRiskCount] = useState(3);
   const [regs, setRegs] = useState<any[]>([]);
+  const [maps, setMaps] = useState<any[]>([]);
 
   // Cursor proximity tracking for ambient glow
   const mainRef = useRef<HTMLDivElement>(null);
@@ -369,17 +373,67 @@ export default function Dashboard() {
     let active = true;
     Promise.all([
       api.auditReadiness(),
-      api.regulationsLatest()
-    ]).then(([res, regRes]) => {
+      api.regulationsLatest(),
+      api.listMaps().catch(() => [])
+    ]).then(([res, regRes, mapsRes]) => {
       if (!active) return;
       setData(res);
-      const regList = regRes.regulations || [];
-      setRegs(regList);
-      if (regList.length > 0) {
-        setActiveRegsCount(regList.length);
-        const highRisk = regList.filter((r: any) => r.risk === "High" || (r.riskScore && r.riskScore >= 75)).length;
-        setHighRiskCount(highRisk || 3);
+      
+      const regList = regRes || [];
+      const filteredRegList = regList.filter((r: any) => 
+        orgProfile.enabledSources.length === 0 || orgProfile.enabledSources.includes(r.source)
+      );
+      setRegs(filteredRegList);
+      if (filteredRegList.length > 0) {
+        setActiveRegsCount(filteredRegList.length);
+        const highRisk = filteredRegList.filter((r: any) => r.risk === "High" || r.risk_level === "High").length;
+        setHighRiskCount(highRisk);
+      } else {
+        setActiveRegsCount(0);
+        setHighRiskCount(0);
       }
+
+      const mappedMaps = (mapsRes || []).map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        description: m.description,
+        owner: m.owner || "Compliance Team",
+        ownerInitials: m.owner ? m.owner.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "CT",
+        department: m.owner ? m.owner.replace(" Team", "") : "Compliance",
+        dueDate: m.deadline || new Date().toISOString().slice(0, 10),
+        severity: m.severity,
+        status: m.status,
+        regulationId: m.clause_ref || "Circular"
+      }));
+
+      const mockMapsData = [
+        { id: "MAP-001", title: "Update KYC Verification Workflow", department: "Compliance", severity: "High", status: "In Progress", dueDate: "2026-06-15" },
+        { id: "MAP-002", title: "Re-paper FLDG contracts", department: "Legal", severity: "High", status: "Assigned", dueDate: "2026-06-30" },
+        { id: "MAP-003", title: "Stand up DLA quarterly reporting", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-07-10" },
+        { id: "MAP-004", title: "Patch Java middleware CVE-2026-3344", department: "Cybersecurity", severity: "Critical", status: "In Progress", dueDate: "2026-05-27" },
+        { id: "MAP-005", title: "Update materiality policy", department: "Compliance", severity: "Medium", status: "Review", dueDate: "2026-06-05" },
+        { id: "MAP-006", title: "UPI velocity rules rollout", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-06-20" },
+        { id: "MAP-007", title: "Train insider trading designated persons", department: "HR", severity: "Low", status: "Completed", dueDate: "2026-05-30" },
+        { id: "MAP-008", title: "Refresh vendor risk templates", department: "Procurement", severity: "Low", status: "Assigned", dueDate: "2026-06-12" },
+        { id: "MAP-009", title: "Configure V-CIP as default", department: "Operations", severity: "High", status: "Pending", dueDate: "2026-06-25" },
+      ];
+
+      let baseList = mappedMaps.length > 0 ? mappedMaps : mockMapsData;
+      const personalizedTasks: any[] = [];
+      if (orgProfile.services.includes("UPI")) {
+        personalizedTasks.push({ id: "MAP-UPI-01", department: "IT", status: "Pending", severity: "High", dueDate: "2026-07-15" });
+      }
+      if (orgProfile.services.includes("KYC Services")) {
+        personalizedTasks.push({ id: "MAP-KYC-01", department: "Operations", status: "In Progress", severity: "Critical", dueDate: "2026-06-30" });
+      }
+      if (orgProfile.services.includes("Loans")) {
+        personalizedTasks.push({ id: "MAP-LOAN-01", department: "Risk Management", status: "Assigned", severity: "High", dueDate: "2026-07-20" });
+      }
+      if (orgProfile.services.includes("Credit Cards")) {
+        personalizedTasks.push({ id: "MAP-CARD-01", department: "Compliance", status: "Pending", severity: "Medium", dueDate: "2026-08-05" });
+      }
+
+      setMaps([...baseList, ...personalizedTasks]);
       setLoading(false);
     }).catch(() => {
       if (!active) return;
@@ -395,6 +449,7 @@ export default function Dashboard() {
           { department: "IT", readinessScore: 82, openFindings: 5, criticalFindings: 1, closedFindings: 19, missingEvidence: 3, risk: "Medium" },
           { department: "Cybersecurity", readinessScore: 71, openFindings: 9, criticalFindings: 3, closedFindings: 14, missingEvidence: 3, risk: "High" },
           { department: "Audit", readinessScore: 91, openFindings: 1, criticalFindings: 0, closedFindings: 24, missingEvidence: 3, risk: "Low" },
+          { department: "Risk Management", readinessScore: 80, openFindings: 2, criticalFindings: 0, closedFindings: 15, missingEvidence: 1, risk: "Low" }
         ],
         recentActivity: [
           { id: "RBI-2026-001", title: "Digital Lending Master Direction", source: "RBI", changeType: "Modified", risk: "High", status: "Active", time: "2h ago" },
@@ -402,11 +457,6 @@ export default function Dashboard() {
           { id: "NPCI-2026-005", title: "UPI Velocity & Risk Controls", source: "NPCI", changeType: "Updated", risk: "Medium", status: "Active", time: "1d ago" },
           { id: "SEBI-2026-012", title: "Algorithmic Trading Framework", source: "SEBI", changeType: "New", risk: "High", status: "Draft", time: "2d ago" },
           { id: "MCA-2026-003", title: "Corporate Governance Revision", source: "MCA", changeType: "Modified", risk: "Low", status: "Active", time: "3d ago" },
-        ],
-        insights: [
-          { title: "3 regulations require urgent attention", description: "RBI, CERT-In and NPCI changes overlap on KYC and payments. Prioritize Compliance & IT teams.", severity: "High", trend: { value: 12, suffix: "%" } },
-          { title: "Compliance readiness at 84% — on track", description: "Driven by MAP closures in Legal and Compliance over the last 30 days.", severity: "Low", trend: { value: 6, suffix: "%" } },
-          { title: "Operations has highest risk exposure", description: "7 open findings, 2 critical. Recommend reallocating 2 reviewers to clear backlog.", severity: "Medium", trend: { value: -3, suffix: "%" } },
         ],
         complianceTrend: [
           { month: "Dec", score: 78 }, { month: "Jan", score: 80 }, { month: "Feb", score: 82 },
@@ -419,18 +469,83 @@ export default function Dashboard() {
           { week: "W4", completed: 1, inProgress: 8, pending: 2 },
         ],
       });
+      
+      const mockMapsData = [
+        { id: "MAP-001", title: "Update KYC Verification Workflow", department: "Compliance", severity: "High", status: "In Progress", dueDate: "2026-06-15" },
+        { id: "MAP-002", title: "Re-paper FLDG contracts", department: "Legal", severity: "High", status: "Assigned", dueDate: "2026-06-30" },
+        { id: "MAP-003", title: "Stand up DLA quarterly reporting", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-07-10" },
+        { id: "MAP-004", title: "Patch Java middleware CVE-2026-3344", department: "Cybersecurity", severity: "Critical", status: "In Progress", dueDate: "2026-05-27" },
+        { id: "MAP-005", title: "Update materiality policy", department: "Compliance", severity: "Medium", status: "Review", dueDate: "2026-06-05" },
+        { id: "MAP-006", title: "UPI velocity rules rollout", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-06-20" },
+        { id: "MAP-007", title: "Train insider trading designated persons", department: "HR", severity: "Low", status: "Completed", dueDate: "2026-05-30" },
+        { id: "MAP-008", title: "Refresh vendor risk templates", department: "Procurement", severity: "Low", status: "Assigned", dueDate: "2026-06-12" },
+        { id: "MAP-009", title: "Configure V-CIP as default", department: "Operations", severity: "High", status: "Pending", dueDate: "2026-06-25" },
+      ];
+      const personalizedTasks: any[] = [];
+      if (orgProfile.services.includes("UPI")) {
+        personalizedTasks.push({ id: "MAP-UPI-01", department: "IT", status: "Pending", severity: "High", dueDate: "2026-07-15" });
+      }
+      if (orgProfile.services.includes("KYC Services")) {
+        personalizedTasks.push({ id: "MAP-KYC-01", department: "Operations", status: "In Progress", severity: "Critical", dueDate: "2026-06-30" });
+      }
+      if (orgProfile.services.includes("Loans")) {
+        personalizedTasks.push({ id: "MAP-LOAN-01", department: "Risk Management", status: "Assigned", severity: "High", dueDate: "2026-07-20" });
+      }
+      if (orgProfile.services.includes("Credit Cards")) {
+        personalizedTasks.push({ id: "MAP-CARD-01", department: "Compliance", status: "Pending", severity: "Medium", dueDate: "2026-08-05" });
+      }
+      setMaps([...mockMapsData, ...personalizedTasks]);
       setLoading(false);
     });
     return () => { active = false; };
-  }, []);
+  }, [orgProfile.services]);
 
-  if (loading || !data) return <SkeletonPage />;
+  const filteredDepartments = useMemo(() => {
+    if (!data?.departments) return [];
+    const selected = orgProfile.departments || [];
+    if (selected.length === 0) return data.departments;
+    return data.departments.filter((d: any) => selected.includes(d.department));
+  }, [data?.departments, orgProfile.departments]);
 
-  const riskDist = [
-    { name: "High", value: regs.filter((r) => r.risk === "High" || r.risk_level === "High").length || 3 },
-    { name: "Medium", value: regs.filter((r) => r.risk === "Medium" || r.risk_level === "Medium").length || 3 },
-    { name: "Low", value: regs.filter((r) => r.risk === "Low" || r.risk_level === "Low").length || 2 },
-  ];
+  const openFindings = useMemo(() => {
+    return filteredDepartments.reduce((sum: number, d: any) => sum + d.openFindings, 0);
+  }, [filteredDepartments]);
+
+  const missingEvidence = useMemo(() => {
+    return filteredDepartments.reduce((sum: number, d: any) => sum + d.missingEvidence, 0);
+  }, [filteredDepartments]);
+
+  const personalizedScore = useMemo(() => {
+    if (filteredDepartments.length === 0) return data?.score || 84;
+    const sum = filteredDepartments.reduce((acc: number, d: any) => acc + d.readinessScore, 0);
+    return Math.round(sum / filteredDepartments.length);
+  }, [filteredDepartments, data?.score]);
+
+  const filteredMaps = useMemo(() => {
+    const selectedDepts = orgProfile.departments || [];
+    if (selectedDepts.length === 0) return maps;
+    return maps.filter((m: any) => selectedDepts.includes(m.department));
+  }, [maps, orgProfile.departments]);
+
+  const totalMaps = filteredMaps.length;
+  const completedMaps = filteredMaps.filter((m: any) => m.status === "Completed").length;
+  const pendingMaps = totalMaps - completedMaps;
+  const overdueMaps = filteredMaps.filter((m: any) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length;
+
+  const filteredRecentActivity = useMemo(() => {
+    const list = data?.recentActivity || [];
+    const enabled = orgProfile.enabledSources || [];
+    if (enabled.length === 0) return list;
+    return list.filter((r: any) => enabled.includes(r.source));
+  }, [data?.recentActivity, orgProfile.enabledSources]);
+
+  const riskDist = useMemo(() => {
+    return [
+      { name: "High", value: regs.filter((r) => r.risk === "High" || r.risk_level === "High").length || 3 },
+      { name: "Medium", value: regs.filter((r) => r.risk === "Medium" || r.risk_level === "Medium").length || 3 },
+      { name: "Low", value: regs.filter((r) => r.risk === "Low" || r.risk_level === "Low").length || 2 },
+    ];
+  }, [regs]);
 
   const RISK_COLORS: Record<string, string> = {
     High: "#F43F5E",
@@ -438,24 +553,86 @@ export default function Dashboard() {
     Low: "#10B981",
   };
 
-  const openFindings = data.departments.reduce((sum: number, d: any) => sum + d.openFindings, 0);
-  const missingEvidence = data.departments.reduce((sum: number, d: any) => sum + d.missingEvidence, 0);
+  const personalizedInsights = useMemo(() => {
+    const list = [];
+    
+    // Insight 1: Industry-specific urgent warning
+    if (orgProfile.industryType === "Banking") {
+      list.push({
+        title: "Urgent: RBI & CERT-In alignment required",
+        description: `For ${orgProfile.orgName || "your bank"}, RBI's new IT Governance directions require alignment with CERT-In incident reporting SLAs. Check IT and Cybersecurity workflows.`,
+        severity: "High",
+        trend: { value: 14, suffix: "%" }
+      });
+    } else {
+      list.push({
+        title: "Urgent: FinTech FLDG & KYC Compliance",
+        description: "New RBI guidelines require FinTechs offering digital lending to audit First Loss Default Guarantee agreements and enforce V-CIP journeys.",
+        severity: "High",
+        trend: { value: 18, suffix: "%" }
+      });
+    }
+
+    // Insight 2: Size-specific recommendation
+    if (orgProfile.orgSize === "Enterprise") {
+      list.push({
+        title: "Enterprise Audit Readiness Recommendation",
+        description: `With ${filteredDepartments.length} departments active, enforce quarterly internal cross-audits to clear ${openFindings} open findings before final regulatory submission.`,
+        severity: "Medium",
+        trend: { value: 8, suffix: "%" }
+      });
+    } else if (orgProfile.orgSize === "Startup" || orgProfile.orgSize === "Small") {
+      list.push({
+        title: "Lean Startup Compliance Recommendation",
+        description: "Focus resources on core IT & Cybersecurity patch compliance (7-day CERT-In SLA) to avoid penalties. Delegate minor compliance tasks.",
+        severity: "Medium",
+        trend: { value: 12, suffix: "%" }
+      });
+    } else {
+      list.push({
+        title: "Compliance Readiness Recommendation",
+        description: `Ensure the ${filteredDepartments.map(d => d.department).join(", ") || "selected"} departments review recent circular updates.`,
+        severity: "Medium",
+        trend: { value: 5, suffix: "%" }
+      });
+    }
+
+    // Insight 3: Operations & Findings
+    const criticalDepts = filteredDepartments.filter((d: any) => d.risk === "High");
+    if (criticalDepts.length > 0) {
+      list.push({
+        title: "High Risk Exposure in Core Units",
+        description: `Critical findings detected in ${criticalDepts.map(d => d.department).join(", ")}. Prioritize MAP task assignments immediately.`,
+        severity: "High",
+        trend: { value: -5, suffix: "%" }
+      });
+    } else {
+      list.push({
+        title: "Operational Compliance Health",
+        description: `Overall compliance health is stable. ${missingEvidence} pieces of evidence are missing across active units.`,
+        severity: "Low",
+        trend: { value: 4, suffix: "%" }
+      });
+    }
+
+    return list;
+  }, [orgProfile, filteredDepartments, openFindings, missingEvidence]);
 
   const kpiCards: CardMeta[] = [
     {
       label: "Compliance Health",
-      value: `${Math.min(Math.round(data.score * 1.03), 100)}%`,
+      value: `${personalizedScore}%`,
       delta: 6,
       deltaLabel: "%",
       subtitle: "Target: 95% · On track",
       color: "#3B82F6",
       glowColor: "rgba(59,130,246,0.15)",
       icon: Activity,
-      ring: { current: Math.min(Math.round(data.score * 1.03), 100), max: 100 },
+      ring: { current: personalizedScore, max: 100 },
     },
     {
       label: "Audit Readiness",
-      value: `${data.score}%`,
+      value: `${personalizedScore}%`,
       delta: 4,
       deltaLabel: "%",
       subtitle: `${openFindings} open findings · ${missingEvidence} missing`,
@@ -465,24 +642,24 @@ export default function Dashboard() {
     },
     {
       label: "Active Regulations",
-      value: activeRegsCount,
+      value: regs.length || activeRegsCount,
       delta: 3,
       deltaLabel: " new",
-      subtitle: `${highRiskCount} high risk this week`,
+      subtitle: `${regs.filter(r => r.risk === "High" || r.risk_level === "High").length} high risk this week`,
       color: "#8B5CF6",
       glowColor: "rgba(139,92,246,0.15)",
       icon: BookOpen,
     },
     {
       label: "Pending MAPs",
-      value: data.total - data.completed,
+      value: pendingMaps,
       delta: -2,
       deltaLabel: " vs last wk",
-      subtitle: `${data.overdue} overdue · ${data.completed} completed`,
+      subtitle: `${overdueMaps} overdue · ${completedMaps} completed`,
       color: "#F59E0B",
       glowColor: "rgba(245,158,11,0.15)",
       icon: KanbanSquare,
-      ring: { current: data.completed, max: data.total },
+      ring: { current: completedMaps, max: totalMaps || 1 },
     },
   ];
 
@@ -679,7 +856,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            {data.insights.map((i: any) => (
+            {personalizedInsights.map((i: any) => (
               <InsightRow key={i.title} title={i.title} desc={i.description} severity={i.severity} trend={i.trend} />
             ))}
           </div>
@@ -728,7 +905,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {data.recentActivity.map((r: any, idx: number) => (
+                {filteredRecentActivity.map((r: any, idx: number) => (
                   <tr key={idx} onClick={() => nav("/regulations")} style={{ cursor: "pointer" }}>
                     <td>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#F8FAFC", marginBottom: 1 }}>{r.title}</div>
@@ -779,7 +956,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {data.departments.map((dept: any, i: number) => {
+            {filteredDepartments.map((dept: any, i: number) => {
               const score = dept.readinessScore;
               const scoreColor = score >= 85 ? "#10B981" : score >= 75 ? "#F59E0B" : "#F43F5E";
               return (

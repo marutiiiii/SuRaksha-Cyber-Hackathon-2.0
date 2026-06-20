@@ -35,8 +35,8 @@
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\Layout.tsx": {
-    "mtime": 1781620727.8292923,
-    "ast_hash": "49e8c59cb84a88e96e2ec6951005699d",
+    "mtime": 1781966377.4055343,
+    "ast_hash": "fcac907c132f72c779947e86e62a7ad6",
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\NavLink.tsx": {
@@ -50,13 +50,13 @@
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\Sidebar.tsx": {
-    "mtime": 1781882153.7414505,
-    "ast_hash": "fdb274cfad60b94ca32399b28386ef8e",
+    "mtime": 1781966354.0279083,
+    "ast_hash": "fbb4e41a2e5d849cd58be0ff54c4a521",
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\TopBar.tsx": {
-    "mtime": 1781619925.9432418,
-    "ast_hash": "b3feaa544cd7ab337a54dbae64fa2b63",
+    "mtime": 1781966583.8022017,
+    "ast_hash": "2ea757e14aa68bf030d0720d8cd84de9",
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\components\\shared\\Badges.tsx": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Auth.tsx": {
-    "mtime": 1781882414.3223376,
-    "ast_hash": "3aa7f53c06bb265eea7edb5d94dd0ae7",
+    "mtime": 1781964313.737216,
+    "ast_hash": "80fab8b21df3d565a71a1120144d95f6",
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\ChangeDetection.tsx": {
@@ -850,8 +850,28 @@
     "semantic_hash": ""
   },
   "D:\\SuRaksha Hack26\\acris-dashboard\\src\\pages\\Landing.tsx": {
-    "mtime": 1781882405.85611,
-    "ast_hash": "d4a161329d45c2d3269a47a5df7ea28c",
+    "mtime": 1781964269.2637036,
+    "ast_hash": "6bb275cca9d14e43d7fd2651bd968fc7",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\storage\\documents\\03efc9f9-856b-4646-9f81-97ace144c989-404MDE8BE807BACAC4DA09EA3561C820C7A13.pdf": {
+    "mtime": 1781893958.8400128,
+    "ast_hash": "980fd0b650d33ae9138917d349bd38ad",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\storage\\documents\\1fb4784d-8e14-471d-8f5e-306829e4813c-Deep_Learning-Based_Detection_of_Obfuscated_Jailbreak_Prompts.pdf": {
+    "mtime": 1781893856.249607,
+    "ast_hash": "cadff7e68a7deb10b15f64248e9c60bf",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\storage\\documents\\72c5915a-500d-46e5-9230-e9b2cc8213f9-NT1438563868F652840A196CF1CB99CD36E53.pdf": {
+    "mtime": 1781894447.7993715,
+    "ast_hash": "ba4dd7926bb64009f038af1ac81e83c2",
+    "semantic_hash": ""
+  },
+  "D:\\SuRaksha Hack26\\backend\\app\\storage\\documents\\d1fd5a36-de9e-485c-81e8-cb3616c02d45-404MDE8BE807BACAC4DA09EA3561C820C7A13.pdf": {
+    "mtime": 1781894361.516176,
+    "ast_hash": "980fd0b650d33ae9138917d349bd38ad",
     "semantic_hash": ""
   }
 }
