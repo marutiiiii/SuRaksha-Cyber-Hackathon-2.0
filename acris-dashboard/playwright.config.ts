@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: "./src/test",
   fullyParallel: true,
   use: {
-    baseURL: "http://localhost:8080",
+    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
   projects: [

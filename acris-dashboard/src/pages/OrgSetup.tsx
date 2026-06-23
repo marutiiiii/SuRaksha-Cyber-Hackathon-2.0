@@ -38,6 +38,7 @@ export default function OrgSetup() {
     "Internet Banking",
     "Mobile Banking",
     "UPI",
+    "Digital Payments",
     "Loans",
     "Credit Cards",
     "KYC Services"
@@ -55,7 +56,7 @@ export default function OrgSetup() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName.trim()) {
       toast({ title: "Setup Error", description: "Organization Name is required.", variant: "destructive" });
@@ -86,6 +87,38 @@ export default function OrgSetup() {
       services: selectedServices
     });
 
+    // Sync org setup to backend DB if we have a db user id
+    const dbUserId = localStorage.getItem("acris.db_user_id");
+    if (dbUserId) {
+      try {
+        const sessionStr = localStorage.getItem("mock_user_session");
+        let token = "";
+        if (sessionStr) {
+          try {
+            token = JSON.parse(sessionStr)?.access_token || "";
+          } catch {}
+        }
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        await fetch(`${backendUrl}/api/v1/auth/org-setup/${dbUserId}`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            org_name: orgName,
+            org_size: orgSize,
+            departments: selectedDepts,
+            services: selectedServices,
+            enabled_sources: ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"],
+          }),
+        });
+      } catch (err) {
+        console.warn("Could not sync org setup to backend:", err);
+      }
+    }
+
     toast({
       title: "Setup Complete",
       description: `Organization profile configured for ${orgName} (${savedIndustry}). Relevant sources automatically enabled.`
@@ -102,10 +135,10 @@ export default function OrgSetup() {
   const savedIndustry = (localStorage.getItem("acris.registered_industry") as "Banking" | "FinTech") || orgProfile.industryType || "Banking";
 
   return (
-    <div className="min-h-screen w-full bg-[#F1F5F9] text-[#0F172A] flex flex-col justify-between font-sans">
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between font-sans transition-colors duration-300">
       
       {/* Navbar */}
-      <header className="w-full h-16 bg-[#0F172A] border-b border-slate-800 px-6 sm:px-12 flex items-center justify-between sticky top-0 z-40">
+      <header className="w-full h-16 bg-card border-b border-border px-6 sm:px-12 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="relative h-16 w-48 flex items-center">
           <img 
             src="/logo.png" 
@@ -115,7 +148,7 @@ export default function OrgSetup() {
         </div>
         <button 
           onClick={handleSignOut}
-          className="border border-slate-700 text-white bg-transparent hover:bg-slate-800 font-bold text-xs px-4 py-2.5 rounded-none transition-colors uppercase tracking-wider flex items-center gap-1.5"
+          className="border border-border text-foreground bg-transparent hover:bg-muted font-bold text-xs px-4 py-2.5 rounded-lg transition-colors uppercase tracking-wider flex items-center gap-1.5 shadow-sm"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Exit / Sign Out</span>
@@ -123,18 +156,18 @@ export default function OrgSetup() {
       </header>
 
       {/* Setup Form Container */}
-      <div className="flex-grow flex items-center justify-center p-8">
-        <div className="bg-white border border-slate-200 p-8 w-full max-w-2xl shadow-sm rounded-none">
-          <div className="mb-6 border-b border-slate-100 pb-4">
-            <div className="inline-flex items-center gap-2 border-l-2 border-[#1E40AF] pl-3 mb-2">
-              <span className="text-xs font-mono font-bold tracking-widest text-[#1E40AF] uppercase">
+      <div className="flex-grow flex items-center justify-center p-8 bg-muted/20">
+        <div className="glass-card p-8 w-full max-w-2xl bg-card border border-border shadow-md">
+          <div className="mb-6 border-b border-border pb-4">
+            <div className="inline-flex items-center gap-2 border-l-2 border-primary pl-3 mb-2">
+              <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">
                 Step 2: Onboarding Setup
               </span>
             </div>
-            <h1 className="text-xl font-extrabold uppercase text-slate-900 tracking-tight">
+            <h1 className="text-xl font-extrabold uppercase text-foreground tracking-tight">
               Configure Organization Profile
             </h1>
-            <p className="text-slate-500 text-xs mt-1 font-medium">
+            <p className="text-muted-foreground text-xs mt-1 font-medium leading-relaxed">
               Provide organization details to automatically configure regulatory sources and personalized dashboard recommendation filters.
             </p>
           </div>
@@ -143,7 +176,7 @@ export default function OrgSetup() {
             {/* Row 1: Org Name and Size */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
                   Organization Name
                 </label>
                 <input
@@ -152,19 +185,19 @@ export default function OrgSetup() {
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="e.g. Citi Bank India"
-                  className="border border-slate-300 focus:border-[#1E40AF] focus:ring-0 focus:outline-none rounded-none w-full px-3 py-2 text-xs bg-slate-50 text-slate-900 font-medium transition-all"
+                  className="premium-input"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
                   Organization Size
                 </label>
                 <select
                   required
                   value={orgSize}
                   onChange={(e) => setOrgSize(e.target.value as any)}
-                  className="border border-slate-300 focus:border-[#1E40AF] focus:ring-0 focus:outline-none rounded-none w-full px-3 py-2 text-xs bg-slate-50 text-slate-900 font-medium transition-all"
+                  className="premium-select"
                 >
                   <option value="">Select Size...</option>
                   <option value="Startup">Startup (&lt;50 employees)</option>
@@ -176,22 +209,22 @@ export default function OrgSetup() {
             </div>
 
             {/* Industry and Sources Info banner */}
-            <div className="border border-blue-100 bg-blue-50/50 p-4 rounded-none">
-              <span className="text-[10px] font-mono font-bold uppercase text-[#1E40AF] block mb-1">
+            <div className="border border-primary/20 bg-primary/5 p-4 rounded-lg">
+              <span className="text-[10px] font-mono font-bold uppercase text-primary block mb-1">
                 Automated Regulator Settings
               </span>
-              <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
                 Based on your industry type (<strong>{savedIndustry}</strong>), ACRIS has automatically configured and enabled the following regulatory sources: 
-                <span className="text-[#1E40AF] font-bold"> RBI, NPCI, FIU-IND, CERT-In, MeitY / DPDP</span>.
+                <span className="text-primary font-bold"> RBI, NPCI, FIU-IND, CERT-In, MeitY / DPDP</span>.
               </p>
             </div>
 
             {/* Checkbox Group: Departments */}
             <div>
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block mb-2">
+              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-2">
                 Active Departments / Operations Units
               </label>
-              <p className="text-[10px] text-slate-400 mb-2 font-medium">Select all departments operating in your organization.</p>
+              <p className="text-[10px] text-muted-foreground mb-3 font-medium">Select all departments operating in your organization.</p>
               
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {departmentsList.map((dept) => {
@@ -201,14 +234,14 @@ export default function OrgSetup() {
                       type="button"
                       key={dept}
                       onClick={() => handleDeptToggle(dept)}
-                      className={`flex items-center justify-between border px-3 py-2 text-xs text-left font-semibold rounded-none transition-all ${
+                      className={`flex items-center justify-between border px-3.5 py-2.5 text-xs text-left font-semibold rounded-lg transition-all ${
                         isChecked 
-                          ? "border-[#1E40AF] bg-[#1E40AF]/5 text-slate-900" 
-                          : "border-slate-300 bg-white hover:bg-slate-50 text-slate-600"
+                          ? "border-primary bg-primary/5 text-foreground" 
+                          : "border-border bg-card hover:bg-muted text-muted-foreground"
                       }`}
                     >
                       <span>{dept}</span>
-                      {isChecked && <Check className="w-3.5 h-3.5 text-[#1E40AF]" />}
+                      {isChecked && <Check className="w-3.5 h-3.5 text-primary" />}
                     </button>
                   );
                 })}
@@ -217,12 +250,12 @@ export default function OrgSetup() {
 
             {/* Checkbox Group: Products & Services */}
             <div>
-              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 block mb-2">
+              <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-2">
                 Key Products & Services Offered
               </label>
-              <p className="text-[10px] text-slate-400 mb-2 font-medium">Select products/services to customize regulatory change mapping and MAP alerts.</p>
+              <p className="text-[10px] text-muted-foreground mb-3 font-medium">Select products/services to customize regulatory change mapping and MAP alerts.</p>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {servicesList.map((service) => {
                   const isChecked = selectedServices.includes(service);
                   return (
@@ -230,14 +263,14 @@ export default function OrgSetup() {
                       type="button"
                       key={service}
                       onClick={() => handleServiceToggle(service)}
-                      className={`flex items-center justify-between border px-3 py-2 text-xs text-left font-semibold rounded-none transition-all ${
+                      className={`flex items-center justify-between border px-3.5 py-2.5 text-xs text-left font-semibold rounded-lg transition-all ${
                         isChecked 
-                          ? "border-[#1E40AF] bg-[#1E40AF]/5 text-slate-900" 
-                          : "border-slate-300 bg-white hover:bg-slate-50 text-slate-600"
+                          ? "border-primary bg-primary/5 text-foreground" 
+                          : "border-border bg-card hover:bg-muted text-muted-foreground"
                       }`}
                     >
                       <span className="truncate pr-1">{service}</span>
-                      {isChecked && <Check className="w-3.5 h-3.5 text-[#1E40AF] flex-shrink-0" />}
+                      {isChecked && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -245,11 +278,11 @@ export default function OrgSetup() {
             </div>
 
             {/* Submit Button */}
-            <div className="border-t border-slate-100 pt-4 flex justify-end">
+            <div className="border-t border-border pt-4 flex justify-end">
               <button
                 disabled={busy}
                 type="submit"
-                className="bg-[#1E40AF] hover:bg-[#1D4ED8] active:bg-[#1A368F] text-white font-bold text-xs px-8 py-3 rounded-none uppercase tracking-wider shadow-sm transition-all disabled:opacity-60"
+                className="bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] font-bold text-xs px-8 py-3 rounded-lg uppercase tracking-wider shadow-sm transition-all disabled:opacity-60"
               >
                 {busy ? "Configuring Profile..." : "Complete Setup & Launch"}
               </button>
@@ -260,7 +293,7 @@ export default function OrgSetup() {
       </div>
 
       {/* Footer */}
-      <footer className="w-full bg-[#0F172A] border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+      <footer className="w-full bg-card border-t border-border py-4 text-center text-xs text-muted-foreground">
         <span>&copy; {new Date().getFullYear()} ACRIS compliance engine. All rights reserved.</span>
       </footer>
 

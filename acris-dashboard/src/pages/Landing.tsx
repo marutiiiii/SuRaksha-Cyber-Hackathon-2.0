@@ -18,6 +18,8 @@ import {
   ExternalLink 
 } from "lucide-react";
 
+const BACKEND_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api/v1";
+
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,17 +49,40 @@ export default function Landing() {
     }
   };
 
-  const handleDemoSubmit = (e: React.FormEvent) => {
+  const handleDemoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call to register request
-    console.log("Demo requested:", demoForm);
-    setDemoSubmitted(true);
-    setTimeout(() => {
-      setDemoSubmitted(false);
-      setShowDemoModal(false);
-      setDemoForm({ fullName: "", email: "", institution: "", jobTitle: "", message: "" });
-    }, 3000);
+    try {
+      const response = await fetch(`${BACKEND_URL}/bookings/demo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: demoForm.fullName,
+          email: demoForm.email,
+          institution: demoForm.institution,
+          jobTitle: demoForm.jobTitle,
+          message: demoForm.message,
+        }),
+      });
+
+      if (response.ok) {
+        setDemoSubmitted(true);
+        setTimeout(() => {
+          setDemoSubmitted(false);
+          setShowDemoModal(false);
+          setDemoForm({ fullName: "", email: "", institution: "", jobTitle: "", message: "" });
+        }, 3000);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.detail || "Failed to submit demo request.");
+      }
+    } catch (error) {
+      console.error("Demo submission error:", error);
+      alert("Failed to submit demo request. Please check if the backend is running.");
+    }
   };
+
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);

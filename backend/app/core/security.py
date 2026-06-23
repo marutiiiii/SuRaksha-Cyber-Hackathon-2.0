@@ -7,23 +7,39 @@ security = HTTPBearer()
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     token = credentials.credentials
-    print("DEBUG verify_token: received token:", token)
     
     # Bypass for frontend demo session (mock-access-token)
-    if token == "mock-access-token":
-        import uuid
-        demo_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
-        print("DEBUG verify_token: matched mock-access-token. returning demo user details.")
-        return {
-            "sub": demo_uuid,
-            "id": demo_uuid,
-            "email": "demo@safebank.com",
-            "role": "authenticated",
-            "user_metadata": {
-                "name": "Aarav Mehta",
-                "role": "Compliance Officer"
+    if settings.ALLOW_MOCK_AUTH:
+        if token == "mock-access-token":
+            import uuid
+            demo_uuid = uuid.UUID("00000000-0000-0000-0000-000000000000")
+            return {
+                "sub": demo_uuid,
+                "id": demo_uuid,
+                "email": "demo@safebank.com",
+                "role": "authenticated",
+                "user_metadata": {
+                    "name": "Aarav Mehta",
+                    "role": "Compliance Officer"
+                }
             }
-        }
+            
+        if token.startswith("mock-access-token:"):
+            email = token.split(":", 1)[1]
+            import uuid
+            import hashlib
+            h = hashlib.md5(email.lower().encode()).hexdigest()
+            user_uuid = uuid.UUID(h)
+            return {
+                "sub": user_uuid,
+                "id": user_uuid,
+                "email": email,
+                "role": "authenticated",
+                "user_metadata": {
+                    "name": email.split("@")[0].capitalize(),
+                    "role": "Compliance Officer"
+                }
+            }
         
     try:
         # Supabase JWTs are typically HS256 signed with the project JWT secret
@@ -31,9 +47,8 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
             token,
             settings.SUPABASE_JWT_SECRET,
             algorithms=["HS256"],
-            options={"verify_aud": False} # Supabase JWT aud varies between 'authenticated' and api targets
+            options={"verify_aud": False}
         )
-        print("DEBUG verify_token: decoded payload:", payload)
         import uuid
         # Standardize sub/id keys
         if "sub" in payload and "id" not in payload:
@@ -42,29 +57,18 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
         # Convert IDs to UUID objects to be compatible with database models
         if "id" in payload:
             try:
-                print("DEBUG verify_token: converting id to UUID:", payload["id"])
                 payload["id"] = uuid.UUID(str(payload["id"]))
-                print("DEBUG verify_token: converted id successfully:", payload["id"], type(payload["id"]))
-            except ValueError as ve:
-                print("DEBUG verify_token: failed to convert id to UUID:", ve)
+            except ValueError:
                 pass
         if "sub" in payload:
             try:
-                print("DEBUG verify_token: converting sub to UUID:", payload["sub"])
                 payload["sub"] = uuid.UUID(str(payload["sub"]))
-                print("DEBUG verify_token: converted sub successfully:", payload["sub"], type(payload["sub"]))
-            except ValueError as ve:
-                print("DEBUG verify_token: failed to convert sub to UUID:", ve)
+            except ValueError:
                 pass
         return payload
     except jwt.PyJWTError as e:
-        # Fallback in case of local testing where signature verification might be complex:
-        # We try to decode unverified just to see if it's a valid Supabase token, but we default to strict rejection
         try:
             unverified_payload = jwt.decode(token, options={"verify_signature": False})
-            # If we decoded it without verification and it has a sub, we might allow it under local testing,
-            # but standard security practices say we must reject if signature fails.
-            # We reject it.
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Token signature verification failed: {str(e)}",
@@ -77,6 +81,24 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-def get_current_user(payload: dict = Depends(verify_token)) -> dict:
-    # Standard helper to return user dictionary
+from fastapi import Header
+
+def get_current_user(
+    payload: dict = Depends(verify_token),
+    x_copilot_mode: str = Header(default="beginner")
+) -> dict:
+    payload["copilot_mode"] = x_copilot_mode
     return payload
+
+def create_access_token(user_id: str, email: str, role: str = "authenticated") -> str:
+    payload = {
+        "sub": str(user_id),
+        "id": str(user_id),
+        "email": email,
+        "role": role,
+        "user_metadata": {
+            "role": "Compliance Officer"
+        }
+    }
+    return jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+

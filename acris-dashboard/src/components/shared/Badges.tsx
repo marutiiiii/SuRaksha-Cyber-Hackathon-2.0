@@ -1,4 +1,4 @@
-import type { Risk, Severity } from "@/mocks";
+import type { Risk, Severity } from "@/lib/types";
 
 const riskColor = (r: string) =>
   r === "Critical"

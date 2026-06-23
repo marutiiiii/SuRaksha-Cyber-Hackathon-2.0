@@ -3,7 +3,6 @@ import { Sparkles, Check } from "lucide-react";
 
 const LABEL: Record<string, string> = {
   beginner: "Beginner Compliance Officer",
-  intermediate: "Intermediate Compliance Officer",
   expert: "Expert Compliance Lead",
 };
 

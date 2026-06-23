@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-export type CopilotMode = "beginner" | "intermediate" | "expert";
+export type CopilotMode = "beginner" | "expert";
 
 interface CopilotState {
   mode: CopilotMode;
@@ -12,16 +12,23 @@ const STORAGE_KEY = "reguflow.copilot.mode";
 
 export function CopilotProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<CopilotMode>(() => {
-    if (typeof window === "undefined") return "intermediate";
-    return (localStorage.getItem(STORAGE_KEY) as CopilotMode) || "intermediate";
+    if (typeof window === "undefined") return "beginner";
+    return (localStorage.getItem(STORAGE_KEY) as CopilotMode) || "beginner";
   });
+
+  const setMode = (newMode: CopilotMode) => {
+    if (newMode === mode) return;
+    localStorage.setItem(STORAGE_KEY, newMode);
+    setModeState(newMode);
+    window.location.reload();
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, mode);
     document.documentElement.dataset.copilotMode = mode;
   }, [mode]);
 
-  return <Ctx.Provider value={{ mode, setMode: setModeState }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ mode, setMode }}>{children}</Ctx.Provider>;
 }
 
 export function useCopilot() {
@@ -35,7 +42,6 @@ export const useIsExpert = () => useCopilot().mode === "expert";
 
 const FEATURES: Record<CopilotMode, string[]> = {
   beginner: ["Guided tooltips", "Plain-language summaries", "Recommended next actions", "Onboarding hints"],
-  intermediate: ["Advanced filters", "AI assistance", "Faster navigation", "Department insights"],
   expert: ["Dense tables", "Bulk actions", "Keyboard shortcuts", "Raw clause access"],
 };
 

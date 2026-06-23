@@ -4,15 +4,27 @@ import PageHeader from "@/components/shared/PageHeader";
 import EnhancedKpiCard from "@/components/shared/EnhancedKpiCard";
 import StatusPipeline from "@/components/shared/StatusPipeline";
 import Drawer from "@/components/shared/Drawer";
-import { RiskBadge } from "@/components/shared/Badges";
 import { BeginnerHint, SkeletonPage } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
-import { maps as mockMaps, MAP, MapStatus } from "@/mocks";
-import { Calendar, User, Lock } from "lucide-react";
+import type { MAP, MapStatus } from "@/lib/types";
+import { Calendar, User, Lock, Loader2, ShieldCheck, CheckSquare, Layers } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useOrgProfile } from "@/state/OrgProfileContext";
 
 const COLUMNS: MapStatus[] = ["Pending", "Assigned", "In Progress", "Review", "Completed"];
+
+function RiskBadge({ risk }: { risk: string }) {
+  let badgeClass = "badge-medium";
+  if (risk === "High" || risk === "Critical") badgeClass = "badge-high";
+  if (risk === "Low") badgeClass = "badge-low";
+  return (
+    <span className={`badge ${badgeClass} text-[9px] font-bold`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      {risk}
+    </span>
+  );
+}
 
 function Card({ map }: { map: MAP }) {
   const isCompleted = map.status === "Completed";
@@ -21,13 +33,11 @@ function Card({ map }: { map: MAP }) {
     disabled: isCompleted,
   });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
-  const sevColor =
-    map.severity === "Critical" ? "hsl(var(--risk-critical))"
-    : map.severity === "High" ? "hsl(var(--risk-high))"
-    : map.severity === "Medium" ? "hsl(var(--risk-medium))"
-    : "hsl(var(--risk-low))";
   
-  // Format owner initials
+  let sevBorder = "border-l-rose-500";
+  if (map.severity === "Medium") sevBorder = "border-l-amber-500";
+  else if (map.severity === "Low") sevBorder = "border-l-emerald-500";
+
   const initials = map.owner 
     ? map.owner.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() 
     : "—";
@@ -35,28 +45,30 @@ function Card({ map }: { map: MAP }) {
   return (
     <div
       ref={setNodeRef}
-      style={{ ...(style || {}), borderLeft: `4px solid ${sevColor}` }}
+      style={style}
       {...(!isCompleted ? listeners : {})}
       {...(!isCompleted ? attributes : {})}
-      className={`bg-card border border-border rounded-md p-3 shadow-sm transition-all ${
+      className={`bg-card border border-border rounded-lg p-3.5 shadow-sm transition-all border-l-4 ${sevBorder} ${
         isCompleted
-          ? "cursor-default opacity-85"
+          ? "cursor-default opacity-75"
           : "cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
-      } ${isDragging ? "opacity-50 shadow-lg" : ""}`}
+      } ${isDragging ? "opacity-45 shadow-lg" : ""}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-mono font-semibold text-muted-foreground flex items-center gap-1">
+        <span className="text-[9px] font-mono font-bold text-muted-foreground flex items-center gap-1 uppercase">
           {map.id.substring(0, 8)}
-          {isCompleted && <Lock className="h-3 w-3 text-muted-foreground/85" />}
+          {isCompleted && <Lock className="h-3 w-3 text-muted-foreground/80" />}
         </span>
         <RiskBadge risk={map.severity} />
       </div>
-      <div className="text-sm font-medium leading-snug mb-2">{map.title}</div>
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="flex items-center gap-1" title={map.owner || "Unowned"}><User className="h-3 w-3" />{initials}</span>
-        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{map.dueDate}</span>
+      <div className="text-xs font-bold text-foreground leading-snug mb-2.5">{map.title}</div>
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
+        <span className="flex items-center gap-1.5" title={map.owner || "Unowned"}><User className="h-3 w-3" />{initials}</span>
+        <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />{map.dueDate}</span>
       </div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{map.department || "Compliance"}</div>
+      <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mt-2 pt-1 border-t border-border/40">
+        {map.department || "Compliance"}
+      </div>
     </div>
   );
 }
@@ -64,23 +76,33 @@ function Card({ map }: { map: MAP }) {
 function Column({ status, cards, onOpen }: { status: MapStatus; cards: MAP[]; onOpen: (m: MAP) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div ref={setNodeRef} className={`bg-muted/40 border border-border rounded-md flex flex-col min-h-[400px] transition-all ${isOver ? "ring-2 ring-primary bg-primary/5" : ""}`}>
-      <div className="px-3 py-2 border-b bg-card rounded-t-md flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider">{status}</span>
-        <span className="text-xs text-muted-foreground">{cards.length}</span>
+    <div 
+      ref={setNodeRef} 
+      className={`bg-muted/10 border border-border rounded-xl flex flex-col min-h-[460px] transition-all overflow-hidden ${
+        isOver ? "ring-2 ring-primary/30 bg-primary/5 border-primary/40" : ""
+      }`}
+    >
+      <div className="px-3.5 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">
+        <span className="text-xs font-extrabold uppercase tracking-wider text-foreground">{status}</span>
+        <span className="text-[10px] font-extrabold bg-muted border border-border text-muted-foreground px-2 py-0.5 rounded-full">
+          {cards.length}
+        </span>
       </div>
-      <div className="p-2 space-y-2 flex-1">
+      <div className="p-2.5 space-y-2.5 flex-1 overflow-y-auto max-h-[500px]">
         {cards.map((c) => (
           <div key={c.id} onDoubleClick={() => onOpen(c)}>
             <Card map={c} />
           </div>
         ))}
+        {cards.length === 0 && (
+          <div className="h-full flex items-center justify-center py-10 text-center">
+            <span className="text-[10px] text-muted-foreground font-semibold italic">No active tasks</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
-import { useOrgProfile } from "@/state/OrgProfileContext";
 
 export default function Maps() {
   const { orgProfile } = useOrgProfile();
@@ -90,10 +112,14 @@ export default function Maps() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [loading, setLoading] = useState(true);
 
+  // Evidence state variables
+  const [evidenceList, setEvidenceList] = useState<any[]>([]);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
+
   const loadMaps = () => {
     api.listMaps()
       .then((res) => {
-        // Map backend properties to frontend model structure
         const mapped = (res || []).map((m: any) => ({
           id: m.id,
           title: m.title,
@@ -109,92 +135,12 @@ export default function Maps() {
           impact: m.description
         }));
         
-        let baseList = mapped.length > 0 ? mapped : mockMaps;
-        const personalizedTasks: MAP[] = [];
-
-        // Appending tasks based on selected products/services
-        if (orgProfile.services.includes("UPI")) {
-          if (!baseList.some(item => item.id === "MAP-UPI-01")) {
-            personalizedTasks.push({
-              id: "MAP-UPI-01",
-              title: "Deploy NPCI UPI Velocity & Fraud Rules",
-              description: "Configure daily transactional limits and alert thresholds for high-frequency UPI accounts per NPCI guidelines.",
-              owner: "Payments IT Team",
-              ownerInitials: "IT",
-              department: "IT",
-              dueDate: "2026-07-15",
-              severity: "High",
-              status: "Pending",
-              regulationId: "NPCI-2026-005",
-              evidenceRequired: ["UPI Switch velocity config screenshot", "Fraud risk assessment report"],
-              impact: "Protects UPI transactions and reduces exposure to payment frauds."
-            });
-          }
-        }
-        
-        if (orgProfile.services.includes("KYC Services")) {
-          if (!baseList.some(item => item.id === "MAP-KYC-01")) {
-            personalizedTasks.push({
-              id: "MAP-KYC-01",
-              title: "Implement RBI V-CIP Compliance Journey",
-              description: "Upgrade the remote customer onboarding platform to enforce live video verification, facial matching, and geo-tagging for V-CIP compliance.",
-              owner: "Operations Team",
-              ownerInitials: "OP",
-              department: "Operations",
-              dueDate: "2026-06-30",
-              severity: "Critical",
-              status: "In Progress",
-              regulationId: "RBI-2026-002",
-              evidenceRequired: ["V-CIP platform workflow diagram", "Compliance officer verification logs"],
-              impact: "Mandatory for digital onboarding verification."
-            });
-          }
-        }
-
-        if (orgProfile.services.includes("Loans")) {
-          if (!baseList.some(item => item.id === "MAP-LOAN-01")) {
-            personalizedTasks.push({
-              id: "MAP-LOAN-01",
-              title: "Audit Digital Lending FLDG Cap Compliance",
-              description: "Verify that First Loss Default Guarantee (FLDG) arrangements with Lending Service Providers (LSPs) do not exceed the 5% cap.",
-              owner: "Risk Management Team",
-              ownerInitials: "RM",
-              department: "Risk Management",
-              dueDate: "2026-07-20",
-              severity: "High",
-              status: "Assigned",
-              regulationId: "RBI-2026-001",
-              evidenceRequired: ["LSP partner FLDG agreement audits", "Board risk management approval"],
-              impact: "Affects partner lending portfolios."
-            });
-          }
-        }
-
-        if (orgProfile.services.includes("Credit Cards")) {
-          if (!baseList.some(item => item.id === "MAP-CARD-01")) {
-            personalizedTasks.push({
-              id: "MAP-CARD-01",
-              title: "Configure Credit Card Billing Cycle Alerts",
-              description: "Deploy automated notifications notifying customers of billing cycles and payment deadlines to comply with RBI credit card guidelines.",
-              owner: "Compliance Team",
-              ownerInitials: "CT",
-              department: "Compliance",
-              dueDate: "2026-08-05",
-              severity: "Medium",
-              status: "Pending",
-              regulationId: "RBI-2026-CC",
-              evidenceRequired: ["Email notification template", "System log validation of alerts"],
-              impact: "Applies to all retail credit card accounts."
-            });
-          }
-        }
-        
-        setItems([...baseList, ...personalizedTasks]);
+        setItems(mapped);
         setLoading(false);
       })
       .catch((err) => {
         console.error("Failed to load maps", err);
-        setItems(mockMaps);
+        setItems([]);
         setLoading(false);
       });
   };
@@ -203,7 +149,77 @@ export default function Maps() {
     loadMaps();
   }, [orgProfile.services]);
 
-  // Filter task listings by selected departments
+  useEffect(() => {
+    if (open?.id) {
+      if (open.id.startsWith("MAP-")) {
+        setEvidenceList([]);
+        return;
+      }
+      setEvidenceLoading(true);
+      api.listEvidence(open.id)
+        .then((res) => {
+          setEvidenceList(res || []);
+          setEvidenceLoading(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load evidence files", err);
+          setEvidenceLoading(false);
+        });
+    }
+  }, [open?.id]);
+
+  const handleEvidenceUpload = async (file: File) => {
+    if (!open?.id) return;
+    
+    setUploadingEvidence(true);
+    let currentMapId = open.id;
+    let currentMap = open;
+
+    if (open.id.startsWith("MAP-")) {
+      try {
+        const created = await api.createMap({
+          title: open.title,
+          description: open.description,
+          owner: open.owner,
+          severity: open.severity,
+          deadline: open.dueDate,
+          clause_ref: open.regulationId,
+        });
+        currentMapId = created.id;
+        currentMap = {
+          ...open,
+          id: created.id,
+        };
+        setItems(prev => prev.map(item => item.id === open.id ? { ...item, id: created.id } : item));
+        setOpen(currentMap);
+      } catch (err: any) {
+        toast({ title: "Upload failed", description: "Failed to initialize MAP task: " + err.message, variant: "destructive" });
+        setUploadingEvidence(false);
+        return;
+      }
+    }
+
+    try {
+      const res = await api.uploadEvidence(currentMapId, file);
+      toast({ 
+        title: "Evidence submitted", 
+        description: `AI Review: ${res.validation_status}. ${res.ai_notes || ""}`,
+        variant: res.validation_status === "Passed" ? "default" : "destructive"
+      });
+      const updatedList = await api.listEvidence(currentMapId);
+      setEvidenceList(updatedList || []);
+      
+      loadMaps();
+      if (res.validation_status === "Passed") {
+        setOpen(null);
+      }
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingEvidence(false);
+    }
+  };
+
   const filteredItems = useMemo(() => {
     const selectedDepts = orgProfile.departments || [];
     if (selectedDepts.length === 0) return items;
@@ -238,29 +254,39 @@ export default function Maps() {
     const sourceIndex = COLUMNS.indexOf(card.status);
     const targetIndex = COLUMNS.indexOf(target);
 
-    // Enforce sequential status flow
     if (Math.abs(targetIndex - sourceIndex) > 1) {
       toast({
         title: "Workflow Violation",
-        description: `Cannot move MAP from "${card.status}" directly to "${target}". Status transitions must be sequential (Pending ➔ Assigned ➔ In Progress ➔ Review ➔ Completed).`,
+        description: `Cannot move MAP from "${card.status}" directly to "${target}". Transitions must be sequential.`,
         variant: "destructive",
       });
       return;
     }
 
-    // Optimistically update local items state
     const previousItems = [...items];
     setItems((arr) => arr.map((m) => (m.id === active.id ? { ...m, status: target } : m)));
 
     try {
-      // Persist to backend database
-      await api.updateMapStatus(card.id, target);
+      let currentMapId = card.id;
+      if (card.id.startsWith("MAP-")) {
+        const created = await api.createMap({
+          title: card.title,
+          description: card.description,
+          owner: card.owner,
+          severity: card.severity,
+          deadline: card.dueDate,
+          clause_ref: card.regulationId,
+        });
+        currentMapId = created.id;
+        setItems((arr) => arr.map((m) => (m.id === active.id ? { ...m, id: created.id, status: target } : m)));
+      }
+
+      await api.updateMapStatus(currentMapId, target);
       toast({
         title: "MAP status updated",
         description: `"${card.title}" moved to "${target}".`,
       });
     } catch (err: any) {
-      // Revert change on server-side rejection or network error
       setItems(previousItems);
       toast({
         title: "Failed to update MAP",
@@ -273,14 +299,20 @@ export default function Maps() {
   if (loading) return <SkeletonPage />;
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Measurable Action Points" subtitle="Compliance tasks generated from regulation changes, tracked through completion" />
+    <div className="space-y-6 animate-fade-in-up">
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Action Points Management</h1>
+          <p className="text-xs text-muted-foreground mt-1">Measurable Action Points (MAP) generated from circular audits</p>
+        </div>
+      </div>
 
       {isBeginner && (
-        <BeginnerHint>Drag cards between columns to update status. Double-click a card to see full details.</BeginnerHint>
+        <BeginnerHint>Drag cards across the pipeline stages to update accountability progress. Double click any card to upload proofs.</BeginnerHint>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Bento KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <EnhancedKpiCard
           label="Total MAPs"
           value={kpis.total}
@@ -318,33 +350,38 @@ export default function Maps() {
         />
       </div>
 
-      <StatusPipeline
-        title="Workflow progress"
-        steps={[
-          { label: "Pending", count: kpis.pending, tone: "warning" },
-          { label: "Assigned", count: kpis.assigned, tone: "info" },
-          { label: "In Progress", count: kpis.inProgress, tone: "info" },
-          { label: "Review", count: filteredItems.filter((m) => m.status === "Review").length, tone: "warning" },
-          { label: "Completed", count: kpis.completed, tone: "success" },
-        ]}
-      />
+      {/* Workflow pipeline graphic wrapper */}
+      <div className="glass-card p-4">
+        <StatusPipeline
+          title="Workflow Pipeline Progress"
+          steps={[
+            { label: "Pending", count: kpis.pending, tone: "warning" },
+            { label: "Assigned", count: kpis.assigned, tone: "info" },
+            { label: "In Progress", count: kpis.inProgress, tone: "info" },
+            { label: "Review", count: filteredItems.filter((m) => m.status === "Review").length, tone: "warning" },
+            { label: "Completed", count: kpis.completed, tone: "success" },
+          ]}
+        />
+      </div>
 
-      <div className="flex flex-wrap gap-2 text-[11px]">
-        <span className="text-muted-foreground mr-1">Severity:</span>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 text-[10px] font-bold text-muted-foreground">
+        <span className="mr-1 mt-0.5">Priority Level:</span>
         {[
-          { label: "Critical", c: "hsl(var(--risk-critical))" },
-          { label: "High", c: "hsl(var(--risk-high))" },
-          { label: "Medium", c: "hsl(var(--risk-medium))" },
-          { label: "Low", c: "hsl(var(--risk-low))" },
+          { label: "Critical Priority", c: "bg-rose-500" },
+          { label: "High Priority", c: "bg-rose-400" },
+          { label: "Medium Priority", c: "bg-amber-500" },
+          { label: "Low Priority", c: "bg-emerald-500" },
         ].map((s) => (
-          <span key={s.label} className="inline-flex items-center gap-1 px-2 py-0.5 border border-border rounded bg-card">
-            <span className="w-2 h-2 rounded-sm" style={{ background: s.c }} /> {s.label}
+          <span key={s.label} className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-border rounded bg-card text-foreground">
+            <span className={`w-1.5 h-1.5 rounded-sm ${s.c}`} /> {s.label}
           </span>
         ))}
       </div>
 
+      {/* DND Board */}
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {COLUMNS.map((c) => (
             <Column key={c} status={c} cards={filteredItems.filter((m) => m.status === c)} onOpen={setOpen} />
           ))}
@@ -353,46 +390,102 @@ export default function Maps() {
 
       <Drawer open={!!open} onClose={() => setOpen(null)} title={open?.title}>
         {open && (
-          <div className="space-y-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs">{open.id.substring(0, 8)}</span>
+          <div className="space-y-5 text-sm text-foreground py-2">
+            <div className="flex items-center gap-3 border-b border-border pb-3">
+              <span className="font-mono text-xs font-bold text-primary">{open.id.substring(0, 8)}</span>
               <RiskBadge risk={open.severity} />
-              <span className="text-xs text-muted-foreground">{open.department}</span>
+              <span className="badge badge-info uppercase tracking-wider text-[10px]">{open.department}</span>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Description</div>
-              <p>{open.description}</p>
+            
+            <div className="space-y-1.5">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Obligation Action</h4>
+              <p className="text-foreground leading-relaxed font-semibold bg-muted/20 border border-border p-3.5 rounded-lg">{open.description}</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="grid grid-cols-2 gap-4 border-y border-border py-4 text-xs font-semibold text-foreground">
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Owner</div>
-                <div>{open.owner}</div>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">Assigned Owner</span>
+                <span className="flex items-center gap-1.5 text-primary"><User className="h-3.5 w-3.5" />{open.owner}</span>
               </div>
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Due date</div>
-                <div>{open.dueDate}</div>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">Compliance Due Date</span>
+                <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-muted-foreground" />{open.dueDate}</span>
               </div>
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Related regulation</div>
-                <div className="font-mono">{open.regulationId}</div>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">Linked Clause Ref</span>
+                <span className="font-mono text-primary">{open.regulationId}</span>
               </div>
               <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Status</div>
-                <div>{open.status}</div>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-0.5">Pipeline Stage</span>
+                <span className="badge bg-muted text-foreground border-border uppercase text-[9px] tracking-wider font-extrabold">{open.status}</span>
               </div>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Impact</div>
-              <p className="text-muted-foreground">{open.impact}</p>
-            </div>
+            
             {open.evidenceRequired && open.evidenceRequired.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Evidence required</div>
-                <ul className="list-disc ml-5 text-muted-foreground space-y-1">
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Evidence Required</h4>
+                <ul className="list-disc ml-5 text-muted-foreground font-semibold space-y-1">
                   {open.evidenceRequired.map((e) => <li key={e}>{e}</li>)}
                 </ul>
               </div>
             )}
+
+            {/* E2E Evidence Proof Management Panel */}
+            <div className="border-t border-border pt-4 space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Compliance Evidence Proof</h4>
+              
+              {evidenceLoading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Loading audit history...
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {evidenceList.map((ev) => (
+                    <div key={ev.id} className="border border-border p-3 rounded-lg bg-muted/20 text-xs">
+                      <div className="flex items-center justify-between font-bold mb-1">
+                        <span className="truncate max-w-[70%] text-foreground">{ev.filename}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${
+                          ev.validation_status === "Passed" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                          : ev.validation_status === "Failed" ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
+                          : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        }`}>{ev.validation_status}</span>
+                      </div>
+                      <p className="text-muted-foreground font-semibold leading-relaxed mt-1.5">{ev.ai_notes || "Verified by AI Audit trail."}</p>
+                    </div>
+                  ))}
+                  
+                  {evidenceList.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic font-semibold text-center py-4 bg-muted/10 border border-dashed border-border rounded-lg">
+                      No compliance evidence documents uploaded yet
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {open.status !== "Completed" && (
+                <div className="pt-2">
+                  <label className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-card">
+                    <span className="text-xs font-bold text-primary uppercase tracking-wider">Upload Verification Evidence</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">PDF or TXT accepted · Real-time AI validation check</span>
+                    <input 
+                      type="file" 
+                      accept=".pdf,.txt" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleEvidenceUpload(file);
+                      }}
+                      disabled={uploadingEvidence}
+                    />
+                  </label>
+                  {uploadingEvidence && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3 justify-center font-semibold">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" /> Running automated AI evidence validation...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Drawer>

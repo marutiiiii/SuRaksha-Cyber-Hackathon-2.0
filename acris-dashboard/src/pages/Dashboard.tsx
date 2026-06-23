@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
-  Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend
+  Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, BookOpen, KanbanSquare, ShieldCheck, Activity,
-  Lightbulb, Clock, ArrowUpRight, ArrowDownRight, TrendingUp,
-  Zap, Globe, Target, ChevronRight, ExternalLink
+  Lightbulb, ArrowUpRight, ArrowDownRight, TrendingUp,
+  Globe, ExternalLink, ShieldAlert
 } from "lucide-react";
 import { BeginnerHint, SkeletonPage } from "@/components/shared/States";
 import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
 import { api } from "@/lib/api";
+import { useOrgProfile } from "@/state/OrgProfileContext";
 
-/* ────────────────────────────────────────────────
-   TYPES
-──────────────────────────────────────────────── */
 interface CardMeta {
   label: string;
   value: string | number;
@@ -30,24 +28,17 @@ interface CardMeta {
 
 /* ────────────────────────────────────────────────
    CUSTOM TOOLTIP
-──────────────────────────────────────────────── */
+   ──────────────────────────────────────────────── */
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{
-      background: "rgba(7,13,31,0.96)",
-      backdropFilter: "blur(20px)",
-      border: "1px solid rgba(255,255,255,0.1)",
-      borderRadius: 10,
-      padding: "10px 14px",
-      boxShadow: "0 8px 32px rgba(0,0,0,0.5)"
-    }}>
-      <div style={{ color: "rgba(148,163,184,0.7)", fontSize: 11, marginBottom: 4 }}>{label}</div>
+    <div className="bg-popover border border-border rounded-lg p-3 shadow-md">
+      <div className="text-[11px] text-muted-foreground font-semibold mb-1">{label}</div>
       {payload.map((p: any, i: number) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#F8FAFC" }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.color }} />
-          <span style={{ color: "rgba(148,163,184,0.7)" }}>{p.name}:</span>
-          <span style={{ fontWeight: 700 }}>{p.value}{p.name === "score" ? "%" : ""}</span>
+        <div key={i} className="flex items-center gap-2 text-xs text-foreground">
+          <div className="width-2 h-2 rounded-full" style={{ width: 8, height: 8, background: p.color }} />
+          <span className="text-muted-foreground">{p.name}:</span>
+          <span className="font-bold">{p.value}{p.name === "score" ? "%" : ""}</span>
         </div>
       ))}
     </div>
@@ -56,13 +47,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 /* ────────────────────────────────────────────────
    3D MAGNETIC CARD WRAPPER
-──────────────────────────────────────────────── */
+   ──────────────────────────────────────────────── */
 function MagneticCard({
   children,
   className = "",
   style = {},
-  intensity = 8,
-  glowColor = "rgba(59,130,246,0.15)",
+  intensity = 6,
+  glowColor = "rgba(59,130,246,0.1)",
   onClick,
 }: {
   children: React.ReactNode;
@@ -89,31 +80,27 @@ function MagneticCard({
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
       if (cardRef.current) {
-        cardRef.current.style.transform =
-          `perspective(1200px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(8px) scale(1.01)`;
-        cardRef.current.style.boxShadow =
-          `0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.2), 0 0 40px ${glowColor}`;
+        cardRef.current.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-2px)`;
       }
     });
-  }, [intensity, glowColor]);
+  }, [intensity]);
 
   const handleMouseLeave = useCallback(() => {
     setHovered(false);
     cancelAnimationFrame(rafRef.current);
     if (cardRef.current) {
-      cardRef.current.style.transform = "perspective(1200px) rotateX(0) rotateY(0) translateZ(0) scale(1)";
-      cardRef.current.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)";
+      cardRef.current.style.transform = "perspective(1000px) rotateX(0) rotateY(0) translateY(0)";
     }
   }, []);
 
   return (
     <div
       ref={cardRef}
-      className={`glass-card ${className}`}
+      className={`glass-card p-5 ${className}`}
       style={{
         cursor: onClick ? "pointer" : "default",
         willChange: "transform",
-        transition: "transform 0.1s ease, box-shadow 0.3s ease",
+        transition: "transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease",
         ...style,
       }}
       onMouseMove={handleMouseMove}
@@ -121,13 +108,12 @@ function MagneticCard({
       onMouseLeave={handleMouseLeave}
       onClick={onClick}
     >
-      {/* Inner glow effect */}
       <div style={{
         position: "absolute",
         inset: 0,
         borderRadius: "inherit",
         background: hovered ? `radial-gradient(circle at 50% 0%, ${glowColor} 0%, transparent 60%)` : "transparent",
-        transition: "background 0.4s ease",
+        transition: "background 0.3s ease",
         pointerEvents: "none",
       }} />
       {children}
@@ -136,223 +122,57 @@ function MagneticCard({
 }
 
 /* ────────────────────────────────────────────────
-   SCORE RING
-──────────────────────────────────────────────── */
-function ScoreRing({
-  value,
-  max = 100,
-  size = 72,
-  strokeWidth = 5,
-  color = "#3B82F6",
-  trackColor = "rgba(255,255,255,0.06)",
-}: {
-  value: number;
-  max?: number;
-  size?: number;
-  strokeWidth?: number;
-  color?: string;
-  trackColor?: string;
-}) {
-  const [animated, setAnimated] = useState(0);
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = animated / max;
-  const offset = circumference * (1 - progress);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setAnimated(value), 300);
-    return () => clearTimeout(timer);
-  }, [value]);
-
-  return (
-    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke={trackColor} strokeWidth={strokeWidth}
-        />
-        <circle
-          cx={size / 2} cy={size / 2} r={radius}
-          fill="none" stroke={color} strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: "stroke-dashoffset 1.5s cubic-bezier(0.23,1,0.32,1)", filter: `drop-shadow(0 0 4px ${color})` }}
-        />
-      </svg>
-      <div style={{
-        position: "absolute", inset: 0, display: "flex",
-        alignItems: "center", justifyContent: "center",
-        fontSize: size < 80 ? 14 : 20, fontWeight: 800, color: "#F8FAFC"
-      }}>
-        {Math.round(animated)}%
-      </div>
-    </div>
-  );
-}
-
-/* ────────────────────────────────────────────────
-   KPI CARD
-──────────────────────────────────────────────── */
-function KpiCard({ card, delay = 0 }: { card: CardMeta; delay?: number }) {
-  const [count, setCount] = useState(0);
-  const numericValue = typeof card.value === "number" ? card.value : parseFloat(card.value as string) || 0;
-  const displayValue = card.value;
-  const isUp = (card.delta ?? 0) >= 0;
-
-  useEffect(() => {
-    const duration = 1200;
-    const steps = 60;
-    const stepValue = numericValue / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current = Math.min(current + stepValue, numericValue);
-      setCount(Math.round(current));
-      if (current >= numericValue) clearInterval(timer);
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [numericValue]);
-
-  return (
-    <MagneticCard
-      glowColor={card.glowColor}
-      style={{ padding: "1.25rem", animationDelay: `${delay}ms` }}
-      className="animate-fade-in-up"
-    >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10, display: "flex",
-          alignItems: "center", justifyContent: "center",
-          background: `linear-gradient(135deg, ${card.color}22 0%, ${card.color}11 100%)`,
-          border: `1px solid ${card.color}33`,
-        }}>
-          <card.icon style={{ width: 16, height: 16, color: card.color }} />
-        </div>
-        {card.delta !== undefined && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 3,
-            fontSize: 11, fontWeight: 700,
-            color: isUp ? "#34D399" : "#FB7185",
-            background: isUp ? "rgba(16,185,129,0.08)" : "rgba(244,63,94,0.08)",
-            border: `1px solid ${isUp ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)"}`,
-            padding: "2px 8px", borderRadius: 9999,
-          }}>
-            {isUp ? <ArrowUpRight style={{ width: 10, height: 10 }} /> : <ArrowDownRight style={{ width: 10, height: 10 }} />}
-            {Math.abs(card.delta)}{card.deltaLabel ?? ""}
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginBottom: 4 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(148,163,184,0.6)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>
-          {card.label}
-        </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{
-            fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em",
-            background: `linear-gradient(135deg, ${card.color} 0%, ${card.glowColor.replace(/rgba?\([^)]+\)/, card.color)} 100%)`,
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            color: card.color,
-          }}>
-            {typeof card.value === "string" ? displayValue : count}
-          </span>
-        </div>
-        {card.subtitle && (
-          <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)", marginTop: 2 }}>
-            {card.subtitle}
-          </div>
-        )}
-      </div>
-
-      {card.ring && (
-        <div style={{ marginTop: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 10, color: "rgba(148,163,184,0.5)" }}>
-            <span>Progress</span>
-            <span style={{ color: card.color }}>{card.ring.current}/{card.ring.max}</span>
-          </div>
-          <div style={{ height: 3, borderRadius: 9999, background: "rgba(255,255,255,0.06)" }}>
-            <div style={{
-              height: "100%",
-              width: `${(card.ring.current / card.ring.max) * 100}%`,
-              borderRadius: 9999,
-              background: `linear-gradient(90deg, ${card.color}, ${card.color}88)`,
-              boxShadow: `0 0 8px ${card.color}55`,
-              transition: "width 1.2s cubic-bezier(0.23,1,0.32,1) 0.5s"
-            }} />
-          </div>
-        </div>
-      )}
-    </MagneticCard>
-  );
-}
-
-/* ────────────────────────────────────────────────
    RISK BADGE
-──────────────────────────────────────────────── */
+   ──────────────────────────────────────────────── */
 function RiskBadge({ risk }: { risk: string }) {
-  const cfg: Record<string, { bg: string; color: string; border: string; dot: string }> = {
-    High: { bg: "rgba(244,63,94,0.1)", color: "#FB7185", border: "rgba(244,63,94,0.25)", dot: "#F43F5E" },
-    Medium: { bg: "rgba(245,158,11,0.1)", color: "#FCD34D", border: "rgba(245,158,11,0.25)", dot: "#F59E0B" },
-    Low: { bg: "rgba(16,185,129,0.1)", color: "#34D399", border: "rgba(16,185,129,0.25)", dot: "#10B981" },
-    Critical: { bg: "rgba(239,68,68,0.12)", color: "#F87171", border: "rgba(239,68,68,0.3)", dot: "#EF4444" },
-  };
-  const c = cfg[risk] ?? cfg["Medium"];
+  let badgeClass = "badge-medium";
+  if (risk === "High" || risk === "Critical") badgeClass = "badge-high";
+  if (risk === "Low") badgeClass = "badge-low";
+  
   return (
-    <div style={{
-      display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 8px",
-      borderRadius: 9999, fontSize: 11, fontWeight: 600,
-      background: c.bg, color: c.color, border: `1px solid ${c.border}`,
-    }}>
-      <div style={{ width: 5, height: 5, borderRadius: "50%", background: c.dot, boxShadow: `0 0 4px ${c.dot}` }} />
+    <span className={`badge ${badgeClass}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
       {risk}
-    </div>
+    </span>
   );
 }
 
 /* ────────────────────────────────────────────────
-   INSIGHT CARD
-──────────────────────────────────────────────── */
+   AI INSIGHT BRIEFING ROW
+   ──────────────────────────────────────────────── */
 function InsightRow({ title, desc, severity, trend }: {
   title: string; desc: string; severity: string; trend?: { value: number; suffix?: string };
 }) {
-  const sev: Record<string, { color: string; bg: string; border: string }> = {
-    High: { color: "#FB7185", bg: "rgba(244,63,94,0.08)", border: "rgba(244,63,94,0.2)" },
-    Medium: { color: "#FCD34D", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)" },
-    Low: { color: "#34D399", bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.2)" },
-  };
-  const s = sev[severity] ?? sev["Low"];
+  let borderStyle = "border-l-4 border-l-success";
+  let titleColor = "text-emerald-600 dark:text-emerald-400";
+  if (severity === "High" || severity === "Critical") {
+    borderStyle = "border-l-4 border-l-destructive";
+    titleColor = "text-rose-600 dark:text-rose-400";
+  } else if (severity === "Medium") {
+    borderStyle = "border-l-4 border-l-warning";
+    titleColor = "text-amber-600 dark:text-amber-400";
+  }
+
   const isUp = (trend?.value ?? 0) >= 0;
 
   return (
-    <div style={{
-      padding: "12px 14px", borderRadius: 10, marginBottom: 8,
-      background: s.bg, border: `1px solid ${s.border}`,
-      transition: "all 0.2s ease",
-    }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateX(3px)"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateX(0)"; }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: s.color, lineHeight: 1.4, flex: 1 }}>{title}</div>
+    <div className={`p-3.5 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-all ${borderStyle} flex flex-col gap-1`}>
+      <div className="flex justify-between items-start gap-4">
+        <h4 className={`text-xs font-bold ${titleColor} leading-snug flex-1`}>{title}</h4>
         {trend && (
-          <div style={{
-            fontSize: 11, fontWeight: 700, color: isUp ? "#34D399" : "#FB7185",
-            display: "flex", alignItems: "center", gap: 2, flexShrink: 0, marginLeft: 8
-          }}>
-            {isUp ? "↑" : "↓"} {Math.abs(trend.value)}{trend.suffix ?? ""}
-          </div>
+          <span className={`text-[10px] font-extrabold flex items-center gap-0.5 ${isUp ? "text-emerald-500" : "text-rose-500"}`}>
+            {isUp ? "↑" : "↓"}{Math.abs(trend.value)}{trend.suffix ?? ""}
+          </span>
         )}
       </div>
-      <div style={{ fontSize: 11, color: "rgba(148,163,184,0.6)", lineHeight: 1.5 }}>{desc}</div>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
     </div>
   );
 }
 
 /* ────────────────────────────────────────────────
    MAIN DASHBOARD
-──────────────────────────────────────────────── */
-import { useOrgProfile } from "@/state/OrgProfileContext";
-
+   ──────────────────────────────────────────────── */
 export default function Dashboard() {
   const nav = useNavigate();
   const isBeginner = useIsBeginner();
@@ -365,9 +185,6 @@ export default function Dashboard() {
   const [highRiskCount, setHighRiskCount] = useState(3);
   const [regs, setRegs] = useState<any[]>([]);
   const [maps, setMaps] = useState<any[]>([]);
-
-  // Cursor proximity tracking for ambient glow
-  const mainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -406,95 +223,23 @@ export default function Dashboard() {
         regulationId: m.clause_ref || "Circular"
       }));
 
-      const mockMapsData = [
-        { id: "MAP-001", title: "Update KYC Verification Workflow", department: "Compliance", severity: "High", status: "In Progress", dueDate: "2026-06-15" },
-        { id: "MAP-002", title: "Re-paper FLDG contracts", department: "Legal", severity: "High", status: "Assigned", dueDate: "2026-06-30" },
-        { id: "MAP-003", title: "Stand up DLA quarterly reporting", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-07-10" },
-        { id: "MAP-004", title: "Patch Java middleware CVE-2026-3344", department: "Cybersecurity", severity: "Critical", status: "In Progress", dueDate: "2026-05-27" },
-        { id: "MAP-005", title: "Update materiality policy", department: "Compliance", severity: "Medium", status: "Review", dueDate: "2026-06-05" },
-        { id: "MAP-006", title: "UPI velocity rules rollout", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-06-20" },
-        { id: "MAP-007", title: "Train insider trading designated persons", department: "HR", severity: "Low", status: "Completed", dueDate: "2026-05-30" },
-        { id: "MAP-008", title: "Refresh vendor risk templates", department: "Procurement", severity: "Low", status: "Assigned", dueDate: "2026-06-12" },
-        { id: "MAP-009", title: "Configure V-CIP as default", department: "Operations", severity: "High", status: "Pending", dueDate: "2026-06-25" },
-      ];
-
-      let baseList = mappedMaps.length > 0 ? mappedMaps : mockMapsData;
-      const personalizedTasks: any[] = [];
-      if (orgProfile.services.includes("UPI")) {
-        personalizedTasks.push({ id: "MAP-UPI-01", department: "IT", status: "Pending", severity: "High", dueDate: "2026-07-15" });
-      }
-      if (orgProfile.services.includes("KYC Services")) {
-        personalizedTasks.push({ id: "MAP-KYC-01", department: "Operations", status: "In Progress", severity: "Critical", dueDate: "2026-06-30" });
-      }
-      if (orgProfile.services.includes("Loans")) {
-        personalizedTasks.push({ id: "MAP-LOAN-01", department: "Risk Management", status: "Assigned", severity: "High", dueDate: "2026-07-20" });
-      }
-      if (orgProfile.services.includes("Credit Cards")) {
-        personalizedTasks.push({ id: "MAP-CARD-01", department: "Compliance", status: "Pending", severity: "Medium", dueDate: "2026-08-05" });
-      }
-
-      setMaps([...baseList, ...personalizedTasks]);
+      setMaps(mappedMaps);
       setLoading(false);
-    }).catch(() => {
+    }).catch((err) => {
+      console.error("Dashboard data load failed", err);
       if (!active) return;
       setData({
-        score: 84,
-        total: 9,
-        completed: 1,
-        overdue: 1,
-        departments: [
-          { department: "Compliance", readinessScore: 88, openFindings: 3, criticalFindings: 1, closedFindings: 18, missingEvidence: 2, risk: "Low" },
-          { department: "Legal", readinessScore: 85, openFindings: 4, criticalFindings: 0, closedFindings: 11, missingEvidence: 1, risk: "Low" },
-          { department: "Operations", readinessScore: 76, openFindings: 7, criticalFindings: 2, closedFindings: 22, missingEvidence: 3, risk: "Medium" },
-          { department: "IT", readinessScore: 82, openFindings: 5, criticalFindings: 1, closedFindings: 19, missingEvidence: 3, risk: "Medium" },
-          { department: "Cybersecurity", readinessScore: 71, openFindings: 9, criticalFindings: 3, closedFindings: 14, missingEvidence: 3, risk: "High" },
-          { department: "Audit", readinessScore: 91, openFindings: 1, criticalFindings: 0, closedFindings: 24, missingEvidence: 3, risk: "Low" },
-          { department: "Risk Management", readinessScore: 80, openFindings: 2, criticalFindings: 0, closedFindings: 15, missingEvidence: 1, risk: "Low" }
-        ],
-        recentActivity: [
-          { id: "RBI-2026-001", title: "Digital Lending Master Direction", source: "RBI", changeType: "Modified", risk: "High", status: "Active", time: "2h ago" },
-          { id: "CERT-2026-006", title: "Critical Java Middleware CVE", source: "CERT-In", changeType: "New", risk: "High", status: "Active", time: "4h ago" },
-          { id: "NPCI-2026-005", title: "UPI Velocity & Risk Controls", source: "NPCI", changeType: "Updated", risk: "Medium", status: "Active", time: "1d ago" },
-          { id: "SEBI-2026-012", title: "Algorithmic Trading Framework", source: "SEBI", changeType: "New", risk: "High", status: "Draft", time: "2d ago" },
-          { id: "MCA-2026-003", title: "Corporate Governance Revision", source: "MCA", changeType: "Modified", risk: "Low", status: "Active", time: "3d ago" },
-        ],
-        complianceTrend: [
-          { month: "Dec", score: 78 }, { month: "Jan", score: 80 }, { month: "Feb", score: 82 },
-          { month: "Mar", score: 81 }, { month: "Apr", score: 85 }, { month: "May", score: 84 },
-        ],
-        mapProgress: [
-          { week: "W1", completed: 4, inProgress: 6, pending: 5 },
-          { week: "W2", completed: 6, inProgress: 5, pending: 4 },
-          { week: "W3", completed: 9, inProgress: 4, pending: 3 },
-          { week: "W4", completed: 1, inProgress: 8, pending: 2 },
-        ],
+        score: 0,
+        total: 0,
+        completed: 0,
+        overdue: 0,
+        departments: [],
+        recentActivity: [],
+        insights: [],
+        complianceTrend: [],
+        mapProgress: []
       });
-      
-      const mockMapsData = [
-        { id: "MAP-001", title: "Update KYC Verification Workflow", department: "Compliance", severity: "High", status: "In Progress", dueDate: "2026-06-15" },
-        { id: "MAP-002", title: "Re-paper FLDG contracts", department: "Legal", severity: "High", status: "Assigned", dueDate: "2026-06-30" },
-        { id: "MAP-003", title: "Stand up DLA quarterly reporting", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-07-10" },
-        { id: "MAP-004", title: "Patch Java middleware CVE-2026-3344", department: "Cybersecurity", severity: "Critical", status: "In Progress", dueDate: "2026-05-27" },
-        { id: "MAP-005", title: "Update materiality policy", department: "Compliance", severity: "Medium", status: "Review", dueDate: "2026-06-05" },
-        { id: "MAP-006", title: "UPI velocity rules rollout", department: "IT", severity: "Medium", status: "Pending", dueDate: "2026-06-20" },
-        { id: "MAP-007", title: "Train insider trading designated persons", department: "HR", severity: "Low", status: "Completed", dueDate: "2026-05-30" },
-        { id: "MAP-008", title: "Refresh vendor risk templates", department: "Procurement", severity: "Low", status: "Assigned", dueDate: "2026-06-12" },
-        { id: "MAP-009", title: "Configure V-CIP as default", department: "Operations", severity: "High", status: "Pending", dueDate: "2026-06-25" },
-      ];
-      const personalizedTasks: any[] = [];
-      if (orgProfile.services.includes("UPI")) {
-        personalizedTasks.push({ id: "MAP-UPI-01", department: "IT", status: "Pending", severity: "High", dueDate: "2026-07-15" });
-      }
-      if (orgProfile.services.includes("KYC Services")) {
-        personalizedTasks.push({ id: "MAP-KYC-01", department: "Operations", status: "In Progress", severity: "Critical", dueDate: "2026-06-30" });
-      }
-      if (orgProfile.services.includes("Loans")) {
-        personalizedTasks.push({ id: "MAP-LOAN-01", department: "Risk Management", status: "Assigned", severity: "High", dueDate: "2026-07-20" });
-      }
-      if (orgProfile.services.includes("Credit Cards")) {
-        personalizedTasks.push({ id: "MAP-CARD-01", department: "Compliance", status: "Pending", severity: "Medium", dueDate: "2026-08-05" });
-      }
-      setMaps([...mockMapsData, ...personalizedTasks]);
+      setMaps([]);
       setLoading(false);
     });
     return () => { active = false; };
@@ -540,18 +285,15 @@ export default function Dashboard() {
   }, [data?.recentActivity, orgProfile.enabledSources]);
 
   const riskDist = useMemo(() => {
+    const high = filteredMaps.filter((m) => m.severity === "High" || m.severity === "Critical").length;
+    const medium = filteredMaps.filter((m) => m.severity === "Medium").length;
+    const low = filteredMaps.filter((m) => m.severity === "Low").length;
     return [
-      { name: "High", value: regs.filter((r) => r.risk === "High" || r.risk_level === "High").length || 3 },
-      { name: "Medium", value: regs.filter((r) => r.risk === "Medium" || r.risk_level === "Medium").length || 3 },
-      { name: "Low", value: regs.filter((r) => r.risk === "Low" || r.risk_level === "Low").length || 2 },
+      { name: "High", value: high },
+      { name: "Medium", value: medium },
+      { name: "Low", value: low },
     ];
-  }, [regs]);
-
-  const RISK_COLORS: Record<string, string> = {
-    High: "#F43F5E",
-    Medium: "#F59E0B",
-    Low: "#10B981",
-  };
+  }, [filteredMaps]);
 
   const personalizedInsights = useMemo(() => {
     const list = [];
@@ -618,374 +360,329 @@ export default function Dashboard() {
     return list;
   }, [orgProfile, filteredDepartments, openFindings, missingEvidence]);
 
+  const RISK_COLORS: Record<string, string> = {
+    High: "#EF4444",
+    Medium: "#F59E0B",
+    Low: "#10B981",
+  };
+
   const kpiCards: CardMeta[] = [
     {
-      label: "Compliance Health",
+      label: "Compliance Score",
       value: `${personalizedScore}%`,
-      delta: 6,
-      deltaLabel: "%",
-      subtitle: "Target: 95% · On track",
+      subtitle: "Target: 95% · Active monitor",
       color: "#3B82F6",
-      glowColor: "rgba(59,130,246,0.15)",
+      glowColor: "rgba(59,130,246,0.1)",
       icon: Activity,
       ring: { current: personalizedScore, max: 100 },
     },
     {
       label: "Audit Readiness",
       value: `${personalizedScore}%`,
-      delta: 4,
-      deltaLabel: "%",
       subtitle: `${openFindings} open findings · ${missingEvidence} missing`,
       color: "#06B6D4",
-      glowColor: "rgba(6,182,212,0.15)",
+      glowColor: "rgba(6,182,212,0.1)",
       icon: ShieldCheck,
     },
     {
       label: "Active Regulations",
-      value: regs.length || activeRegsCount,
-      delta: 3,
-      deltaLabel: " new",
-      subtitle: `${regs.filter(r => r.risk === "High" || r.risk_level === "High").length} high risk this week`,
+      value: regs.length,
+      subtitle: `${highRiskCount} critical priority updates`,
       color: "#8B5CF6",
-      glowColor: "rgba(139,92,246,0.15)",
+      glowColor: "rgba(139,92,246,0.1)",
       icon: BookOpen,
     },
     {
       label: "Pending MAPs",
       value: pendingMaps,
-      delta: -2,
-      deltaLabel: " vs last wk",
-      subtitle: `${overdueMaps} overdue · ${completedMaps} completed`,
+      subtitle: `${overdueMaps} overdue · ${completedMaps} done`,
       color: "#F59E0B",
-      glowColor: "rgba(245,158,11,0.15)",
+      glowColor: "rgba(245,158,11,0.1)",
       icon: KanbanSquare,
       ring: { current: completedMaps, max: totalMaps || 1 },
     },
+    {
+      label: "Risk Exposure",
+      value: `${highRiskCount + overdueMaps}`,
+      subtitle: "High priority flags detected",
+      color: "#EF4444",
+      glowColor: "rgba(239,68,68,0.1)",
+      icon: ShieldAlert,
+    }
   ];
 
-  const chartTooltipStyle = {
-    background: "rgba(7,13,31,0.96)",
-    backdropFilter: "blur(20px)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 10,
-    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-    fontSize: 12,
-    color: "#F8FAFC",
-  };
+  if (loading || !data) {
+    return <SkeletonPage />;
+  }
+
+  const hasData = isExpert
+    ? (maps.length > 0 || (data?.total ?? 0) > 0)
+    : (maps.length > 0 || regs.length > 0);
+
+  if (!hasData) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight">Executive Dashboard</h1>
+            <p className="text-xs text-muted-foreground mt-1">Real-time compliance posture overview</p>
+          </div>
+        </div>
+
+        <div className="glass-card flex flex-col items-center justify-center p-16 text-center border rounded-xl" style={{ minHeight: "380px" }}>
+          <ShieldCheck className="h-16 w-16 text-primary animate-pulse mb-6" />
+          <h2 className="text-lg font-bold mb-2">Initialize Compliance Workspace</h2>
+          <p className="text-xs text-muted-foreground max-w-md mb-8 leading-relaxed">
+            No active compliance circulars or MAP tasks were found. Choose your mode to start:
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={() => nav("/regulations")}
+              className="bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-lg text-xs hover:opacity-90 transition-opacity uppercase tracking-wider"
+            >
+              Browse Regulations
+            </button>
+            <button
+              onClick={() => nav("/document-analysis")}
+              className="border border-border bg-card font-semibold px-5 py-2.5 rounded-lg text-xs hover:bg-muted/50 transition-colors uppercase tracking-wider text-foreground"
+            >
+              Upload Documents
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div ref={mainRef} className="space-y-5 animate-fade-in">
-
+    <div className="space-y-6 animate-fade-in-up">
       {/* ── Page Header ── */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between pb-2 border-b border-border">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
-              background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)"
-            }}>
-              <LayoutDashboardIcon />
-            </div>
-            <h1 className="text-2xl font-black tracking-tight" style={{
-              background: "linear-gradient(135deg, #F8FAFC 30%, rgba(248,250,252,0.6) 100%)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"
-            }}>
-              Executive Dashboard
-            </h1>
-          </div>
-          <p style={{ fontSize: 13, color: "rgba(148,163,184,0.6)", marginLeft: 44 }}>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Executive Overview</h1>
+          <p className="text-xs text-muted-foreground mt-1">
             Real-time compliance posture · Regulations, MAPs & Audit readiness
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
-            borderRadius: 8, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)"
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", boxShadow: "0 0 6px #10B981", animation: "pulse-slow 2s ease-in-out infinite" }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#34D399" }}>Systems Operational</span>
-          </div>
           <button
             onClick={() => nav("/reports")}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "6px 14px",
-              borderRadius: 8, fontSize: 13, fontWeight: 600,
-              background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)",
-              color: "#60A5FA", cursor: "pointer", transition: "all 0.2s ease"
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(59,130,246,0.18)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(59,130,246,0.1)"; }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors uppercase tracking-wider"
           >
-            <TrendingUp style={{ width: 13, height: 13 }} /> Export Report
+            <TrendingUp style={{ width: 14, height: 14 }} /> Export Report
           </button>
         </div>
       </div>
 
       {isBeginner && (
         <BeginnerHint>
-          This is the executive overview. Each card below shows a key compliance metric. Click any card to drill into details. Switch to Expert mode in the top bar for a denser layout.
+          This is the compliance dashboard. Each Bento Grid panel represents a key executive monitor. Click any card to drill down or switch layout density using the "Expert Mode" toggle in the header.
         </BeginnerHint>
       )}
 
-      {/* ── KPI Cards ── */}
-      <div className={`grid gap-4 ${isExpert ? "grid-cols-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"}`}>
+      {/* ── Row 1: Executive KPI Bento Grid ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {kpiCards.map((card, i) => (
-          <KpiCard key={card.label} card={card} delay={i * 75} />
+          <MagneticCard
+            key={card.label}
+            glowColor={card.glowColor}
+            className="flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div 
+                className="w-9 h-9 rounded-lg flex items-center justify-center border"
+                style={{ 
+                  background: `${card.color}12`, 
+                  borderColor: `${card.color}25` 
+                }}
+              >
+                <card.icon style={{ width: 16, height: 16, color: card.color }} />
+              </div>
+              {card.ring && (
+                <span className="text-[10px] font-bold text-muted-foreground">
+                  {card.ring.current}%
+                </span>
+              )}
+            </div>
+
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                {card.label}
+              </div>
+              <div className="text-2xl font-extrabold tracking-tight text-foreground mb-1.5">
+                {card.value}
+              </div>
+              <div className="text-[11px] text-muted-foreground font-medium leading-tight">
+                {card.subtitle}
+              </div>
+            </div>
+
+            {card.ring && (
+              <div className="mt-4">
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{ 
+                      width: `${(card.ring.current / card.ring.max) * 100}%`,
+                      background: `linear-gradient(90deg, ${card.color}, ${card.color}b0)`
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </MagneticCard>
         ))}
       </div>
 
-      {/* ── Charts Row 1 ── */}
-      <div className="grid lg:grid-cols-3 gap-4">
-
-        {/* Compliance Trend */}
-        <MagneticCard className="lg:col-span-2 animate-fade-in-up delay-300" style={{ padding: "1.25rem" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+      {/* ── Row 2: Charts Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Compliance Trend Chart */}
+        <MagneticCard className="lg:col-span-2 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC", marginBottom: 2 }}>Compliance Trend</div>
-              <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)" }}>6-month rolling · Score vs target</div>
+              <h3 className="text-sm font-bold text-foreground">Compliance Trend</h3>
+              <p className="text-[11px] text-muted-foreground">6-month rolling posture score against target</p>
             </div>
-            <div style={{ display: "flex", items: "center", gap: 6 }}>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 5, padding: "4px 10px",
-                borderRadius: 6, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)",
-                fontSize: 11, fontWeight: 700, color: "#34D399"
-              }}>
-                <ArrowUpRight style={{ width: 11, height: 11 }} /> +6% vs last month
-              </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-500">
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              <span>+6.2% vs Q1</span>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={data.complianceTrend} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
-              <defs>
-                <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.02} />
-                </linearGradient>
-                <linearGradient id="targetGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#06B6D4" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "rgba(148,163,184,0.5)" }} axisLine={false} tickLine={false} />
-              <YAxis domain={[70, 100]} tick={{ fontSize: 11, fill: "rgba(148,163,184,0.5)" }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="score" name="score" stroke="#3B82F6" strokeWidth={2.5}
-                fill="url(#scoreGrad)" dot={{ fill: "#3B82F6", r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: "#60A5FA", boxShadow: "0 0 10px #3B82F6" }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </MagneticCard>
 
-        {/* Risk Distribution */}
-        <MagneticCard className="animate-fade-in-up delay-375" style={{ padding: "1.25rem" }}>
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC", marginBottom: 2 }}>Risk Distribution</div>
-            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)" }}>By regulation severity</div>
-          </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={riskDist} dataKey="value" nameKey="name" innerRadius={45} outerRadius={68}
-                strokeWidth={0} paddingAngle={3}>
-                {riskDist.map((d) => (
-                  <Cell key={d.name} fill={RISK_COLORS[d.name] || "#64748B"}
-                    style={{ filter: `drop-shadow(0 0 6px ${RISK_COLORS[d.name] || "#64748B"}88)` }} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={chartTooltipStyle} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-            {riskDist.map((d) => (
-              <div key={d.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: RISK_COLORS[d.name], boxShadow: `0 0 6px ${RISK_COLORS[d.name]}` }} />
-                  <span style={{ fontSize: 12, color: "rgba(148,163,184,0.7)" }}>{d.name}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: RISK_COLORS[d.name] }}>{d.value}</span>
-              </div>
-            ))}
-          </div>
-        </MagneticCard>
-      </div>
-
-      {/* ── Charts Row 2 ── */}
-      <div className="grid lg:grid-cols-3 gap-4">
-
-        {/* MAP Progress */}
-        <MagneticCard className="lg:col-span-2 animate-fade-in-up delay-400" style={{ padding: "1.25rem" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC", marginBottom: 2 }}>MAP Progress</div>
-              <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)" }}>Last 4 weeks · Completion velocity</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {[{ label: "Completed", color: "#10B981" }, { label: "In Progress", color: "#3B82F6" }, { label: "Pending", color: "#F59E0B" }]
-                .map(({ label, color }) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
-                    <span style={{ fontSize: 11, color: "rgba(148,163,184,0.6)" }}>{label}</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={data.mapProgress} margin={{ top: 5, right: 5, bottom: 0, left: -15 }} barSize={22}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-              <XAxis dataKey="week" tick={{ fontSize: 11, fill: "rgba(148,163,184,0.5)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "rgba(148,163,184,0.5)" }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="completed" name="Completed" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]}
-                style={{ filter: "drop-shadow(0 0 4px rgba(16,185,129,0.4))" }} />
-              <Bar dataKey="inProgress" name="In Progress" stackId="a" fill="#3B82F6"
-                style={{ filter: "drop-shadow(0 0 4px rgba(59,130,246,0.4))" }} />
-              <Bar dataKey="pending" name="Pending" stackId="a" fill="#F59E0B" radius={[4, 4, 0, 0]}
-                style={{ filter: "drop-shadow(0 0 4px rgba(245,158,11,0.4))" }} />
-            </BarChart>
-          </ResponsiveContainer>
-        </MagneticCard>
-
-        {/* Executive Insights */}
-        <MagneticCard className="animate-fade-in-up delay-475" style={{ padding: "1.25rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)" }}>
-              <Lightbulb style={{ width: 13, height: 13, color: "#A78BFA" }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC" }}>AI Insights</div>
-              <div style={{ fontSize: 10, color: "rgba(148,163,184,0.5)" }}>Powered by ACRIS Copilot</div>
-            </div>
-          </div>
-          <div>
-            {personalizedInsights.map((i: any) => (
-              <InsightRow key={i.title} title={i.title} desc={i.description} severity={i.severity} trend={i.trend} />
-            ))}
-          </div>
-        </MagneticCard>
-      </div>
-
-      {/* ── Bottom Row ── */}
-      <div className="grid lg:grid-cols-3 gap-4">
-
-        {/* Recent Regulation Activity */}
-        <MagneticCard className="lg:col-span-2 animate-fade-in-up delay-500" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{
-            padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-            display: "flex", alignItems: "center", justifyContent: "space-between"
-          }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC", marginBottom: 1 }}>
-                Recent Regulation Activity
-              </div>
-              <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)" }}>Live regulatory intelligence feed</div>
-            </div>
-            <button
-              onClick={() => nav("/regulations")}
-              style={{
-                display: "flex", alignItems: "center", gap: 5, padding: "5px 12px",
-                borderRadius: 6, fontSize: 12, fontWeight: 600, color: "#60A5FA",
-                background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", cursor: "pointer",
-                transition: "all 0.2s ease"
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(59,130,246,0.15)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(59,130,246,0.08)"; }}
-            >
-              View all <ExternalLink style={{ width: 10, height: 10 }} />
-            </button>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Regulation</th>
-                  <th>Source</th>
-                  <th>Type</th>
-                  <th>Risk</th>
-                  <th>Status</th>
-                  <th>When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecentActivity.map((r: any, idx: number) => (
-                  <tr key={idx} onClick={() => nav("/regulations")} style={{ cursor: "pointer" }}>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#F8FAFC", marginBottom: 1 }}>{r.title}</div>
-                      <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: "rgba(148,163,184,0.4)" }}>{r.id}</div>
-                    </td>
-                    <td>
-                      <span style={{
-                        padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700,
-                        background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.15)",
-                        color: "#60A5FA"
-                      }}>{r.source}</span>
-                    </td>
-                    <td>
-                      <span style={{
-                        padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600,
-                        background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
-                        color: "rgba(148,163,184,0.7)"
-                      }}>{r.changeType}</span>
-                    </td>
-                    <td><RiskBadge risk={r.risk} /></td>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <div style={{
-                          width: 5, height: 5, borderRadius: "50%",
-                          background: r.status === "Active" ? "#10B981" : "#F59E0B",
-                          boxShadow: r.status === "Active" ? "0 0 4px #10B981" : "0 0 4px #F59E0B"
-                        }} />
-                        <span style={{ fontSize: 11, color: "rgba(148,163,184,0.6)" }}>{r.status}</span>
-                      </div>
-                    </td>
-                    <td style={{ fontSize: 11, color: "rgba(148,163,184,0.4)" }}>{r.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.complianceTrend} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+                <defs>
+                  <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis domain={[70, 100]} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="score" 
+                  name="score" 
+                  stroke="#3B82F6" 
+                  strokeWidth={2}
+                  fill="url(#scoreGrad)" 
+                  dot={{ fill: "#3B82F6", r: 4, strokeWidth: 0 }}
+                  activeDot={{ r: 6, fill: "#3B82F6", stroke: "white", strokeWidth: 1.5 }} 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </MagneticCard>
 
-        {/* Department Readiness */}
-        <MagneticCard className="animate-fade-in-up delay-575" style={{ padding: "1.25rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(6,182,212,0.12)", border: "1px solid rgba(6,182,212,0.25)" }}>
-              <Globe style={{ width: 13, height: 13, color: "#06B6D4" }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC" }}>Dept. Readiness</div>
-              <div style={{ fontSize: 10, color: "rgba(148,163,184,0.5)" }}>By compliance score</div>
-            </div>
+        {/* Risk Distribution Donut Chart */}
+        <MagneticCard className="flex flex-col justify-between">
+          <div className="mb-4">
+            <h3 className="text-sm font-bold text-foreground">Risk Distribution</h3>
+            <p className="text-[11px] text-muted-foreground">Regulation count by severity mapping</p>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {filteredDepartments.map((dept: any, i: number) => {
-              const score = dept.readinessScore;
-              const scoreColor = score >= 85 ? "#10B981" : score >= 75 ? "#F59E0B" : "#F43F5E";
-              return (
-                <div key={dept.department}
-                  style={{
-                    animationDelay: `${600 + i * 80}ms`,
-                    transition: "transform 0.2s ease",
-                  }}
-                  className="animate-fade-in-up"
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateX(3px)"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateX(0)"; }}
+
+          <div className="h-[140px] flex items-center justify-center relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={riskDist} 
+                  dataKey="value" 
+                  nameKey="name" 
+                  innerRadius={45} 
+                  outerRadius={60}
+                  strokeWidth={0} 
+                  paddingAngle={4}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(248,250,252,0.85)" }}>{dept.department}</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: scoreColor }}>{score}%</span>
+                  {riskDist.map((d) => (
+                    <Cell key={d.name} fill={RISK_COLORS[d.name] || "#64748B"} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ 
+                  background: "var(--glass-bg)", 
+                  border: "1px solid var(--glass-border)",
+                  borderRadius: "8px", 
+                  color: "var(--foreground)" 
+                }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="space-y-2 mt-4 pt-2 border-t border-border">
+            {riskDist.map((d) => (
+              <div key={d.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: RISK_COLORS[d.name] }} />
+                  <span className="text-muted-foreground font-semibold">{d.name} Severity</span>
+                </div>
+                <span className="font-bold" style={{ color: RISK_COLORS[d.name] }}>{d.value}</span>
+              </div>
+            ))}
+          </div>
+        </MagneticCard>
+      </div>
+
+      {/* ── Row 3: Insights & Department Breakdown ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* AI Insights briefing */}
+        <MagneticCard className="lg:col-span-2 flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-500">
+              <Lightbulb className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">AI Intelligence Briefing</h3>
+              <p className="text-[11px] text-muted-foreground">Automated compliance triggers & actions</p>
+            </div>
+          </div>
+
+          <div className="space-y-2 flex-1">
+            {personalizedInsights.slice(0, 3).map((insight: any, i: number) => (
+              <InsightRow 
+                key={insight.title || i} 
+                title={insight.title} 
+                desc={insight.description} 
+                severity={insight.severity} 
+                trend={insight.trend} 
+              />
+            ))}
+            {personalizedInsights.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-6">All systems nominal. No urgent insights detected.</p>
+            )}
+          </div>
+        </MagneticCard>
+
+        {/* Department Readiness scorecard */}
+        <MagneticCard className="flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500">
+              <Globe className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Departmental Status</h3>
+              <p className="text-[11px] text-muted-foreground">Individual audit compliance scorecards</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 flex-1 overflow-y-auto max-h-[220px]">
+            {filteredDepartments.map((dept: any) => {
+              const score = dept.readinessScore;
+              const scoreColor = score >= 85 ? "text-emerald-500" : score >= 75 ? "text-amber-500" : "text-rose-500";
+              const progressBg = score >= 85 ? "bg-emerald-500" : score >= 75 ? "bg-amber-500" : "bg-rose-500";
+              return (
+                <div key={dept.department} className="space-y-1 bg-muted/10 p-2.5 rounded-lg border border-border">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-foreground">{dept.department}</span>
+                    <span className={`font-extrabold ${scoreColor}`}>{score}%</span>
                   </div>
-                  <div style={{ height: 3, borderRadius: 9999, background: "rgba(255,255,255,0.05)" }}>
-                    <div style={{
-                      height: "100%",
-                      width: `${score}%`,
-                      borderRadius: 9999,
-                      background: `linear-gradient(90deg, ${scoreColor}, ${scoreColor}88)`,
-                      boxShadow: `0 0 6px ${scoreColor}55`,
-                      transition: `width 1.4s cubic-bezier(0.23,1,0.32,1) ${0.4 + i * 0.08}s`
-                    }} />
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${progressBg}`} style={{ width: `${score}%` }} />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-                    <span style={{ fontSize: 10, color: "rgba(148,163,184,0.4)" }}>{dept.openFindings} open</span>
-                    <RiskBadge risk={dept.risk} />
+                  <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                    <span>{dept.openFindings} findings pending</span>
+                    <span className="font-semibold uppercase tracking-wider">{dept.risk} Risk</span>
                   </div>
                 </div>
               );
@@ -993,16 +690,130 @@ export default function Dashboard() {
           </div>
         </MagneticCard>
       </div>
-    </div>
-  );
-}
 
-/* small inline icon to avoid import issue */
-function LayoutDashboardIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" />
-      <rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" />
-    </svg>
+      {/* ── Row 4: Recent Activities ── */}
+      <div className="grid grid-cols-1 gap-4">
+        <MagneticCard className="p-0 overflow-hidden">
+          <div className="p-4 border-b border-border flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                {isExpert ? "Active Compliance Actions (MAP)" : "Recent Regulation Activity"}
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                {isExpert ? "Milestone Action Plan status and accountability tracker" : "Live updates parsed from regulatory authorities"}
+              </p>
+            </div>
+            <button
+              onClick={() => nav(isExpert ? "/maps" : "/regulations")}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 border border-transparent rounded-lg transition-colors"
+            >
+              View All <ExternalLink className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto w-full">
+            {isExpert ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Action Item</th>
+                    <th>Owner</th>
+                    <th>Clause Ref</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMaps.slice(0, 5).map((m: any, idx: number) => (
+                    <tr key={idx} onClick={() => nav("/maps")} className="cursor-pointer">
+                      <td>
+                        <div className="font-bold text-foreground">{m.title}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{m.id}</div>
+                      </td>
+                      <td>
+                        <span className="badge badge-info bg-primary/5 text-primary border-primary/20 font-bold uppercase tracking-wider text-[10px]">
+                          {m.owner}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-muted border border-border text-muted-foreground">
+                          {m.regulationId}
+                        </span>
+                      </td>
+                      <td><RiskBadge risk={m.severity} /></td>
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full ${
+                            m.status === "Completed" ? "bg-emerald-500" : m.status === "In Progress" ? "bg-primary" : "bg-amber-500"
+                          }`} />
+                          <span className="text-xs text-muted-foreground font-semibold">{m.status}</span>
+                        </div>
+                      </td>
+                      <td className="text-xs text-muted-foreground font-medium">{m.dueDate}</td>
+                    </tr>
+                  ))}
+                  {filteredMaps.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center text-muted-foreground py-8 text-xs font-medium">
+                        No MAP tasks generated. Upload documents to synthesize compliance actions.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Regulation</th>
+                    <th>Source</th>
+                    <th>Type</th>
+                    <th>Risk</th>
+                    <th>Status</th>
+                    <th>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRecentActivity.slice(0, 5).map((r: any, idx: number) => (
+                    <tr key={idx} onClick={() => nav("/regulations")} className="cursor-pointer">
+                      <td>
+                        <div className="font-bold text-foreground">{r.title}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{r.id}</div>
+                      </td>
+                      <td>
+                        <span className="badge badge-info bg-primary/5 text-primary border-primary/20 font-bold uppercase tracking-wider text-[10px]">
+                          {r.source}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-muted border border-border text-muted-foreground">
+                          {r.changeType}
+                        </span>
+                      </td>
+                      <td><RiskBadge risk={r.risk} /></td>
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full ${r.status === "Active" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                          <span className="text-xs text-muted-foreground font-semibold">{r.status}</span>
+                        </div>
+                      </td>
+                      <td className="text-xs text-muted-foreground font-medium">{r.time}</td>
+                    </tr>
+                  ))}
+                  {filteredRecentActivity.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center text-muted-foreground py-8 text-xs font-medium">
+                        No recent activity parsed for active filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </MagneticCard>
+      </div>
+    </div>
   );
 }

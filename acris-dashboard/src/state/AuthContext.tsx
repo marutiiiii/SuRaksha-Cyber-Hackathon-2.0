@@ -7,7 +7,7 @@ interface AuthCtx {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  signInDemo: (customUser?: { email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => void;
+  signInDemo: (customUser?: { id?: string; token?: string; email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => void;
 }
 
 const Ctx = createContext<AuthCtx>({
@@ -19,7 +19,7 @@ const Ctx = createContext<AuthCtx>({
 });
 
 const mockUser: User = {
-  id: "demo-user-id",
+  id: "00000000-0000-0000-0000-000000000000",
   aud: "authenticated",
   role: "authenticated",
   email: "demo@safebank.com",
@@ -79,11 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signInDemo = (customUser?: { email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => {
+  const signInDemo = (customUser?: { id?: string; token?: string; email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => {
     const sessionToSave = customUser ? {
       ...mockSession,
+      access_token: customUser.token || "mock-access-token",
       user: {
         ...mockUser,
+        id: customUser.id || mockUser.id,
         email: customUser.email,
         user_metadata: {
           name: customUser.name,
@@ -95,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } : mockSession;
 
     localStorage.setItem("mock_user_session", JSON.stringify(sessionToSave));
+    localStorage.setItem("acris.db_user_id", sessionToSave.user.id);
     
     // Set organization profile state
     const profile = customUser ? {
@@ -111,13 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       industryType: "Banking" as const,
       orgSize: "Enterprise" as const,
       departments: ["Compliance", "Legal", "IT", "Cybersecurity", "Operations", "Audit", "Risk Management"],
-      services: ["Retail Banking", "Corporate Banking", "Internet Banking", "Mobile Banking", "UPI", "Loans", "Credit Cards", "KYC Services"],
+      services: ["Retail Banking", "Corporate Banking", "Internet Banking", "Mobile Banking", "UPI", "Digital Payments", "Loans", "Credit Cards", "KYC Services"],
       enabledSources: ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"]
     };
     
-    if (customUser || !localStorage.getItem("acris.org_profile")) {
-      localStorage.setItem("acris.org_profile", JSON.stringify(profile));
-    }
+    localStorage.setItem("acris.org_profile", JSON.stringify(profile));
 
     setSession(sessionToSave);
   };
@@ -128,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("acris.registered_name");
     localStorage.removeItem("acris.registered_org");
     localStorage.removeItem("acris.registered_industry");
+    localStorage.removeItem("acris.db_user_id");
     await supabase.auth.signOut();
     setSession(null);
   };

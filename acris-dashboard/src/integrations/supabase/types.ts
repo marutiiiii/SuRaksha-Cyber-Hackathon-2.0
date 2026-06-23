@@ -14,6 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
+      // ─── Organizations ──────────────────────────────────────────────────────
+      organizations: {
+        Row: {
+          id: string
+          name: string
+          industry: string | null
+          org_size: string | null
+          country: string | null
+          departments: Json | null
+          services: Json | null
+          enabled_sources: Json | null
+          is_setup_complete: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          industry?: string | null
+          org_size?: string | null
+          country?: string | null
+          departments?: Json | null
+          services?: Json | null
+          enabled_sources?: Json | null
+          is_setup_complete?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          industry?: string | null
+          org_size?: string | null
+          country?: string | null
+          departments?: Json | null
+          services?: Json | null
+          enabled_sources?: Json | null
+          is_setup_complete?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      // ─── Roles ──────────────────────────────────────────────────────────────
+      roles: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      // ─── Users ──────────────────────────────────────────────────────────────
+      users: {
+        Row: {
+          id: string
+          organization_id: string | null
+          role_id: string | null
+          full_name: string
+          email: string
+          password_hash: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          organization_id?: string | null
+          role_id?: string | null
+          full_name: string
+          email: string
+          password_hash: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string | null
+          role_id?: string | null
+          full_name?: string
+          email?: string
+          password_hash?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      // ─── Chat History ───────────────────────────────────────────────────────
       chat_history: {
         Row: {
           citations_json: Json | null
@@ -44,6 +162,7 @@ export type Database = {
         }
         Relationships: []
       }
+      // ─── Clauses ─────────────────────────────────────────────────────────────
       clauses: {
         Row: {
           category: string | null
@@ -88,6 +207,7 @@ export type Database = {
           },
         ]
       }
+      // ─── Comparisons ─────────────────────────────────────────────────────────
       comparisons: {
         Row: {
           created_at: string
@@ -130,6 +250,7 @@ export type Database = {
           },
         ]
       }
+      // ─── Documents ───────────────────────────────────────────────────────────
       documents: {
         Row: {
           created_at: string
@@ -166,6 +287,7 @@ export type Database = {
         }
         Relationships: []
       }
+      // ─── Maps ────────────────────────────────────────────────────────────────
       maps: {
         Row: {
           clause_ref: string | null
@@ -216,6 +338,38 @@ export type Database = {
           },
         ]
       }
+      // ─── Notifications ───────────────────────────────────────────────────────
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          severity: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          severity?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          severity?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      // ─── Regulations ─────────────────────────────────────────────────────────
       regulations: {
         Row: {
           created_at: string
@@ -246,6 +400,7 @@ export type Database = {
         }
         Relationships: []
       }
+      // ─── Reports ─────────────────────────────────────────────────────────────
       reports: {
         Row: {
           created_at: string

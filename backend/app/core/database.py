@@ -12,9 +12,8 @@ db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-use_sqlite = False
+# Create the PostgreSQL engine only (no SQLite fallback)
 try:
-    # Attempt to create the engine and verify connection
     engine = create_engine(
         db_url,
         pool_pre_ping=True,
@@ -26,17 +25,9 @@ try:
         pass
     logger.info("Connected to PostgreSQL database successfully.")
 except Exception as e:
-    logger.warning(f"PostgreSQL connection failed ({e}). Falling back to local SQLite database.")
-    use_sqlite = True
+    logger.error(f"PostgreSQL database connection failed: {e}")
+    raise e
 
-if use_sqlite:
-    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    sqlite_path = os.path.join(backend_dir, "app.db")
-    db_url = f"sqlite:///{sqlite_path}"
-    engine = create_engine(
-        db_url,
-        connect_args={"check_same_thread": False}
-    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

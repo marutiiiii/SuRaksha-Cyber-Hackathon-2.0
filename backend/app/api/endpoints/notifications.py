@@ -15,32 +15,12 @@ def get_notifications(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
-    notifications = db.query(Notification).filter(Notification.user_id == user_id).order_by(Notification.created_at.desc()).all()
+    copilot_mode = current_user.get("copilot_mode", "beginner")
+    notifications = db.query(Notification).filter(
+        Notification.user_id == user_id,
+        Notification.copilot_mode == copilot_mode
+    ).order_by(Notification.created_at.desc()).all()
     
-    # Fallback default notifications if database is empty (so dashboard alerts show up properly)
-    if not notifications:
-        default_alerts = [
-            {"title": "RBI KYC Master Direction amended", "message": "Annual review now required for high-risk customers.", "severity": "High"},
-            {"title": "CERT-In zero-day advisory", "message": "Patch Java middleware vulnerability within 7 days.", "severity": "High"},
-            {"title": "SEBI Insider Trading circular updated", "message": "New compliance window restrictions applied.", "severity": "Medium"},
-            {"title": "NPCI UPI velocity rules effective", "message": "UPI Lite limits updated for payments switches.", "severity": "Medium"},
-            {"title": "MCA CSR threshold revised", "message": "Threshold updated from 5Cr to 3Cr net profit.", "severity": "Low"}
-        ]
-        notifications = []
-        for a in default_alerts:
-            n = Notification(
-                user_id=user_id,
-                title=a["title"],
-                message=a["message"],
-                severity=a["severity"],
-                is_read=False
-            )
-            db.add(n)
-            notifications.append(n)
-        db.commit()
-        for n in notifications:
-            db.refresh(n)
-            
     return notifications
 
 @router.patch("/{notification_id}/read")

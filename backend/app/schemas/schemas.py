@@ -1,15 +1,94 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Any, Dict
 from datetime import date, datetime
 from uuid import UUID
 
-# General Response
+# ─── General ──────────────────────────────────────────────────────────────────
+
 class MessageResponse(BaseModel):
     success: bool = True
     message: str
     data: Optional[Dict[str, Any]] = None
 
-# Regulations
+# ─── Organization ─────────────────────────────────────────────────────────────
+
+class OrganizationCreate(BaseModel):
+    name: str
+    industry: Optional[str] = None          # Banking | FinTech
+    org_size: Optional[str] = None          # Startup | Small | Medium | Enterprise
+    country: Optional[str] = "India"
+    departments: Optional[List[str]] = []
+    services: Optional[List[str]] = []
+    enabled_sources: Optional[List[str]] = []
+    is_setup_complete: Optional[bool] = False
+
+class OrganizationUpdate(BaseModel):
+    name: Optional[str] = None
+    industry: Optional[str] = None
+    org_size: Optional[str] = None
+    country: Optional[str] = None
+    departments: Optional[List[str]] = None
+    services: Optional[List[str]] = None
+    enabled_sources: Optional[List[str]] = None
+    is_setup_complete: Optional[bool] = None
+
+class OrganizationResponse(BaseModel):
+    id: UUID
+    name: str
+    industry: Optional[str] = None
+    org_size: Optional[str] = None
+    country: Optional[str] = None
+    departments: Optional[List[str]] = []
+    services: Optional[List[str]] = []
+    enabled_sources: Optional[List[str]] = []
+    is_setup_complete: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ─── Auth / User ──────────────────────────────────────────────────────────────
+
+class UserRegisterRequest(BaseModel):
+    full_name: str
+    email: str
+    password: str
+    org_name: str
+    industry_type: str  # Banking | FinTech
+
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: UUID
+    full_name: str
+    email: str
+    status: str
+    organization_id: Optional[UUID] = None
+    organization: Optional[OrganizationResponse] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AuthResponse(BaseModel):
+    success: bool
+    message: str
+    access_token: Optional[str] = None
+    user: Optional[UserResponse] = None
+
+class OrgSetupRequest(BaseModel):
+    org_name: str
+    org_size: str
+    departments: List[str]
+    services: List[str]
+    enabled_sources: Optional[List[str]] = ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"]
+    industry: Optional[str] = None
+
+# ─── Regulations ─────────────────────────────────────────────────────────────
+
 class RegulationBase(BaseModel):
     source: str
     title: str
@@ -19,12 +98,16 @@ class RegulationBase(BaseModel):
 
 class RegulationResponse(RegulationBase):
     id: UUID
+    risk_level: Optional[str] = "Medium"
+    obligations: Optional[List[str]] = []
+    suggestedActions: Optional[List[str]] = []
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
-# Documents
+# ─── Documents ───────────────────────────────────────────────────────────────
+
 class DocumentResponse(BaseModel):
     id: UUID
     title: str
@@ -33,14 +116,15 @@ class DocumentResponse(BaseModel):
     status: str
     file_path: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 class ListDocumentsResponse(BaseModel):
     documents: List[DocumentResponse]
 
-# Clauses
+# ─── Clauses ─────────────────────────────────────────────────────────────────
+
 class ClauseResponse(BaseModel):
     id: UUID
     clause_id: str
@@ -49,11 +133,12 @@ class ClauseResponse(BaseModel):
     obligation: Optional[str] = None
     severity: Optional[str] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
-# Comparisons
+# ─── Comparisons ─────────────────────────────────────────────────────────────
+
 class ComparisonRequest(BaseModel):
     oldDocumentId: UUID
     newDocumentId: UUID
@@ -65,7 +150,8 @@ class ComparisonResponse(BaseModel):
     modified: List[Dict[str, Any]]
     counts: Dict[str, int]
 
-# Maps
+# ─── Maps ────────────────────────────────────────────────────────────────────
+
 class MapStatusUpdate(BaseModel):
     status: str
 
@@ -89,11 +175,12 @@ class MapResponse(BaseModel):
     clause_ref: Optional[str] = None
     comparison_id: Optional[UUID] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
-# Copilot
+# ─── Copilot ─────────────────────────────────────────────────────────────────
+
 class CopilotRequest(BaseModel):
     message: str
     sessionId: Optional[UUID] = None
@@ -103,7 +190,8 @@ class CopilotResponse(BaseModel):
     answer: str
     citations: List[Dict[str, Any]]
 
-# Dashboard Metrics
+# ─── Dashboard ───────────────────────────────────────────────────────────────
+
 class KpiCardData(BaseModel):
     value: int
     tone: Optional[str] = None
@@ -121,7 +209,8 @@ class DashboardOverviewResponse(BaseModel):
     complianceTrend: List[Dict[str, Any]]
     mapProgress: List[Dict[str, Any]]
 
-# Reports
+# ─── Reports ─────────────────────────────────────────────────────────────────
+
 class ReportRequest(BaseModel):
     type: str
 
@@ -129,20 +218,8 @@ class ReportResponse(BaseModel):
     report: Dict[str, Any]
     signed_url: str
 
-# Audit Logs
-class AuditLogResponse(BaseModel):
-    id: UUID
-    user_id: UUID
-    entity_type: str
-    entity_id: Optional[UUID] = None
-    action: str
-    description: Optional[str] = None
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
+# ─── Notifications ───────────────────────────────────────────────────────────
 
-# Notifications / Alerts
 class NotificationResponse(BaseModel):
     id: UUID
     title: str
@@ -150,6 +227,31 @@ class NotificationResponse(BaseModel):
     severity: str
     is_read: bool
     created_at: datetime
-    
+
+    class Config:
+        from_attributes = True
+
+# ─── Audit Logs ──────────────────────────────────────────────────────────────
+
+class AuditLogResponse(BaseModel):
+    entity_type: str
+    action: str
+    description: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# ─── Evidence ────────────────────────────────────────────────────────────────
+
+class EvidenceResponse(BaseModel):
+    id: UUID
+    map_id: UUID
+    filename: str
+    file_path: str
+    validation_status: str
+    ai_notes: Optional[str] = None
+    created_at: datetime
+
     class Config:
         from_attributes = True

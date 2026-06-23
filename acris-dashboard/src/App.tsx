@@ -1,3 +1,4 @@
+import React, { Suspense, lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -12,19 +13,22 @@ import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import OrgSetup from "./pages/OrgSetup";
 import Layout from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
-import Regulations from "./pages/Regulations";
-import DocumentAnalysis from "./pages/DocumentAnalysis";
-import ChangeDetection from "./pages/ChangeDetection";
-import ImpactAnalysis from "./pages/ImpactAnalysis";
-import AIExplanation from "./pages/AIExplanation";
-import Reports from "./pages/Reports";
-import Alerts from "./pages/Alerts";
-import AuditLogs from "./pages/AuditLogs";
-import CompanyProfile from "./pages/CompanyProfile";
-import Maps from "./pages/Maps";
-import AuditReadiness from "./pages/AuditReadiness";
 import NotFound from "./pages/NotFound";
+import { SkeletonPage } from "./components/shared/States";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Regulations = lazy(() => import("./pages/Regulations"));
+const DocumentAnalysis = lazy(() => import("./pages/DocumentAnalysis"));
+const ChangeDetection = lazy(() => import("./pages/ChangeDetection"));
+const ImpactAnalysis = lazy(() => import("./pages/ImpactAnalysis"));
+const AIExplanation = lazy(() => import("./pages/AIExplanation"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const CompanyProfile = lazy(() => import("./pages/CompanyProfile"));
+const Maps = lazy(() => import("./pages/Maps"));
+const AuditReadiness = lazy(() => import("./pages/AuditReadiness"));
+const DepartmentRouting = lazy(() => import("./pages/DepartmentRouting"));
 
 const queryClient = new QueryClient();
 
@@ -43,18 +47,19 @@ const App = () => (
                   <Route path="/setup" element={<ProtectedRoute><OrgSetup /></ProtectedRoute>} />
                   <Route path="/" element={<Landing />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/regulations" element={<Regulations />} />
-                    <Route path="/document-analysis" element={<DocumentAnalysis />} />
-                    <Route path="/change-detection" element={<ChangeDetection />} />
-                    <Route path="/impact-analysis" element={<ImpactAnalysis />} />
-                    <Route path="/copilot" element={<AIExplanation />} />
-                    <Route path="/maps" element={<Maps />} />
-                    <Route path="/audit-readiness" element={<AuditReadiness />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/alerts" element={<Alerts />} />
-                    <Route path="/audit-logs" element={<AuditLogs />} />
-                    <Route path="/company-profile" element={<CompanyProfile />} />
+                    <Route path="/dashboard" element={<Suspense fallback={<SkeletonPage />}><Dashboard /></Suspense>} />
+                    <Route path="/regulations" element={<Suspense fallback={<SkeletonPage />}><Regulations /></Suspense>} />
+                    <Route path="/document-analysis" element={<Suspense fallback={<SkeletonPage />}><DocumentAnalysis /></Suspense>} />
+                    <Route path="/change-detection" element={<Suspense fallback={<SkeletonPage />}><ChangeDetection /></Suspense>} />
+                    <Route path="/impact-analysis" element={<Suspense fallback={<SkeletonPage />}><ImpactAnalysis /></Suspense>} />
+                    <Route path="/copilot" element={<Suspense fallback={<SkeletonPage />}><AIExplanation /></Suspense>} />
+                    <Route path="/maps" element={<Suspense fallback={<SkeletonPage />}><Maps /></Suspense>} />
+                    <Route path="/department-routing" element={<Suspense fallback={<SkeletonPage />}><DepartmentRouting /></Suspense>} />
+                    <Route path="/audit-readiness" element={<Suspense fallback={<SkeletonPage />}><AuditReadiness /></Suspense>} />
+                    <Route path="/reports" element={<Suspense fallback={<SkeletonPage />}><Reports /></Suspense>} />
+                    <Route path="/alerts" element={<Suspense fallback={<SkeletonPage />}><Alerts /></Suspense>} />
+                    <Route path="/audit-logs" element={<Suspense fallback={<SkeletonPage />}><AuditLogs /></Suspense>} />
+                    <Route path="/company-profile" element={<Suspense fallback={<SkeletonPage />}><CompanyProfile /></Suspense>} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>

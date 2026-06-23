@@ -1,23 +1,33 @@
 import { supabase } from "@/integrations/supabase/client";
 
 async function authHeaders() {
+  const headers: Record<string, string> = {};
+  
   const mockUserStr = localStorage.getItem("mock_user_session");
   if (mockUserStr) {
     try {
       const parsed = JSON.parse(mockUserStr);
       if (parsed?.access_token) {
-        return { Authorization: `Bearer ${parsed.access_token}` };
+        headers["Authorization"] = `Bearer ${parsed.access_token}`;
       }
     } catch {
       // ignore
     }
+  } else {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  
+  const mode = localStorage.getItem("reguflow.copilot.mode") || "beginner";
+  headers["X-Copilot-Mode"] = mode;
+  
+  return headers;
 }
 
-const BASE_URL = "http://localhost:8000/api/v1";
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api/v1";
 
 async function callApi<T = any>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
@@ -101,11 +111,18 @@ export const api = {
       }
       return res;
     }),
+  triggerScrape: () =>
+    callApi<{ success: boolean; message: string }>("regulations/trigger-scrape", {
+      method: "POST",
+    }),
   generateReport: (type: string) =>
     callApi<{ report: any; signed_url: string }>("reports/generate", {
       method: "POST",
       body: JSON.stringify({ type }),
     }),
+  previewReport: (type: string) =>
+    callApi<{ markdown: string }>(`reports/preview/${type}`),
+
   
   // Custom API additions for complete E2E connectivity
   listMaps: () => callApi<any[]>("maps"),
@@ -134,5 +151,27 @@ export const api = {
     callApi<any>(`notifications/${id}/read`, {
       method: "PATCH",
     }),
+  uploadEvidence: (mapId: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return callApi<any>(`maps/${mapId}/evidence`, {
+      method: "POST",
+      body: fd,
+    });
+  },
+  listEvidence: (mapId: string) =>
+    callApi<any[]>(`maps/${mapId}/evidence`),
+  getDocumentClauses: (documentId: string) =>
+    callApi<any[]>(`documents/${documentId}/clauses`),
+  generateComplianceDocument: (type: string, comparisonId?: string, documentId?: string) =>
+    callApi<any>("copilot/generate-document", {
+      method: "POST",
+      body: JSON.stringify({ type, comparisonId, documentId }),
+    }),
+  listComparisons: () => callApi<any[]>("comparisons"),
+  getComparison: (comparisonId: string) => callApi<any>(`comparisons/${comparisonId}`),
+  listImpactHistory: () => callApi<any[]>("comparisons/impact/history"),
+  listDraftHistory: () => callApi<any[]>("copilot/drafts"),
+  getDraft: (draftId: string) => callApi<any>(`copilot/drafts/${draftId}`),
 };
 export type ApiType = typeof api;

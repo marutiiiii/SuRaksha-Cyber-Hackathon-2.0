@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Inbox, Loader2, AlertCircle } from "lucide-react";
+import { useIsBeginner } from "@/state/CopilotContext";
 
 export function LoadingState({ label = "Loading..." }: { label?: string }) {
   return (
@@ -29,6 +30,9 @@ export function ErrorState({ message = "Something went wrong." }: { message?: st
 }
 
 export function BeginnerHint({ children }: { children: ReactNode }) {
+  const isBeginner = useIsBeginner();
+  if (!isBeginner) return null;
+
   return (
     <div className="border border-[hsl(var(--info)/0.4)] bg-[hsl(var(--info)/0.08)] text-sm rounded-md px-3 py-2">
       <span className="font-semibold text-[hsl(var(--info))] mr-2">Tip</span>

@@ -6,16 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pypdf import PdfReader
-import google.generativeai as genai
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.models import Document, Clause, AuditLog
-from app.schemas.schemas import DocumentResponse, ListDocumentsResponse
+from app.models.models import Document, Clause
+from app.schemas.schemas import DocumentResponse, ListDocumentsResponse, ClauseResponse
 from app.core.config import settings
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
-STORAGE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "storage", "documents")
+STORAGE_DIR = os.path.join(settings.STORAGE_PATH, "documents")
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
 @router.get("", response_model=ListDocumentsResponse)
@@ -24,7 +23,11 @@ def list_documents(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
-    docs = db.query(Document).filter(Document.user_id == user_id).order_by(Document.created_at.desc()).all()
+    copilot_mode = current_user.get("copilot_mode", "beginner")
+    docs = db.query(Document).filter(
+        Document.user_id == user_id,
+        Document.copilot_mode == copilot_mode
+    ).order_by(Document.created_at.desc()).all()
     return {"documents": docs}
 
 @router.post("/upload")
@@ -35,6 +38,7 @@ async def upload_document(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
+    copilot_mode = current_user.get("copilot_mode", "beginner")
     
     # Save the file locally
     file_id = uuid.uuid4()
@@ -52,24 +56,23 @@ async def upload_document(
         title=file.filename,
         source=source,
         file_path=f"/storage/documents/{safe_filename}",
-        status="uploaded"
+        status="uploaded",
+        copilot_mode=copilot_mode
     )
     db.add(db_doc)
     db.commit()
     db.refresh(db_doc)
     
-    # Audit trail
-    log = AuditLog(
-        user_id=user_id,
-        entity_type="Document",
-        entity_id=db_doc.id,
-        action="Document Uploaded",
-        description=f"Uploaded document: '{db_doc.title}' from source: '{source}'."
-    )
-    db.add(log)
-    db.commit()
-    
-    return {"documentId": db_doc.id, "status": "uploaded", "document": db_doc}
+    # Trigger downstream pipeline automatically in expert mode
+    if copilot_mode == "expert":
+        from app.core.pipeline import execute_downstream_pipeline
+        try:
+            execute_downstream_pipeline(db, db_doc, user_id, "expert")
+            db.refresh(db_doc)
+        except Exception as e:
+            print(f"[API] Expert mode pipeline execution failed: {e}")
+            
+    return {"documentId": db_doc.id, "status": db_doc.status, "document": db_doc}
 
 @router.post("/{document_id}/extract-text")
 def extract_document_text(
@@ -104,15 +107,6 @@ def extract_document_text(
         db_doc.status = "extracted"
         db.commit()
         
-        # Audit trail
-        log = AuditLog(
-            user_id=user_id,
-            entity_type="Document",
-            entity_id=db_doc.id,
-            action="Text Extracted",
-            description=f"Extracted {pages_count} pages of text from '{db_doc.title}'."
-        )
-        db.add(log)
         db.commit()
         
         return {"documentId": db_doc.id, "pages": pages_count, "text": text_content}
@@ -134,71 +128,23 @@ def extract_document_clauses(
         
     sample = db_doc.extracted_text[:40000]
     
-    clauses = []
-    
-    # Try calling Gemini
-    if settings.GEMINI_API_KEY:
-        try:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            
-            prompt = (
-                "You are a regulatory analyst for Indian banking (RBI/SEBI/NPCI/CERT-In). "
-                "Extract the discrete regulatory clauses from the provided text. "
-                "Return strict JSON matching this structure: { \"clauses\": [{ \"clauseId\": \"C001\", \"text\": \"...\", "
-                "\"category\": \"KYC|AML|Cybersecurity|Reporting|Risk|Governance|Operations|Other\", "
-                "\"obligation\": \"What the bank must do\", "
-                "\"severity\": \"Low|Medium|High|Critical\" }] }. "
-                "Aim for 8-20 clauses. clauseId must be C001, C002, ... in order. Keep clause text < 600 chars."
-            )
-            
-            response = model.generate_content(
-                contents=f"Document: {db_doc.title}\nSource: {db_doc.source}\n\nText:\n{sample}",
-                generation_config={"response_mime_type": "application/json"},
-                system_instruction=prompt
-            )
-            
-            parsed = json.loads(response.text)
-            clauses = parsed.get("clauses", [])
-        except Exception as e:
-            print(f"Gemini clause extraction error: {e}")
-            
-    # Fallback to smart mock generator if Gemini fails or is not configured
-    if not clauses:
-        # Generate realistic clauses based on source type
-        src = (db_doc.source or "RBI").upper()
-        if "KYC" in db_doc.title.upper() or "KYC" in sample.upper():
-            clauses = [
-                {"clauseId": "C001", "text": "Periodic updates of KYC shall be done annually for high-risk customers.", "category": "KYC", "obligation": "Perform annual KYC updates for high-risk accounts.", "severity": "High"},
-                {"clauseId": "C002", "text": "Video Customer Identification Process (V-CIP) shall be the preferred mode of remote onboarding.", "category": "KYC", "obligation": "Configure V-CIP as the default customer verification flow.", "severity": "Medium"},
-                {"clauseId": "C003", "text": "Regulated entities must submit quarterly KYC compliance status reports to the Reserve Bank.", "category": "Reporting", "obligation": "Send quarterly KYC reports.", "severity": "Medium"},
-                {"clauseId": "C004", "text": "Document risk re-categorization based on transaction profiling and customer business profiles.", "category": "Risk", "obligation": "Recalculate customer risk tier based on transaction history.", "severity": "Low"}
-            ]
-        elif "LENDING" in db_doc.title.upper() or "LENDING" in sample.upper():
-            clauses = [
-                {"clauseId": "C001", "text": "Disclose all fees, charges, and the Annual Percentage Rate (APR) upfront to borrowers.", "category": "Operations", "obligation": "Surface APR on loan UI onboarding screens.", "severity": "High"},
-                {"clauseId": "C002", "text": "First Loss Default Guarantee (FLDG) arrangements with any single Lending Service Provider (LSP) shall not exceed 5% of the total loan portfolio.", "category": "Legal", "obligation": "Re-paper contracts to cap FLDG arrangements at 5%.", "severity": "Critical"},
-                {"clauseId": "C003", "text": "A dedicated Grievance Redressal Officer must be appointed to handle DLA customer complaints.", "category": "Governance", "obligation": "Hire/onboard Grievance Redressal Officer.", "severity": "Medium"},
-                {"clauseId": "C004", "text": "Lenders must report all digital lending performance metrics on a quarterly basis.", "category": "Reporting", "obligation": "Set up digital lending reporting database feed.", "severity": "Medium"}
-            ]
-        else:
-            # General fallback
-            clauses = [
-                {"clauseId": "C001", "text": f"Regulated entities shall update operational risk management policies to reflect modern sector challenges under {src} directions.", "category": "Risk", "obligation": "Update risk policies.", "severity": "Medium"},
-                {"clauseId": "C002", "text": f"Critical security incidents must be reported to the regulator within 6 hours of detection.", "category": "Cybersecurity", "obligation": "Ensure SOC alerts trigger instant reporting.", "severity": "Critical"},
-                {"clauseId": "C003", "text": f"Submit compliance audit certificates signed by the Board of Directors annually.", "category": "Audit", "obligation": "Gather Board signatures for annual audit reporting.", "severity": "High"}
-            ]
+    # Call local Llama 3 AI service
+    from app.core.ai_service import LlamaAIService
+    from app.core.embeddings import EmbeddingService
+    res_json = LlamaAIService.extract_clauses(db_doc.title, db_doc.source or "RBI", sample)
+    clauses = res_json.get("clauses", [])
             
     # Delete existing clauses
     db.query(Clause).filter(Clause.document_id == document_id).delete()
     
-    # Insert new clauses
-    # Since pgvector embeddings are 768 float arrays, we can generate a mock list of floats
-    mock_embedding = [0.0] * 768
-    mock_embedding_str = str(mock_embedding)
+    # Generate REAL embeddings using sentence-transformers (all-MiniLM-L6-v2, 384-dim)
+    # Batch encode all clause texts in one pass for efficiency
+    clause_texts = [c.get("text", "") for c in clauses]
+    embeddings = EmbeddingService.batch_encode(clause_texts) if clause_texts else []
     
     rows = []
-    for c in clauses:
+    for i, c in enumerate(clauses):
+        vec = embeddings[i] if i < len(embeddings) else [0.0] * 384
         rows.append(Clause(
             document_id=document_id,
             clause_id=c["clauseId"],
@@ -206,22 +152,29 @@ def extract_document_clauses(
             category=c["category"],
             obligation=c["obligation"],
             severity=c["severity"],
-            embedding=mock_embedding_str
+            embedding=EmbeddingService.to_db(vec)
         ))
         
     db.add_all(rows)
     db_doc.status = "analyzed"
     db.commit()
     
-    # Audit trail
-    log = AuditLog(
-        user_id=user_id,
-        entity_type="Document",
-        entity_id=db_doc.id,
-        action="Document Analyzed",
-        description=f"Extracted {len(clauses)} clauses and updated status to analyzed."
-    )
-    db.add(log)
     db.commit()
     
     return {"documentId": db_doc.id, "count": len(clauses), "clauses": clauses}
+
+@router.get("/{document_id}/clauses", response_model=List[ClauseResponse])
+def get_document_clauses(
+    document_id: UUID,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user_id = current_user.get("id")
+    # Verify document belongs to user
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == user_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    clauses = db.query(Clause).filter(Clause.document_id == document_id).all()
+    return clauses
+

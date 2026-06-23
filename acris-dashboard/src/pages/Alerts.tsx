@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { RiskBadge } from "@/components/shared/Badges";
 import { EmptyState, SkeletonPage } from "@/components/shared/States";
-import { alerts as mockAlerts, Risk } from "@/mocks";
+import type { Risk } from "@/lib/types";
 import { Bell, CheckCheck, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
@@ -14,7 +14,7 @@ interface DisplayAlert {
   id: string;
   message: string;
   time: string;
-  risk: Risk;
+  risk: Risk | string;
   regulationId?: string;
   isRead: boolean;
 }
@@ -49,45 +49,16 @@ export default function Alerts() {
     loadAlerts();
   }, []);
 
-  const displayAlerts = useMemo(() => {
-    if (liveAlerts.length > 0) return liveAlerts;
-    
-    // Fallback to mocks
-    return mockAlerts.map(a => ({
-      ...a,
-      isRead: false // mocks don't have default isRead, default to unread
-    }));
-  }, [liveAlerts]);
+  const displayAlerts = useMemo(() => liveAlerts, [liveAlerts]);
 
   const toggleRead = async (id: string, currentlyRead: boolean) => {
-    // If it's a mock alert, handle locally
-    const isMock = !liveAlerts.some(a => a.id === id);
-    
-    if (isMock) {
-      setLiveAlerts(prev => {
-        const index = prev.findIndex(x => x.id === id);
-        if (index >= 0) {
-          const updated = [...prev];
-          updated[index].isRead = !currentlyRead;
-          return updated;
-        }
-        // If it's pure mock from mockAlerts, add it to liveAlerts with toggled read state
-        const original = mockAlerts.find(x => x.id === id);
-        if (original) {
-          return [...prev, { ...original, isRead: !currentlyRead }];
-        }
-        return prev;
-      });
-      return;
-    }
-
     try {
       if (!currentlyRead) {
         await api.markAlertRead(id);
         setLiveAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
         toast({ title: "Alert read", description: "Marked alert as read." });
       } else {
-        // Toggle back to unread locally or ignore (standard read toggling)
+        // Toggle back to unread locally or ignore
         setLiveAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: false } : a));
       }
     } catch (err: any) {
@@ -100,7 +71,6 @@ export default function Alerts() {
     if (unreadAlerts.length === 0) return;
 
     try {
-      // Mark all read in backend
       await Promise.all(unreadAlerts.map(a => api.markAlertRead(a.id).catch(() => {})));
       setLiveAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
       toast({
@@ -108,7 +78,6 @@ export default function Alerts() {
         description: "All alerts have been marked as read.",
       });
     } catch (err) {
-      // Fallback local update
       setLiveAlerts(prev => prev.map(a => ({ ...a, isRead: true })));
     }
   };
@@ -127,31 +96,34 @@ export default function Alerts() {
   if (loading) return <SkeletonPage />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <PageHeader title="Alerts Feed" subtitle="Real-time compliance alerts and regulator notifications" />
-        {displayAlerts.some(a => !a.isRead) && (
-          <button
-            onClick={markAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-muted text-muted-foreground hover:text-foreground border border-border rounded text-xs font-semibold hover:bg-muted/80 transition-colors h-fit self-start sm:self-center"
-          >
-            <CheckCheck className="h-3.5 w-3.5" />
-            <span>Mark all read</span>
-          </button>
-        )}
-      </div>
+    <div className="space-y-6 max-w-5xl mx-auto animate-fade-in-up">
+      <PageHeader 
+        title="Alerts Feed" 
+        subtitle="Real-time compliance alerts and regulator notifications" 
+        actions={
+          displayAlerts.some(a => !a.isRead) ? (
+            <button
+              onClick={markAllRead}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border rounded-lg text-xs font-semibold transition-all h-fit shadow-sm"
+            >
+              <CheckCheck className="h-3.5 w-3.5 text-primary" />
+              <span>Mark all read</span>
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* Filters bar */}
-      <div className="flex flex-wrap gap-4 items-center justify-between border-b pb-4">
+      <div className="flex flex-wrap gap-4 items-center justify-between border-b border-border pb-4">
         {/* Severity filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">Severity:</span>
-          <div className="flex border border-border rounded-md p-0.5 bg-muted/30">
+          <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Severity:</span>
+          <div className="flex border border-border rounded-lg p-0.5 bg-muted/30">
             {(["All", "High", "Medium", "Low"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setSelectedRisk(r)}
-                className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                   selectedRisk === r
                     ? "bg-card text-foreground shadow-sm border border-border/50"
                     : "text-muted-foreground hover:text-foreground border border-transparent"
@@ -165,13 +137,13 @@ export default function Alerts() {
 
         {/* Status filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">Status:</span>
-          <div className="flex border border-border rounded-md p-0.5 bg-muted/30">
+          <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Status:</span>
+          <div className="flex border border-border rounded-lg p-0.5 bg-muted/30">
             {(["All", "Unread", "Read"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1 text-xs font-medium rounded transition-all ${
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                   statusFilter === s
                     ? "bg-card text-foreground shadow-sm border border-border/50"
                     : "text-muted-foreground hover:text-foreground border border-transparent"
@@ -190,48 +162,52 @@ export default function Alerts() {
           description="No notifications match the selected severity and status filters."
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredAlerts.map((a) => {
             const isRead = a.isRead;
             return (
               <div
                 key={a.id}
                 onClick={() => toggleRead(a.id, isRead)}
-                className={`section-container flex items-start justify-between p-4 border-l-4 hover:bg-muted/20 cursor-pointer transition-all ${
-                  isRead ? "opacity-60 bg-muted/10 border-muted" : "bg-card"
+                className={`glass-card flex items-start justify-between p-4 border-l-4 cursor-pointer hover:-translate-y-0.5 ${
+                  isRead ? "opacity-60 bg-muted/5 border-muted/50" : "bg-card"
                 }`}
                 style={{ borderLeftColor: isRead ? undefined : borderLeft(a.risk) }}
               >
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <Bell className={`h-4 w-4 mt-0.5 ${isRead ? "text-muted-foreground/60" : "text-primary"}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-sm leading-relaxed ${isRead ? "text-muted-foreground line-through" : "text-foreground font-medium"}`}>
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  <div className={`p-2 rounded-lg flex-shrink-0 ${isRead ? "bg-muted/10" : "bg-primary/5"}`}>
+                    <Bell className={`h-4.5 w-4.5 ${isRead ? "text-muted-foreground/60" : "text-primary"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0 pt-0.5">
+                    <div className={`text-sm leading-relaxed tracking-tight ${isRead ? "text-muted-foreground line-through" : "text-foreground font-medium"}`}>
                       {a.message}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                      <span>{a.time}</span>
+                    <div className="text-xs text-muted-foreground mt-2.5 flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{a.time}</span>
                       {a.regulationId && (
                         <>
-                          <span>·</span>
-                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px]">{a.regulationId}</span>
+                          <span className="text-muted-foreground/40">·</span>
+                          <span className="font-mono bg-secondary px-2 py-0.5 rounded text-[10px] border border-border/50 text-secondary-foreground font-semibold">{a.regulationId}</span>
                         </>
                       )}
-                      <span>·</span>
-                      <span className="flex items-center gap-1 hover:text-foreground">
+                      <span className="text-muted-foreground/40">·</span>
+                      <span className="flex items-center gap-1 hover:text-foreground transition-colors font-medium">
                         {isRead ? (
                           <>
-                            <EyeOff className="h-3 w-3" /> Mark as unread
+                            <EyeOff className="h-3.5 w-3.5" /> Mark as unread
                           </>
                         ) : (
                           <>
-                            <Eye className="h-3 w-3" /> Mark as read
+                            <Eye className="h-3.5 w-3.5" /> Mark as read
                           </>
                         )}
                       </span>
                     </div>
                   </div>
                 </div>
-                <RiskBadge risk={a.risk} />
+                <div className="flex-shrink-0 self-center pl-4">
+                  <RiskBadge risk={a.risk} />
+                </div>
               </div>
             );
           })}

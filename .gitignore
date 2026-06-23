@@ -5,14 +5,27 @@ acris-dashboard/dist-ssr/
 acris-dashboard/*.local
 acris-dashboard/.env
 
+# Pipeline ignores
+acris-data-pipeline/data/raw/
+acris-data-pipeline/data/processed/
+
 # Backend ignores
 **/__pycache__/
 **/*.pyc
 backend/app.db
 backend/storage/
 backend/.env
+backend/app/storage/
+backend/app/app.db
+backend/.venv/
+.venv/
+venv/
+env/
 
 # General ignores
+**/.env
+**/.env.local
+**/.env.*
 logs
 *.log
 npm-debug.log*

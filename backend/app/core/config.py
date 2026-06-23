@@ -5,6 +5,29 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "ReguFlow AI"
     
+    # Environment mode: development or production
+    ENV: str = os.getenv("ENV", "development")
+    
+    # Whether to allow mock auth token bypass ("mock-access-token")
+    ALLOW_MOCK_AUTH: bool = os.getenv("ALLOW_MOCK_AUTH", "True").lower() in ("true", "1", "yes")
+    
+    # CORS Configuration - comma-separated list of origins
+    BACKEND_CORS_ORIGINS: list = [
+        x.strip() for x in os.getenv("BACKEND_CORS_ORIGINS", "*").split(",") if x.strip()
+    ]
+    
+    # Custom root storage directory (optional, defaults to local folder inside backend)
+    STORAGE_DIR: str = os.getenv("STORAGE_DIR", "")
+    
+    @property
+    def STORAGE_PATH(self) -> str:
+        if self.STORAGE_DIR:
+            return self.STORAGE_DIR
+        return os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+            "storage"
+        )
+
     # Database Configuration
     # Fallback to local sqlite or placeholder if DATABASE_URL is not set
     DATABASE_URL: str = os.getenv(
@@ -18,6 +41,12 @@ class Settings(BaseSettings):
     # AI API Keys
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     REGUFLOW_API_KEY: str = os.getenv("REGUFLOW_API_KEY", "")
+    
+    # Ollama Local Configuration
+    # Preferred: llama3, fallback: llama3.2, qwen2.5:7b
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
+    OLLAMA_PREFERRED_MODELS: list = ["llama3", "llama3.2", "qwen2.5:7b", "tinyllama"]
 
     class Config:
         case_sensitive = True

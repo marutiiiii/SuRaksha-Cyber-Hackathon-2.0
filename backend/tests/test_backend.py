@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.core.database import Base
-from app.models.models import Map, AuditLog
+from app.models.models import Map
 
 class TestComplianceEngine(unittest.TestCase):
     @classmethod
@@ -84,35 +84,53 @@ class TestComplianceEngine(unittest.TestCase):
             
     def test_br_028_audit_logs_immutability(self):
         """
-        Verify audit logs are immutable (updates/deletes blocked by operational rules)
+        Verify audit logs are immutable or that no AuditLog table exists in DB as per client specifications
         """
-        # Create a mock audit log
-        log = AuditLog(
-            user_id=self.user_id,
-            entity_type="MAP",
-            action="Status Updated",
-            description="Moved MAP-001 to Review."
+        # Ensure AuditLog is not part of the database model metadata
+        self.assertNotIn("audit_logs", Base.metadata.tables)
+
+    def test_seed_user_default_maps(self):
+        """
+        Verify that seed_user_default_maps inserts the expected tasks based on org services and departments
+        """
+        from app.models.models import Organization, User, Map
+        from app.api.endpoints.maps import seed_user_default_maps
+        
+        # 1. Create a dummy organization and user
+        org = Organization(
+            name="Test Banking Group",
+            industry="Banking",
+            services=["UPI", "KYC Services"],
+            departments=["Compliance", "IT", "Operations"],
+            enabled_sources=["RBI", "NPCI"],
+            is_setup_complete=True
         )
-        self.db.add(log)
+        self.db.add(org)
         self.db.commit()
         
-        db_log = self.db.query(AuditLog).filter(AuditLog.action == "Status Updated").first()
-        self.assertIsNotNone(db_log)
+        user = User(
+            full_name="Compliance Tester",
+            email="test_compliance@reguflow.ai",
+            password_hash="dummy_hash",
+            organization_id=org.id,
+            status="Active"
+        )
+        self.db.add(user)
+        self.db.commit()
         
-        # Operational rule checks
-        def attempt_update_log(log_item: AuditLog):
-            # Enforce that audit logs cannot be updated
-            raise PermissionError("Audit logs are immutable and cannot be updated.")
-            
-        def attempt_delete_log(log_item: AuditLog):
-            # Enforce that audit logs cannot be deleted
-            raise PermissionError("Audit logs are immutable and cannot be deleted.")
-            
-        with self.assertRaises(PermissionError):
-            attempt_update_log(db_log)
-            
-        with self.assertRaises(PermissionError):
-            attempt_delete_log(db_log)
+        # 2. Seed maps
+        seed_user_default_maps(user.id, self.db)
+        
+        # 3. Query seeded maps
+        seeded = self.db.query(Map).filter(Map.user_id == user.id).all()
+        
+        # Verify that we have maps seeded and they match organization filters
+        self.assertTrue(len(seeded) > 0)
+        
+        # All seeded maps should belong to the departments Compliance, IT, or Operations
+        for m in seeded:
+            dept = m.owner.replace(" Team", "")
+            self.assertIn(dept, ["Compliance", "IT", "Operations"])
 
 if __name__ == "__main__":
     unittest.main()
