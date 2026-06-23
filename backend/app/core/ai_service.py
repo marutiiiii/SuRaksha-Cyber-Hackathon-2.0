@@ -67,10 +67,97 @@ class LlamaAIService:
         return None
 
     @classmethod
+    def _save_to_cache(cls, cache_file: str, prompt_hash: str, response_text: str):
+        """Helper to write prompt responses to local file cache."""
+        import threading
+        if not hasattr(cls, "_cache_lock"):
+            cls._cache_lock = threading.Lock()
+        with cls._cache_lock:
+            try:
+                cache = {}
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, "r", encoding="utf-8") as f:
+                            cache = json.load(f)
+                    except Exception:
+                        pass
+                cache[prompt_hash] = response_text
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(cache, f, indent=2)
+            except Exception as e:
+                logger.warning(f"Failed to write Llama cache: {e}")
+
+    @classmethod
+    def _call_groq(cls, prompt: str, system_prompt: Optional[str] = None, json_format: bool = False) -> str:
+        """Calls Groq API to run Llama3 in the cloud."""
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        payload = {
+            "model": getattr(settings, "GROQ_MODEL", "llama3-8b-8192"),
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 1024
+        }
+        
+        if json_format:
+            payload["response_format"] = {"type": "json_object"}
+            
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        if response.status_code != 200:
+            raise RuntimeError(f"Groq API returned error: {response.text}")
+            
+        return response.json()["choices"][0]["message"]["content"].strip()
+
+    @classmethod
+    def _call_gemini(cls, prompt: str, system_prompt: Optional[str] = None, json_format: bool = False) -> str:
+        """Calls Gemini API as a secondary cloud fallback."""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}"
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        contents = []
+        if system_prompt:
+            contents.append({
+                "role": "user",
+                "parts": [{"text": f"System Instruction: {system_prompt}\n\nUser Prompt: {prompt}"}]
+            })
+        else:
+            contents.append({
+                "role": "user",
+                "parts": [{"text": prompt}]
+            })
+            
+        payload = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 1024
+            }
+        }
+        
+        if json_format:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+            
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        if response.status_code != 200:
+            raise RuntimeError(f"Gemini API returned error: {response.text}")
+            
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+    @classmethod
     def _call_ollama(cls, prompt: str, system_prompt: Optional[str] = None, json_format: bool = False) -> str:
         """
-        Makes a direct POST call to Ollama generate endpoint.
-        Tries preferred models in order: qwen2.5:7b → llama3 → any available.
+        Makes a call to Llama3 (Ollama local, Groq cloud, or Gemini fallback).
         Uses a local thread-safe prompt cache to skip redundant CPU inference.
         """
         import hashlib
@@ -106,9 +193,30 @@ class LlamaAIService:
                 logger.info(f"Ollama: Cache hit for hash {prompt_hash}")
                 return cache[prompt_hash]
 
+        # 1. Groq Cloud Llama3 API
+        if getattr(settings, "GROQ_API_KEY", ""):
+            logger.info("Routing request to Groq Cloud API (Llama3)")
+            try:
+                response_text = cls._call_groq(prompt, system_prompt, json_format)
+                cls._save_to_cache(cache_file, prompt_hash, response_text)
+                return response_text
+            except Exception as e:
+                logger.error(f"Groq Cloud API failed: {e}. Falling back...")
+
+        # 2. Gemini Cloud Fallback API
+        if getattr(settings, "GEMINI_API_KEY", ""):
+            logger.info("Routing request to Gemini Cloud API")
+            try:
+                response_text = cls._call_gemini(prompt, system_prompt, json_format)
+                cls._save_to_cache(cache_file, prompt_hash, response_text)
+                return response_text
+            except Exception as e:
+                logger.error(f"Gemini Cloud API failed: {e}. Falling back...")
+
+        # 3. Local Ollama Fallback
         health = cls.check_ollama_health()
         if not health["online"]:
-            raise ConnectionError("Ollama service is offline.")
+            raise ConnectionError("Ollama service and all cloud fallbacks are offline.")
 
         models = health["models_available"]
         selected_model = cls._select_best_model(models)
@@ -126,7 +234,7 @@ class LlamaAIService:
             "options": {
                 "temperature": 0.2,
                 "top_p": 0.9,
-                "num_predict": 512,  # Limit token count to speed up local CPU inference
+                "num_predict": 512,
             }
         }
         
@@ -141,24 +249,7 @@ class LlamaAIService:
             raise RuntimeError(f"Ollama returned error: {response.text}")
             
         response_text = response.json().get("response", "").strip()
-
-        # Save to cache
-        with cls._cache_lock:
-            try:
-                # Reload cache to merge with updates from other threads/processes
-                cache = {}
-                if os.path.exists(cache_file):
-                    try:
-                        with open(cache_file, "r", encoding="utf-8") as f:
-                            cache = json.load(f)
-                    except Exception:
-                        pass
-                cache[prompt_hash] = response_text
-                with open(cache_file, "w", encoding="utf-8") as f:
-                    json.dump(cache, f, indent=2)
-            except Exception as e:
-                logger.warning(f"Failed to write Llama cache: {e}")
-
+        cls._save_to_cache(cache_file, prompt_hash, response_text)
         return response_text
 
     @classmethod

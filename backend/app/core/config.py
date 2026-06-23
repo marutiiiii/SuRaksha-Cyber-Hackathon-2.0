@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     # AI API Keys
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     REGUFLOW_API_KEY: str = os.getenv("REGUFLOW_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
     
     # Ollama Local Configuration
     # Preferred: llama3, fallback: llama3.2, qwen2.5:7b
