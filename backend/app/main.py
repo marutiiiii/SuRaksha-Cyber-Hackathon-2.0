@@ -58,6 +58,26 @@ try:
             print(f"Added dynamic column {col} to regulations")
         except Exception:
             db.rollback()
+
+    # Dynamic columns migration for RBAC & Evidence
+    rbac_columns = [
+        ("users", "department", "VARCHAR(100)"),
+        ("users", "user_type", "VARCHAR(50) DEFAULT 'admin'"),
+        ("maps", "assigned_department", "VARCHAR(100)"),
+        ("evidences", "department", "VARCHAR(100)"),
+        ("evidences", "organization_id", "UUID"),
+        ("evidences", "requested_status", "VARCHAR(50)"),
+        ("evidences", "previous_status", "VARCHAR(50)"),
+        ("evidences", "rejection_reason", "TEXT")
+    ]
+    for tbl, col, ctype in rbac_columns:
+        try:
+            db.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} {ctype}"))
+            db.commit()
+            print(f"Added column {col} ({ctype}) to table {tbl}")
+        except Exception:
+            db.rollback()
+
     # Seed default roles
     if db.query(Role).count() == 0:
         default_roles = [
@@ -69,6 +89,60 @@ try:
         ]
         db.add_all(default_roles)
         db.commit()
+
+    # Seed new roles
+    for rname, rdesc in [
+        ("AI Compliance Officer", "Full access compliance officer with admin capabilities"),
+        ("Department Officer", "Department-specific compliance task manager")
+    ]:
+        if not db.query(Role).filter(Role.name == rname).first():
+            db.add(Role(name=rname, description=rdesc))
+            db.commit()
+
+    # Backfill maps.assigned_department from title/owner mapping
+    from app.models.models import Map
+    try:
+        null_dept_maps = db.query(Map).filter(Map.assigned_department == None).all()
+        if null_dept_maps:
+            title_to_dept = {
+                "KYC": "Compliance",
+                "FLDG": "Legal",
+                "DLA quarterly": "IT",
+                "Java middleware": "Cybersecurity",
+                "materiality policy": "Compliance",
+                "UPI velocity": "IT",
+                "insider trading": "Legal",
+                "vendor risk": "Audit",
+                "V-CIP": "Operations",
+                "NPCI UPI": "IT",
+                "Lending FLDG": "Compliance",
+                "Billing Cycle": "Compliance"
+            }
+            for m in null_dept_maps:
+                matched = False
+                for kw, dept in title_to_dept.items():
+                    if kw.lower() in m.title.lower():
+                        m.assigned_department = dept
+                        matched = True
+                        break
+                if not matched and m.owner:
+                    if "Compliance" in m.owner:
+                        m.assigned_department = "Compliance"
+                    elif "Legal" in m.owner:
+                        m.assigned_department = "Legal"
+                    elif "IT" in m.owner:
+                        m.assigned_department = "IT"
+                    elif "Cyber" in m.owner:
+                        m.assigned_department = "Cybersecurity"
+                    elif "Audit" in m.owner:
+                        m.assigned_department = "Audit"
+                    elif "Operations" in m.owner:
+                        m.assigned_department = "Operations"
+            db.commit()
+            print("Backfilled assigned_department for existing maps")
+    except Exception as ex:
+        db.rollback()
+        print(f"Error backfilling assigned_department: {ex}")
 
     # Seed default demo user and organization
     from app.models.models import Organization, User
@@ -300,7 +374,7 @@ def run_backfill_pipeline():
         for u in users:
             _startup_logger.info(f"[Backfill] Checking regulations for user: {u.email}")
             for reg in regulations:
-                for mode in ["beginner", "expert"]:
+                for mode in ["beginner"]:
                     doc = db.query(Document).filter(
                         Document.user_id == u.id,
                         Document.title == reg.title,

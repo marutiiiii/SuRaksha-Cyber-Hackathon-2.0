@@ -7,12 +7,13 @@ import Drawer from "@/components/shared/Drawer";
 import { BeginnerHint, SkeletonPage } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
 import type { MAP, MapStatus } from "@/lib/types";
-import { Calendar, User, Lock, Loader2, ShieldCheck, CheckSquare, Layers } from "lucide-react";
+import { Calendar, User, Lock, Loader2, ShieldCheck, FileDown, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useOrgProfile } from "@/state/OrgProfileContext";
+import { useAuth } from "@/state/AuthContext";
 
-const COLUMNS: MapStatus[] = ["Pending", "Assigned", "In Progress", "Review", "Completed"];
+const COLUMNS: MapStatus[] = ["Pending", "Assigned", "In Progress", "Review", "Awaiting Validation", "Completed"];
 
 function RiskBadge({ risk }: { risk: string }) {
   let badgeClass = "badge-medium";
@@ -27,10 +28,10 @@ function RiskBadge({ risk }: { risk: string }) {
 }
 
 function Card({ map }: { map: MAP }) {
-  const isCompleted = map.status === "Completed";
+  const isLocked = map.status === "Completed" || map.status === "Awaiting Validation";
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: map.id,
-    disabled: isCompleted,
+    disabled: isLocked,
   });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
   
@@ -46,18 +47,19 @@ function Card({ map }: { map: MAP }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...(!isCompleted ? listeners : {})}
-      {...(!isCompleted ? attributes : {})}
+      {...(!isLocked ? listeners : {})}
+      {...(!isLocked ? attributes : {})}
       className={`bg-card border border-border rounded-lg p-3.5 shadow-sm transition-all border-l-4 ${sevBorder} ${
-        isCompleted
-          ? "cursor-default opacity-75"
+        isLocked
+          ? "cursor-default opacity-75 bg-muted/5"
           : "cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
       } ${isDragging ? "opacity-45 shadow-lg" : ""}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[9px] font-mono font-bold text-muted-foreground flex items-center gap-1 uppercase">
+        <span className="text-[9px] font-mono font-bold text-muted-foreground flex items-center gap-1.5 uppercase">
           {map.id.substring(0, 8)}
-          {isCompleted && <Lock className="h-3 w-3 text-muted-foreground/80" />}
+          {map.status === "Completed" && <Lock className="h-3 w-3 text-muted-foreground/80" />}
+          {map.status === "Awaiting Validation" && <Loader2 className="h-3 w-3 animate-spin text-amber-500" />}
         </span>
         <RiskBadge risk={map.severity} />
       </div>
@@ -106,6 +108,10 @@ function Column({ status, cards, onOpen }: { status: MapStatus; cards: MAP[]; on
 
 export default function Maps() {
   const { orgProfile } = useOrgProfile();
+  const { user } = useAuth();
+  const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
+  const userDepartment = user?.user_metadata?.department || "";
+  
   const [items, setItems] = useState<MAP[]>([]);
   const [open, setOpen] = useState<MAP | null>(null);
   const isBeginner = useIsBeginner();
@@ -117,6 +123,19 @@ export default function Maps() {
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
+  // Drag-and-drop evidence modal
+  const [evidenceModal, setEvidenceModal] = useState<{
+    open: boolean;
+    mapId: string;
+    mapTitle: string;
+    requestedStatus: MapStatus;
+  } | null>(null);
+  const [modalFile, setModalFile] = useState<File | null>(null);
+  const [modalUploading, setModalUploading] = useState(false);
+
+  // Drawer upload target state
+  const [drawerTargetStatus, setDrawerTargetStatus] = useState<string>("");
+
   const loadMaps = () => {
     api.listMaps()
       .then((res) => {
@@ -126,7 +145,7 @@ export default function Maps() {
           description: m.description,
           owner: m.owner || "Compliance Team",
           ownerInitials: m.owner ? m.owner.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "CT",
-          department: m.owner ? m.owner.replace(" Team", "") : "Compliance",
+          department: m.assigned_department || "Compliance",
           dueDate: m.deadline || new Date().toISOString().slice(0, 10),
           severity: m.severity,
           status: m.status as MapStatus,
@@ -168,12 +187,23 @@ export default function Maps() {
     }
   }, [open?.id]);
 
-  const handleEvidenceUpload = async (file: File) => {
+  // Set default drawer target status on load
+  useEffect(() => {
+    if (open) {
+      const currentIndex = COLUMNS.indexOf(open.status);
+      const allowed = COLUMNS.filter((col, idx) => {
+        if (col === "Awaiting Validation") return false;
+        return Math.abs(idx - currentIndex) === 1;
+      });
+      setDrawerTargetStatus(allowed[0] || "");
+    }
+  }, [open]);
+
+  const handleEvidenceUpload = async (file: File, requestedStatus: string) => {
     if (!open?.id) return;
     
     setUploadingEvidence(true);
     let currentMapId = open.id;
-    let currentMap = open;
 
     if (open.id.startsWith("MAP-")) {
       try {
@@ -186,12 +216,8 @@ export default function Maps() {
           clause_ref: open.regulationId,
         });
         currentMapId = created.id;
-        currentMap = {
-          ...open,
-          id: created.id,
-        };
         setItems(prev => prev.map(item => item.id === open.id ? { ...item, id: created.id } : item));
-        setOpen(currentMap);
+        setOpen(prev => prev ? { ...prev, id: created.id } : null);
       } catch (err: any) {
         toast({ title: "Upload failed", description: "Failed to initialize MAP task: " + err.message, variant: "destructive" });
         setUploadingEvidence(false);
@@ -200,19 +226,16 @@ export default function Maps() {
     }
 
     try {
-      const res = await api.uploadEvidence(currentMapId, file);
+      const res = await api.uploadEvidence(currentMapId, file, requestedStatus);
       toast({ 
         title: "Evidence submitted", 
-        description: `AI Review: ${res.validation_status}. ${res.ai_notes || ""}`,
-        variant: res.validation_status === "Passed" ? "default" : "destructive"
+        description: `Compliance evidence uploaded successfully. MAP status changed to Awaiting Validation.`,
       });
       const updatedList = await api.listEvidence(currentMapId);
       setEvidenceList(updatedList || []);
       
       loadMaps();
-      if (res.validation_status === "Passed") {
-        setOpen(null);
-      }
+      setOpen(null);
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
@@ -221,18 +244,24 @@ export default function Maps() {
   };
 
   const filteredItems = useMemo(() => {
+    // For department officers: filter strictly to their assigned department
+    if (userType === "department_officer" && userDepartment) {
+      return items.filter(item => item.department === userDepartment);
+    }
+    // For admins: filter by org-wide selected departments
     const selectedDepts = orgProfile.departments || [];
     if (selectedDepts.length === 0) return items;
     return items.filter(item => selectedDepts.includes(item.department));
-  }, [items, orgProfile.departments]);
+  }, [items, orgProfile.departments, userType, userDepartment]);
 
   const kpis = useMemo(() => ({
     total: filteredItems.length,
     pending: filteredItems.filter((m) => m.status === "Pending").length,
     assigned: filteredItems.filter((m) => m.status === "Assigned").length,
     inProgress: filteredItems.filter((m) => m.status === "In Progress").length,
+    awaitingValidation: filteredItems.filter((m) => m.status === "Awaiting Validation").length,
     completed: filteredItems.filter((m) => m.status === "Completed").length,
-    overdue: filteredItems.filter((m) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length,
+    overdue: filteredItems.filter((m) => m.status !== "Completed" && m.status !== "Awaiting Validation" && new Date(m.dueDate) < new Date()).length,
   }), [filteredItems]);
 
   const onDragEnd = async (e: DragEndEvent) => {
@@ -242,10 +271,19 @@ export default function Maps() {
     const card = items.find((m) => m.id === active.id);
     if (!card) return;
 
-    if (card.status === "Completed") {
+    if (card.status === "Completed" || card.status === "Awaiting Validation") {
       toast({
         title: "Workflow Locked",
-        description: "Completed MAPs cannot be moved.",
+        description: "This MAP is locked and cannot be moved.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (target === "Awaiting Validation" && userType !== "admin") {
+      toast({
+        title: "Invalid Action",
+        description: "Moving cards directly to 'Awaiting Validation' is not allowed. Upload evidence to request this transition.",
         variant: "destructive",
       });
       return;
@@ -263,6 +301,17 @@ export default function Maps() {
       return;
     }
 
+    if (userType === "department_officer") {
+      setEvidenceModal({
+        open: true,
+        mapId: card.id,
+        mapTitle: card.title,
+        requestedStatus: target,
+      });
+      return;
+    }
+
+    // Admin direct transition
     const previousItems = [...items];
     setItems((arr) => arr.map((m) => (m.id === active.id ? { ...m, status: target } : m)));
 
@@ -286,6 +335,7 @@ export default function Maps() {
         title: "MAP status updated",
         description: `"${card.title}" moved to "${target}".`,
       });
+      loadMaps();
     } catch (err: any) {
       setItems(previousItems);
       toast({
@@ -295,6 +345,19 @@ export default function Maps() {
       });
     }
   };
+
+  const allowedDrawerStatuses = useMemo(() => {
+    if (!open) return [];
+    const currentIndex = COLUMNS.indexOf(open.status);
+    return COLUMNS.filter((col, idx) => {
+      if (col === "Awaiting Validation") return false;
+      return Math.abs(idx - currentIndex) === 1;
+    });
+  }, [open]);
+
+  const latestEvidence = useMemo(() => {
+    return evidenceList[0] || null;
+  }, [evidenceList]);
 
   if (loading) return <SkeletonPage />;
 
@@ -308,7 +371,11 @@ export default function Maps() {
       </div>
 
       {isBeginner && (
-        <BeginnerHint>Drag cards across the pipeline stages to update accountability progress. Double click any card to upload proofs.</BeginnerHint>
+        <BeginnerHint>
+          {userType === "admin" 
+            ? "Drag cards across the pipeline stages to update accountability progress. Double click any card to view logs." 
+            : "Drag cards to request a transition. Upload compliance evidence to submit your request for approval."}
+        </BeginnerHint>
       )}
 
       {/* Bento KPIs */}
@@ -359,6 +426,7 @@ export default function Maps() {
             { label: "Assigned", count: kpis.assigned, tone: "info" },
             { label: "In Progress", count: kpis.inProgress, tone: "info" },
             { label: "Review", count: filteredItems.filter((m) => m.status === "Review").length, tone: "warning" },
+            { label: "Awaiting Validation", count: kpis.awaitingValidation, tone: "warning" },
             { label: "Completed", count: kpis.completed, tone: "success" },
           ]}
         />
@@ -381,7 +449,7 @@ export default function Maps() {
 
       {/* DND Board */}
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {COLUMNS.map((c) => (
             <Column key={c} status={c} cards={filteredItems.filter((m) => m.status === c)} onOpen={setOpen} />
           ))}
@@ -430,7 +498,23 @@ export default function Maps() {
               </div>
             )}
 
-            {/* E2E Evidence Proof Management Panel */}
+            {/* Rejection notice if failed */}
+            {latestEvidence && latestEvidence.validation_status === "Failed" && (
+              <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-4 rounded-lg space-y-2">
+                <div className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider">
+                  <AlertTriangle className="h-4 w-4 text-rose-500 animate-pulse" />
+                  Compliance Evidence Rejected
+                </div>
+                <div className="text-xs font-bold leading-relaxed">
+                  Reason: <span className="font-semibold text-rose-400">{latestEvidence.rejection_reason}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground font-semibold">
+                  Please review the objection guidelines above, address the feedback, and upload updated proof below.
+                </p>
+              </div>
+            )}
+
+            {/* Evidence Proof Management Panel */}
             <div className="border-t border-border pt-4 space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Compliance Evidence Proof</h4>
               
@@ -441,16 +525,29 @@ export default function Maps() {
               ) : (
                 <div className="space-y-2">
                   {evidenceList.map((ev) => (
-                    <div key={ev.id} className="border border-border p-3 rounded-lg bg-muted/20 text-xs">
-                      <div className="flex items-center justify-between font-bold mb-1">
-                        <span className="truncate max-w-[70%] text-foreground">{ev.filename}</span>
+                    <div key={ev.id} className="border border-border p-3 rounded-lg bg-muted/20 text-xs space-y-2">
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="truncate max-w-[60%] text-foreground" title={ev.filename}>{ev.filename}</span>
                         <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${
                           ev.validation_status === "Passed" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
                           : ev.validation_status === "Failed" ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
                           : "bg-amber-500/10 text-amber-500 border-amber-500/20"
                         }`}>{ev.validation_status}</span>
                       </div>
-                      <p className="text-muted-foreground font-semibold leading-relaxed mt-1.5">{ev.ai_notes || "Verified by AI Audit trail."}</p>
+                      <div className="text-[10px] text-muted-foreground space-y-0.5 font-semibold">
+                        <div>Transition to: <span className="text-foreground uppercase font-extrabold">{ev.requested_status}</span></div>
+                        <div>Previous state: <span className="text-foreground uppercase font-extrabold">{ev.previous_status || "—"}</span></div>
+                        <div>Uploaded: <span>{new Date(ev.created_at || ev.submitted_at).toLocaleString()}</span></div>
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => api.downloadEvidence(ev.id, ev.filename)}
+                          className="px-2.5 py-1 bg-primary/10 border border-primary/20 hover:bg-primary/15 text-primary text-[10px] font-bold rounded flex items-center gap-1"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          Download Proof
+                        </button>
+                      </div>
                     </div>
                   ))}
                   
@@ -462,25 +559,59 @@ export default function Maps() {
                 </div>
               )}
 
-              {open.status !== "Completed" && (
-                <div className="pt-2">
-                  <label className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-card">
+              {open.status === "Awaiting Validation" && (
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3.5 rounded-lg text-xs font-semibold flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                  <span>Awaiting validation from AI Compliance Officer. Modifications locked.</span>
+                </div>
+              )}
+
+              {open.status !== "Completed" && open.status !== "Awaiting Validation" && (
+                <div className="pt-2 space-y-3">
+                  {userType === "department_officer" && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block">
+                        Select Target transition status
+                      </label>
+                      <select 
+                        value={drawerTargetStatus}
+                        onChange={(e) => setDrawerTargetStatus(e.target.value)}
+                        className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
+                      >
+                        {allowedDrawerStatuses.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                        {allowedDrawerStatuses.length === 0 && (
+                          <option value="">No transition available</option>
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                  <label className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-card relative">
                     <span className="text-xs font-bold text-primary uppercase tracking-wider">Upload Verification Evidence</span>
-                    <span className="text-[10px] text-muted-foreground mt-1">PDF or TXT accepted · Real-time AI validation check</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">PDF or TXT accepted</span>
                     <input 
                       type="file" 
                       accept=".pdf,.txt" 
                       className="hidden" 
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) handleEvidenceUpload(file);
+                        if (file) {
+                          const target = userType === "admin" ? COLUMNS[COLUMNS.indexOf(open.status) + 1] || "Completed" : drawerTargetStatus;
+                          if (!target) {
+                            toast({ title: "Invalid transition", description: "No sequential target status available.", variant: "destructive" });
+                            return;
+                          }
+                          handleEvidenceUpload(file, target);
+                        }
                       }}
-                      disabled={uploadingEvidence}
+                      disabled={uploadingEvidence || (userType === "department_officer" && !drawerTargetStatus)}
                     />
                   </label>
                   {uploadingEvidence && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3 justify-center font-semibold">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" /> Running automated AI evidence validation...
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" /> Uploading evidence to audit trail...
                     </div>
                   )}
                 </div>
@@ -489,6 +620,103 @@ export default function Maps() {
           </div>
         )}
       </Drawer>
+
+      {/* Drag-and-drop Evidence Modal for Department Officers */}
+      {evidenceModal && evidenceModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-foreground">Upload Compliance Evidence</h3>
+              <button 
+                onClick={() => { setEvidenceModal(null); setModalFile(null); }} 
+                className="text-muted-foreground hover:text-foreground text-xs font-bold"
+              >
+                Close
+              </button>
+            </div>
+            
+            <div className="text-xs space-y-2">
+              <div>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider">MAP Title</span>
+                <span className="font-bold text-foreground text-sm">{evidenceModal.mapTitle}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider">Requested transition</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 border border-border rounded bg-muted/30 font-extrabold text-primary text-[10px] uppercase tracking-wider mt-1">
+                  {evidenceModal.requestedStatus}
+                </span>
+              </div>
+            </div>
+
+            <div className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors text-center relative bg-muted/5">
+              <input 
+                type="file" 
+                accept=".pdf,.txt" 
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                onChange={(e) => setModalFile(e.target.files?.[0] || null)}
+                disabled={modalUploading}
+              />
+              <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                {modalFile ? modalFile.name : "Select Evidence File"}
+              </span>
+              <span className="text-[10px] text-muted-foreground mt-1">PDF or TXT accepted</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button 
+                onClick={() => { setEvidenceModal(null); setModalFile(null); }}
+                className="px-4 py-2 border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted/50"
+                disabled={modalUploading}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  if (!modalFile) {
+                    toast({ title: "No file selected", description: "Please choose an evidence file first.", variant: "destructive" });
+                    return;
+                  }
+                  setModalUploading(true);
+                  try {
+                    let currentMapId = evidenceModal.mapId;
+                    if (evidenceModal.mapId.startsWith("MAP-")) {
+                      const card = items.find(i => i.id === evidenceModal.mapId);
+                      if (card) {
+                        const created = await api.createMap({
+                          title: card.title,
+                          description: card.description,
+                          owner: card.owner,
+                          severity: card.severity,
+                          deadline: card.dueDate,
+                          clause_ref: card.regulationId,
+                        });
+                        currentMapId = created.id;
+                      }
+                    }
+                    await api.uploadEvidence(currentMapId, modalFile, evidenceModal.requestedStatus);
+                    toast({ 
+                      title: "Evidence submitted", 
+                      description: "Evidence uploaded successfully. Status changed to Awaiting Validation.",
+                    });
+                    setEvidenceModal(null);
+                    setModalFile(null);
+                    loadMaps();
+                  } catch (err: any) {
+                    toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+                  } finally {
+                    setModalUploading(false);
+                  }
+                }}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/95 flex items-center gap-1.5"
+                disabled={modalUploading || !modalFile}
+              >
+                {modalUploading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Submit Proof
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

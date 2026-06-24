@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 from fpdf import FPDF
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin
 from app.models.models import Document, Map, Comparison, Report
 from app.schemas.schemas import ReportRequest, ReportResponse
 from app.core.config import settings

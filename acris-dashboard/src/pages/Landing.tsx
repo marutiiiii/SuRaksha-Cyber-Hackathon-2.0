@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/state/AuthContext";
+import Logo from "@/components/shared/Logo";
 import { 
   ShieldCheck, 
   ArrowRight, 
@@ -142,14 +143,8 @@ export default function Landing() {
       
       {/* Top Navbar */}
       <header className="w-full h-16 bg-[#0F172A] border-b border-slate-800 px-6 sm:px-12 flex items-center justify-between sticky top-0 z-40">
-        {/* Floating Overlapping Logo container */}
-        <div className="relative h-16 w-48 flex items-center">
-          <img 
-            src="/logo.png" 
-            alt="ACRIS Logo" 
-            className="absolute left-0 top-[-16px] h-24 w-auto object-contain z-50 pointer-events-auto cursor-pointer"
-            onClick={() => navigate("/")}
-          />
+        <div className="flex items-center">
+          <Logo theme="dark" size="md" />
         </div>
 
         {/* Center Nav Items */}
@@ -578,7 +573,7 @@ export default function Landing() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-extrabold uppercase text-slate-900">Request Custom Demo</h3>
-                  <p className="text-slate-500 text-xs font-medium">Specify your details to access the ACRIS sandboxed test environment.</p>
+                  <p className="text-slate-500 text-xs font-medium">Specify your details to request an interactive platform demo.</p>
                 </div>
 
                 <form onSubmit={handleDemoSubmit} className="space-y-4">

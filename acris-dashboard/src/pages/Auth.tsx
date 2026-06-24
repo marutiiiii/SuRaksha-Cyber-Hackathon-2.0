@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/state/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Lock, User, Eye, EyeOff, Check, Play, Target, Sparkles, ShieldCheck, Puzzle } from "lucide-react";
+import { Lock, User, Eye, EyeOff, Check, Target, Sparkles, ShieldCheck, Puzzle } from "lucide-react";
+import Logo from "@/components/shared/Logo";
 
 const BACKEND_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000") + "/api/v1";
 
@@ -22,6 +23,26 @@ export default function Auth() {
   const [fullName, setFullName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [industryType, setIndustryType] = useState<"Banking" | "FinTech">("Banking");
+  const [userType, setUserType] = useState<"admin" | "department_officer">("admin");
+  const [department, setDepartment] = useState("Compliance");
+  const [organizationId, setOrganizationId] = useState("");
+  const [organizations, setOrganizations] = useState<{ id: string; name: string; industry: string }[]>([]);
+
+  useEffect(() => {
+    if (mode === "signup") {
+      fetch(`${BACKEND_URL}/auth/organizations`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setOrganizations(data);
+            if (data.length > 0) {
+              setOrganizationId(data[0].id);
+            }
+          }
+        })
+        .catch((err) => console.error("Error fetching organizations:", err));
+    }
+  }, [mode]);
 
   if (loading) return null;
   if (user) return <Navigate to="/dashboard" replace />;
@@ -32,16 +53,11 @@ export default function Auth() {
     e.preventDefault();
     setBusy(true);
     try {
-      // ── Demo sandbox shortcut ──────────────────────────────────────────────
-      if (email.toLowerCase() === "demo@safebank.com" && password === "demo123") {
-        signInDemo();
-        navigate("/dashboard");
-        return;
-      }
 
       if (mode === "signup") {
         // ── Try backend registration ───────────────────────────────────────
         let backendSuccess = false;
+        let toastMsg = "Your account has been saved to the database. Please sign in.";
         try {
           const res = await fetch(`${BACKEND_URL}/auth/register`, {
             method: "POST",
@@ -50,23 +66,29 @@ export default function Auth() {
               full_name: fullName,
               email: email.toLowerCase(),
               password,
-              org_name: orgName,
-              industry_type: industryType,
+              org_name: userType === "admin" ? orgName : undefined,
+              industry_type: userType === "admin" ? industryType : undefined,
+              user_type: userType,
+              department: userType === "department_officer" ? department : undefined,
+              organization_id: userType === "department_officer" ? organizationId : undefined,
             }),
           });
           if (res.ok) {
             backendSuccess = true;
-          } else if (res.status === 409) {
+            if (userType === "department_officer") {
+              toastMsg = "Registration submitted. Awaiting approval from your organization admin.";
+            }
+          } else {
             const err = await res.json();
-            throw new Error(err.detail || "An account with this email already exists.");
+            throw new Error(err.detail || "Registration failed.");
           }
         } catch (fetchErr: any) {
-          if (fetchErr.message?.includes("already exists")) throw fetchErr;
+          if (fetchErr.message?.includes("failed") || fetchErr.message?.includes("exists") || fetchErr.message?.includes("required") || fetchErr.message?.includes("Invalid")) throw fetchErr;
           console.warn("Backend register unavailable, using local fallback:", fetchErr.message);
         }
 
         // Always save local credentials as fallback
-        const credentials = { email: email.toLowerCase(), password, fullName, orgName, industryType };
+        const credentials = { email: email.toLowerCase(), password, fullName, orgName, industryType, userType, department };
         localStorage.setItem(`acris.user_cred.${email.toLowerCase()}`, JSON.stringify(credentials));
 
         // Initialize org profile state
@@ -85,9 +107,9 @@ export default function Auth() {
         localStorage.setItem("acris.registered_industry", industryType);
 
         toast({
-          title: "Account created",
+          title: userType === "admin" ? "Account created" : "Registration Submitted",
           description: backendSuccess
-            ? "Your account has been saved to the database. Please sign in."
+            ? toastMsg
             : "Account registered locally. Please sign in to continue.",
         });
         setMode("signin");
@@ -131,12 +153,18 @@ export default function Auth() {
               name: userData?.full_name || fullName,
               orgName: userData?.organization?.name || orgName,
               industryType: (userData?.organization?.industry as "Banking" | "FinTech") || "Banking",
+              userType: userData?.user_type,
+              department: userData?.department,
+              status: userData?.status,
+              role: userData?.role_name,
             });
             backendLoggedIn = true;
-          } else if (res.status === 401) {
-            // Check local fallback before throwing
+          } else {
+            const err = await res.json();
+            throw new Error(err.detail || "Invalid credentials.");
           }
-        } catch (fetchErr) {
+        } catch (fetchErr: any) {
+          if (fetchErr.message?.includes("credentials") || fetchErr.message?.includes("inactive") || fetchErr.message?.includes("blocked")) throw fetchErr;
           console.warn("Backend login unavailable, using local fallback.");
         }
 
@@ -152,6 +180,9 @@ export default function Auth() {
                 name: savedCred.fullName,
                 orgName: savedCred.orgName,
                 industryType: savedCred.industryType,
+                userType: savedCred.userType || "admin",
+                department: savedCred.department || "",
+                status: "Active",
               });
             } else {
               throw new Error("Invalid email or password.");
@@ -175,14 +206,8 @@ export default function Auth() {
       
       {/* Top Navbar */}
       <header className="w-full h-16 bg-card border-b border-border px-6 sm:px-12 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        {/* Floating Overlapping Logo container */}
-        <div className="relative h-16 w-48 flex items-center">
-          <img 
-            src="/logo.png" 
-            alt="ACRIS Logo" 
-            className="absolute left-0 top-[-16px] h-24 w-auto object-contain z-50 pointer-events-auto cursor-pointer"
-            onClick={() => navigate("/")}
-          />
+        <div className="flex items-center">
+          <Logo theme="default" size="md" />
         </div>
 
         {/* Right Actions */}
@@ -213,7 +238,7 @@ export default function Auth() {
               Turn regulation into <span className="text-primary">action</span>, then proof.
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed font-medium">
-              Access the ACRIS sandbox or log into your financial institution's portal. 
+              Log into your financial institution's portal. 
               Upload official circulars, view side-by-side compliance diffs, map departmental roles, and track evidence.
             </p>
           </div>
@@ -347,6 +372,21 @@ export default function Auth() {
               <form onSubmit={submit} className="space-y-4 mt-6">
                 {mode === "signup" && (
                   <>
+                    {/* Portal Role */}
+                    <div>
+                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                        Portal Role
+                      </label>
+                      <select
+                        value={userType}
+                        onChange={(e) => setUserType(e.target.value as any)}
+                        className="premium-select"
+                      >
+                        <option value="admin">AI Compliance Officer (Admin)</option>
+                        <option value="department_officer">Department Officer</option>
+                      </select>
+                    </div>
+
                     {/* Full Name */}
                     <div>
                       <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
@@ -362,35 +402,85 @@ export default function Auth() {
                       />
                     </div>
 
-                    {/* Organization Name */}
-                    <div>
-                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        Organization Name
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={orgName}
-                        onChange={(e) => setOrgName(e.target.value)}
-                        placeholder="SafeBank India"
-                        className="premium-input"
-                      />
-                    </div>
+                    {userType === "admin" ? (
+                      <>
+                        {/* Organization Name */}
+                        <div>
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                            Organization Name
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            value={orgName}
+                            onChange={(e) => setOrgName(e.target.value)}
+                            placeholder="SafeBank India"
+                            className="premium-input"
+                          />
+                        </div>
 
-                    {/* Industry Type */}
-                    <div>
-                      <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        Industry Type
-                      </label>
-                      <select
-                        value={industryType}
-                        onChange={(e) => setIndustryType(e.target.value as any)}
-                        className="premium-select"
-                      >
-                        <option value="Banking">Banking</option>
-                        <option value="FinTech">FinTech</option>
-                      </select>
-                    </div>
+                        {/* Industry Type */}
+                        <div>
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                            Industry Type
+                          </label>
+                          <select
+                            value={industryType}
+                            onChange={(e) => setIndustryType(e.target.value as any)}
+                            className="premium-select"
+                          >
+                            <option value="Banking">Banking</option>
+                            <option value="FinTech">FinTech</option>
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Organization */}
+                        <div>
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                            Organization
+                          </label>
+                          <select
+                            value={organizationId}
+                            onChange={(e) => setOrganizationId(e.target.value)}
+                            className="premium-select"
+                            required
+                          >
+                            {organizations.map((org) => (
+                              <option key={org.id} value={org.id}>
+                                {org.name} ({org.industry})
+                              </option>
+                            ))}
+                            {organizations.length === 0 && (
+                              <option value="">No organizations available</option>
+                            )}
+                          </select>
+                        </div>
+
+                        {/* Department */}
+                        <div>
+                          <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                            Department
+                          </label>
+                          <select
+                            value={department}
+                            onChange={(e) => setDepartment(e.target.value)}
+                            className="premium-select"
+                            required
+                          >
+                            <option value="Compliance">Compliance</option>
+                            <option value="Legal">Legal</option>
+                            <option value="IT">IT</option>
+                            <option value="Cybersecurity">Cybersecurity</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Audit">Audit</option>
+                            <option value="Risk Management">Risk Management</option>
+                            <option value="HR">HR</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -470,25 +560,7 @@ export default function Auth() {
                 </button>
               </form>
 
-              {/* Divider */}
-              <div className="relative flex py-4 items-center justify-center">
-                <div className="flex-grow border-t border-border"></div>
-                <span className="flex-shrink mx-3 text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Or Access Demo</span>
-                <div className="flex-grow border-t border-border"></div>
-              </div>
 
-              {/* Quick Demo Access */}
-              <button
-                type="button"
-                onClick={() => {
-                  signInDemo();
-                  navigate("/dashboard");
-                }}
-                className="w-full border border-border hover:bg-muted bg-card text-foreground py-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm uppercase tracking-wider"
-              >
-                <Play className="w-3.5 h-3.5 text-primary fill-current" />
-                <span>One-Click Demo Sandbox</span>
-              </button>
             </div>
 
             {/* Toggle Mode */}

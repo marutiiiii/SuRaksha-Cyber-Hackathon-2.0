@@ -10,6 +10,7 @@ import {
   Globe, ExternalLink, ShieldAlert
 } from "lucide-react";
 import { BeginnerHint, SkeletonPage } from "@/components/shared/States";
+import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
 import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
 import { api } from "@/lib/api";
 import { useOrgProfile } from "@/state/OrgProfileContext";
@@ -415,9 +416,15 @@ export default function Dashboard() {
     return <SkeletonPage />;
   }
 
-  const hasData = isExpert
-    ? (maps.length > 0 || (data?.total ?? 0) > 0)
-    : (maps.length > 0 || regs.length > 0);
+  const hasData = data !== null && (
+    (data.total ?? 0) > 0 ||
+    (data.score ?? 0) > 0 ||
+    maps.length > 0 ||
+    regs.length > 0 ||
+    (data.departments?.length ?? 0) > 0 ||
+    (data.complianceTrend?.length ?? 0) > 0 ||
+    (data.recentActivity?.length ?? 0) > 0
+  );
 
   if (!hasData) {
     return (
@@ -442,12 +449,14 @@ export default function Dashboard() {
             >
               Browse Regulations
             </button>
-            <button
-              onClick={() => nav("/document-analysis")}
-              className="border border-border bg-card font-semibold px-5 py-2.5 rounded-lg text-xs hover:bg-muted/50 transition-colors uppercase tracking-wider text-foreground"
-            >
-              Upload Documents
-            </button>
+            {isExpert && (
+              <button
+                onClick={() => nav("/document-analysis")}
+                className="border border-border bg-card font-semibold px-5 py-2.5 rounded-lg text-xs hover:bg-muted/50 transition-colors uppercase tracking-wider text-foreground"
+              >
+                Upload Documents
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -479,6 +488,8 @@ export default function Dashboard() {
           This is the compliance dashboard. Each Bento Grid panel represents a key executive monitor. Click any card to drill down or switch layout density using the "Expert Mode" toggle in the header.
         </BeginnerHint>
       )}
+
+      <ViewOnlyBanner />
 
       {/* ── Row 1: Executive KPI Bento Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">

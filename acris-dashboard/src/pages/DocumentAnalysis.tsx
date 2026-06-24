@@ -137,6 +137,23 @@ export default function DocumentAnalysis() {
       await loadHistory();
       setStage(3);
       toast({ title: "Document analyzed", description: `${res.count} clauses extracted.` });
+
+      // Auto-compare pipeline against the previous expert-mode document
+      const { documents } = await api.listDocuments();
+      const prevDoc = documents.find(
+        (d: any) => d.id !== up.documentId && d.status === "analyzed" && d.copilot_mode === "expert"
+      );
+      if (prevDoc) {
+        toast({ title: "Auto-Comparing Revisions...", description: `Comparing against preceding version: ${prevDoc.title}` });
+        const comp = await api.compare(prevDoc.id, up.documentId);
+        await api.impact(comp.comparisonId);
+        await api.generateMaps(comp.comparisonId);
+        localStorage.setItem("acris.last_comparison_id", comp.comparisonId);
+        setExecutedCompId(comp.comparisonId);
+        toast({ title: "Auto-Comparison Completed", description: "Comparisons, impact analysis, and MAP tasks generated successfully." });
+      } else {
+        toast({ title: "Document Indexed", description: "First document uploaded successfully. Upload a subsequent version later to see auto-comparisons." });
+      }
     } catch (e: any) {
       toast({ title: "Pipeline failed", description: e.message, variant: "destructive" });
       setStage(-1);
@@ -181,6 +198,38 @@ export default function DocumentAnalysis() {
     }
   };
 
+  if (isBeginner) {
+    return (
+      <div className="space-y-6 animate-fade-in-up">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Document Workspace</h1>
+            <p className="text-xs text-muted-foreground mt-1">Upload files to parse circulars, run differentials, and generate mitigation draft guidelines</p>
+          </div>
+        </div>
+
+        <div className="glass-card flex flex-col items-center justify-center p-16 text-center border rounded-xl" style={{ minHeight: "380px" }}>
+          <Zap className="h-16 w-16 text-primary animate-pulse mb-6" style={{ color: "#8B5CF6" }} />
+          <h2 className="text-lg font-bold mb-2">Expert Mode Feature Only</h2>
+          <p className="text-xs text-muted-foreground max-w-md mb-8 leading-relaxed">
+            Document Ingestion and manual uploading is available in Expert Mode only. In Beginner Mode, your compliance workspace is updated automatically via the 24-hour auto-scraping pipeline.
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                localStorage.setItem("reguflow.copilot.mode", "expert");
+                window.location.reload();
+              }}
+              className="bg-primary text-primary-foreground font-semibold px-5 py-2.5 rounded-lg text-xs hover:opacity-90 transition-opacity uppercase tracking-wider"
+            >
+              Switch to Expert Mode
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between pb-2 border-b border-border">
@@ -189,12 +238,6 @@ export default function DocumentAnalysis() {
           <p className="text-xs text-muted-foreground mt-1">Upload files to parse circulars, run differentials, and generate mitigation draft guidelines</p>
         </div>
       </div>
-
-      {isBeginner && (
-        <BeginnerHint>
-          Upload a regulatory circular in PDF format. ReguFlow AI will ingest the document, segment the clauses, and index them into your compliance library.
-        </BeginnerHint>
-      )}
 
       {/* Upload Drag & Drop Area */}
       <div
@@ -323,64 +366,7 @@ export default function DocumentAnalysis() {
         </div>
       )}
 
-      {/* Compare Inputs Form */}
-      {history.length >= 2 && (
-        <div className="glass-card p-5 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <GitCompare className="h-4 w-4 text-primary" />
-            <span>Differential & Change Execution Pipeline</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                Preceding Version (Old PDF)
-              </label>
-              <select 
-                value={oldDoc} 
-                onChange={(e) => setOldDoc(e.target.value)} 
-                className="premium-select text-xs h-9 bg-background focus:outline-none"
-              >
-                <option value="">Select historical document…</option>
-                {history.filter((h) => h.status === "analyzed").map((h) => (
-                  <option key={h.id} value={h.id}>{h.title}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                Succeeding Version (New PDF)
-              </label>
-              <select 
-                value={newDoc} 
-                onChange={(e) => setNewDoc(e.target.value)} 
-                className="premium-select text-xs h-9 bg-background focus:outline-none"
-              >
-                <option value="">Select target document…</option>
-                {history.filter((h) => h.status === "analyzed").map((h) => (
-                  <option key={h.id} value={h.id}>{h.title}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <button 
-                onClick={runExecute} 
-                disabled={busy === "execute"} 
-                className="bg-primary text-primary-foreground font-bold px-4 h-9 rounded-lg text-xs uppercase tracking-wider hover:opacity-90 transition-opacity w-full flex items-center justify-center gap-2"
-              >
-                {busy === "execute" ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-3.5 w-3.5" /> Execute Comparison
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Auto Comparison is run automatically on single PDF upload */}
 
       {/* Expert Step 3 Section */}
       {executedCompId && (

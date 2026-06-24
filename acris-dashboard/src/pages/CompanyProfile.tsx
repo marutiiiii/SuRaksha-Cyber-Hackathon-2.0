@@ -31,7 +31,9 @@ export default function CompanyProfile() {
 
   const name = user?.user_metadata?.name ?? user?.email ?? "Aarav Mehta";
   const role = user?.user_metadata?.role ?? "Compliance Officer";
-  const department = orgProfile.departments?.[0] ?? "Compliance";
+  const userType = user?.user_metadata?.user_type || user?.user_type || "admin";
+  const userDept = user?.user_metadata?.department || user?.department || "";
+  const department = userType === "department_officer" && userDept ? userDept : (orgProfile.departments?.[0] ?? "Compliance");
   const initials = name
     .split(" ")
     .filter(Boolean)
@@ -41,6 +43,10 @@ export default function CompanyProfile() {
     .toUpperCase() || name.slice(0, 2).toUpperCase();
 
   const handleSaveProfile = async () => {
+    if (userType === "department_officer") {
+      toast({ title: "Access Denied", description: "Department Officers cannot edit organization details.", variant: "destructive" });
+      return;
+    }
     if (selectedDepts.length === 0) {
       toast({ title: "Validation Error", description: "Please select at least one department.", variant: "destructive" });
       return;
@@ -193,6 +199,7 @@ export default function CompanyProfile() {
                 className="premium-input text-xs h-10 focus:outline-none"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
+                disabled={userType === "department_officer"}
               />
             </div>
 
@@ -203,6 +210,7 @@ export default function CompanyProfile() {
                   className="premium-select text-xs h-10 focus:outline-none" 
                   value={orgSize} 
                   onChange={(e) => setOrgSize(e.target.value)}
+                  disabled={userType === "department_officer"}
                 >
                   <option value="Startup">Startup (&lt;50)</option>
                   <option value="Small">Small (50 - 250)</option>
@@ -217,6 +225,7 @@ export default function CompanyProfile() {
                   className="premium-select text-xs h-10 focus:outline-none" 
                   value={industry} 
                   onChange={(e) => setIndustry(e.target.value as any)}
+                  disabled={userType === "department_officer"}
                 >
                   <option value="Banking">Banking (RBI Regulated)</option>
                   <option value="FinTech">FinTech (Financial Services)</option>
@@ -232,36 +241,40 @@ export default function CompanyProfile() {
                 placeholder="e.g. Retail Banking, UPI Payments, Loans"
                 value={services}
                 onChange={(e) => setServices(e.target.value)}
+                disabled={userType === "department_officer"}
               />
             </div>
 
             <div>
               <label className="block text-[9px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">Active Departments</label>
               <div className="grid grid-cols-2 gap-2 mt-1.5 font-semibold text-xs text-muted-foreground">
-                {["Compliance", "Legal", "IT", "Cybersecurity", "Operations", "Audit", "Risk Management"].map((dept) => (
-                  <label 
-                    key={dept} 
-                    className={`flex items-center gap-2.5 border rounded-lg px-3 py-2 cursor-pointer transition-colors ${
-                      selectedDepts.includes(dept) 
-                        ? "border-primary bg-primary/5 text-foreground" 
-                        : "border-border bg-background hover:bg-muted"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedDepts.includes(dept)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedDepts([...selectedDepts, dept]);
-                        } else {
-                          setSelectedDepts(selectedDepts.filter((d) => d !== dept));
-                        }
-                      }}
-                      className="accent-primary rounded h-4 w-4 border-border"
-                    />
-                    <span>{dept}</span>
-                  </label>
-                ))}
+                {["Compliance", "Legal", "IT", "Cybersecurity", "Operations", "Audit", "Risk Management"]
+                  .filter((dept) => userType !== "department_officer" || dept === userDept)
+                  .map((dept) => (
+                    <label 
+                      key={dept} 
+                      className={`flex items-center gap-2.5 border rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                        selectedDepts.includes(dept) 
+                          ? "border-primary bg-primary/5 text-foreground" 
+                          : "border-border bg-background hover:bg-muted"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedDepts.includes(dept)}
+                        disabled={userType === "department_officer"}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedDepts([...selectedDepts, dept]);
+                          } else {
+                            setSelectedDepts(selectedDepts.filter((d) => d !== dept));
+                          }
+                        }}
+                        className="accent-primary rounded h-4 w-4 border-border"
+                      />
+                      <span>{dept}</span>
+                    </label>
+                  ))}
               </div>
             </div>
 
@@ -276,6 +289,7 @@ export default function CompanyProfile() {
                       value={r} 
                       checked={riskPref === r} 
                       onChange={() => setRiskPref(r)} 
+                      disabled={userType === "department_officer"}
                       className="accent-primary h-4.5 w-4.5 border-border" 
                     />
                     <span>{r}</span>
@@ -286,11 +300,11 @@ export default function CompanyProfile() {
 
             <div className="pt-4 border-t border-border/40 mt-4 flex justify-end">
               <button
-                disabled={saving}
+                disabled={saving || userType === "department_officer"}
                 onClick={handleSaveProfile}
                 className="bg-primary text-primary-foreground font-extrabold rounded-lg px-5 py-2.5 text-xs hover:opacity-90 transition-all uppercase tracking-wider disabled:opacity-50"
               >
-                {saving ? "Saving..." : "Save Profile Settings"}
+                {userType === "department_officer" ? "View-Only Mode" : (saving ? "Saving..." : "Save Profile Settings")}
               </button>
             </div>
           </div>

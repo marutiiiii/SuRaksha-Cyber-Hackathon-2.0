@@ -3,6 +3,8 @@ import { Download, Printer, Share2, FileText, X, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import PageHeader from "@/components/shared/PageHeader";
 import { api } from "@/lib/api";
+import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
+import { useAuth } from "@/state/AuthContext";
 
 const REPORT_TYPES = [
   { id: "executive", title: "Executive Report", desc: "Board-ready summary of compliance posture and risk exposure." },
@@ -14,6 +16,10 @@ const REPORT_TYPES = [
 ];
 
 export default function Reports() {
+  const { user } = useAuth();
+  const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
+  const isDeptOfficer = userType === "department_officer";
+
   const [active, setActive] = useState("executive");
   const [shareOpen, setShareOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -231,26 +237,32 @@ export default function Reports() {
         <div className="flex items-center gap-2">
           <button
             onClick={exportPdf}
-            disabled={exporting}
+            disabled={exporting || isDeptOfficer}
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-bold text-foreground transition-colors disabled:opacity-50 uppercase tracking-wider"
           >
             {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} 
             <span>Export PDF</span>
           </button>
-          <button
-            onClick={printReport}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-bold text-foreground transition-colors uppercase tracking-wider"
-          >
-            <Printer className="h-3.5 w-3.5" /> <span>Print</span>
-          </button>
-          <button
-            onClick={handleShareClick}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity uppercase tracking-wider"
-          >
-            <Share2 className="h-3.5 w-3.5" /> <span>Share</span>
-          </button>
+          {!isDeptOfficer && (
+            <button
+              onClick={printReport}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-bold text-foreground transition-colors uppercase tracking-wider"
+            >
+              <Printer className="h-3.5 w-3.5" /> <span>Print</span>
+            </button>
+          )}
+          {!isDeptOfficer && (
+            <button
+              onClick={handleShareClick}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity uppercase tracking-wider"
+            >
+              <Share2 className="h-3.5 w-3.5" /> <span>Share</span>
+            </button>
+          )}
         </div>
       </div>
+
+      <ViewOnlyBanner />
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
         {/* Selector side columns */}

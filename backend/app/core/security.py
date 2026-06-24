@@ -28,8 +28,20 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
             email = token.split(":", 1)[1]
             import uuid
             import hashlib
-            h = hashlib.md5(email.lower().encode()).hexdigest()
-            user_uuid = uuid.UUID(h)
+            from app.core.database import SessionLocal
+            from app.models.models import User
+            
+            db = SessionLocal()
+            try:
+                user = db.query(User).filter(User.email == email.lower()).first()
+                if user:
+                    user_uuid = user.id
+                else:
+                    h = hashlib.md5(email.lower().encode()).hexdigest()
+                    user_uuid = uuid.UUID(h)
+            finally:
+                db.close()
+                
             return {
                 "sub": user_uuid,
                 "id": user_uuid,
@@ -82,22 +94,88 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
             )
 
 from fastapi import Header
+from app.core.database import SessionLocal
+from app.models.models import User, Role, Map
 
 def get_current_user(
     payload: dict = Depends(verify_token),
     x_copilot_mode: str = Header(default="beginner")
 ) -> dict:
     payload["copilot_mode"] = x_copilot_mode
+    
+    # Enrich from database
+    db = SessionLocal()
+    try:
+        user_id = payload.get("id")
+        if user_id:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                payload["user_type"] = user.user_type
+                payload["department"] = user.department
+                payload["organization_id"] = user.organization_id
+                payload["status"] = user.status
+                payload["full_name"] = user.full_name
+                if user.role_id:
+                    role_obj = db.query(Role).filter(Role.id == user.role_id).first()
+                    payload["role_name"] = role_obj.name if role_obj else None
+                else:
+                    payload["role_name"] = None
+            else:
+                payload["user_type"] = "admin"
+                payload["department"] = None
+                payload["organization_id"] = None
+                payload["status"] = "Active"
+                payload["role_name"] = "AI Compliance Officer"
+        else:
+            payload["user_type"] = "admin"
+            payload["department"] = None
+            payload["organization_id"] = None
+            payload["status"] = "Active"
+            payload["role_name"] = "AI Compliance Officer"
+    except Exception:
+        # Fallback values in case of DB errors during startup checks
+        payload["user_type"] = "admin"
+        payload["department"] = None
+        payload["organization_id"] = None
+        payload["status"] = "Active"
+        payload["role_name"] = "AI Compliance Officer"
+    finally:
+        db.close()
+        
     return payload
 
-def create_access_token(user_id: str, email: str, role: str = "authenticated") -> str:
+def require_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("user_type") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: AI Compliance Officer role required."
+        )
+    return current_user
+
+def require_dept_officer_scope(map_id, current_user: dict, db):
+    if current_user.get("user_type") == "department_officer":
+        map_task = db.query(Map).filter(Map.id == map_id).first()
+        if not map_task:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="MAP not found."
+            )
+        if map_task.assigned_department != current_user.get("department"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: MAP belongs to a different department."
+            )
+
+def create_access_token(user_id: str, email: str, role: str = "authenticated", user_type: str = "admin", department: str = None) -> str:
     payload = {
         "sub": str(user_id),
         "id": str(user_id),
         "email": email,
         "role": role,
+        "user_type": user_type,
+        "department": department,
         "user_metadata": {
-            "role": "Compliance Officer"
+            "role": "Compliance Officer" if user_type == "admin" else "Department Officer"
         }
     }
     return jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 from typing import Dict, Any, List
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin
 from app.models.models import Map, Regulation, Finding, ImpactAnalysis, Document
 from app.schemas.schemas import DashboardOverviewResponse
 
@@ -19,14 +19,30 @@ def get_dashboard_overview(
     user_id = current_user.get("id")
     today = date.today()
     copilot_mode = current_user.get("copilot_mode", "beginner")
+    org_id = current_user.get("organization_id")
+    utype = current_user.get("user_type", "admin")
+    dept = current_user.get("department")
     
     from sqlalchemy.orm import joinedload
+    from app.models.models import User
     
-    # Real database queries for MAPs
-    all_maps = db.query(Map).options(joinedload(Map.evidences)).filter(
-        Map.user_id == user_id,
-        Map.copilot_mode == copilot_mode
-    ).all()
+    # Real database queries for MAPs scoped by organization/department
+    if org_id:
+        org_user_ids = [u.id for u in db.query(User).filter(User.organization_id == org_id).all()]
+        q = db.query(Map).options(joinedload(Map.evidences)).filter(
+            Map.user_id.in_(org_user_ids),
+            Map.copilot_mode == copilot_mode
+        )
+    else:
+        q = db.query(Map).options(joinedload(Map.evidences)).filter(
+            Map.user_id == user_id,
+            Map.copilot_mode == copilot_mode
+        )
+        
+    if utype == "department_officer" and dept:
+        q = q.filter(Map.assigned_department == dept)
+        
+    all_maps = q.all()
     total = len(all_maps)
     completed = len([m for m in all_maps if m.status == "Completed"])
     

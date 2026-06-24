@@ -35,6 +35,9 @@ class Settings(BaseSettings):
         "postgresql://postgres:postgres@localhost:5432/postgres"
     )
     
+    # ChromaDB Configuration
+    CHROMADB_PATH: str = os.getenv("CHROMADB_PATH", "./chroma_db")
+    
     # Security Configuration
     SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "sb_publishable_RRgq-hFweC6PptaSiJgzrw_aKukmLXp")
     
@@ -44,11 +47,14 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
     
+    # Embedding Configuration
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-large-en-v1.5")
+    
     # Ollama Local Configuration
-    # Preferred: llama3, fallback: llama3.2, qwen2.5:7b
+    # Preferred: llama3, fallback: llama3.2, qwen2.5:7b, qwen3
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
-    OLLAMA_PREFERRED_MODELS: list = ["llama3", "llama3.2", "qwen2.5:7b", "tinyllama"]
+    OLLAMA_PREFERRED_MODELS: list = ["llama3", "llama3.2", "qwen2.5:7b", "qwen3", "tinyllama"]
 
     class Config:
         case_sensitive = True

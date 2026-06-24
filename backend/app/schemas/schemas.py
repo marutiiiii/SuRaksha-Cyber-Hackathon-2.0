@@ -54,8 +54,11 @@ class UserRegisterRequest(BaseModel):
     full_name: str
     email: str
     password: str
-    org_name: str
-    industry_type: str  # Banking | FinTech
+    org_name: Optional[str] = None
+    industry_type: Optional[str] = None  # Banking | FinTech
+    user_type: Optional[str] = "admin"  # admin | department_officer
+    department: Optional[str] = None
+    organization_id: Optional[UUID] = None
 
 class UserLoginRequest(BaseModel):
     email: str
@@ -66,12 +69,18 @@ class UserResponse(BaseModel):
     full_name: str
     email: str
     status: str
+    user_type: str
+    department: Optional[str] = None
+    role_name: Optional[str] = None
     organization_id: Optional[UUID] = None
     organization: Optional[OrganizationResponse] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class MemberApprovalRequest(BaseModel):
+    status: str  # Active | Blocked
 
 class AuthResponse(BaseModel):
     success: bool
@@ -163,6 +172,7 @@ class MapCreate(BaseModel):
     deadline: Optional[date] = None
     clause_ref: Optional[str] = None
     comparison_id: Optional[UUID] = None
+    assigned_department: Optional[str] = None
 
 class MapResponse(BaseModel):
     id: UUID
@@ -174,6 +184,7 @@ class MapResponse(BaseModel):
     deadline: Optional[date] = None
     clause_ref: Optional[str] = None
     comparison_id: Optional[UUID] = None
+    assigned_department: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -247,11 +258,21 @@ class AuditLogResponse(BaseModel):
 class EvidenceResponse(BaseModel):
     id: UUID
     map_id: UUID
+    user_id: UUID
     filename: str
     file_path: str
     validation_status: str
     ai_notes: Optional[str] = None
+    department: Optional[str] = None
+    organization_id: Optional[UUID] = None
+    requested_status: Optional[str] = None
+    previous_status: Optional[str] = None
+    rejection_reason: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class EvidenceReviewRequest(BaseModel):
+    status: str  # Passed | Failed
+    rejection_reason: Optional[str] = None

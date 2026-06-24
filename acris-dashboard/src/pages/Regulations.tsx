@@ -8,6 +8,8 @@ import { api } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
 import { useOrgProfile } from "@/state/OrgProfileContext";
 import { toast } from "@/hooks/use-toast";
+import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
+import { useAuth } from "@/state/AuthContext";
 
 const sourcesMetadata = [
   { key: "RBI", name: "Reserve Bank of India", risk: "High" as const },
@@ -32,6 +34,10 @@ function RiskBadge({ risk }: { risk: string }) {
 export default function Regulations() {
   const isBeginner = useIsBeginner();
   const { orgProfile } = useOrgProfile();
+  const { user } = useAuth();
+  const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
+  const isDeptOfficer = userType === "department_officer";
+
   const [source, setSource] = useState("All");
   const [risk, setRisk] = useState("All");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -143,7 +149,7 @@ export default function Regulations() {
           </p>
         </div>
         <div>
-          {isBeginner && (
+          {isBeginner && !isDeptOfficer && (
             <button
               onClick={handleScrape}
               disabled={scraping}
@@ -161,6 +167,8 @@ export default function Regulations() {
           Select a regulator card to isolate issues, or click any circular in the table below to trigger a compliance analysis drawer.
         </BeginnerHint>
       )}
+
+      <ViewOnlyBanner />
 
       {/* Regulators Bento List */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

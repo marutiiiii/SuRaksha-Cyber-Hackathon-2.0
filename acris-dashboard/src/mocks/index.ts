@@ -170,7 +170,7 @@ export const regSources: RegSource[] = [
   { key: "Internal", name: "Internal Policies", latestUpdate: "2026-04-28", risk: "Low", activeCount: 27, status: "Healthy" },
 ];
 
-export type MapStatus = "Pending" | "Assigned" | "In Progress" | "Review" | "Completed";
+export type MapStatus = "Pending" | "Assigned" | "In Progress" | "Review" | "Awaiting Validation" | "Completed";
 
 export interface MAP {
   id: string;

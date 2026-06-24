@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Search, Command, Check, X, Home, LogOut } from "lucide-react";
+import { Bell, Search, Command, Check, X, Home } from "lucide-react";
 import { useCopilot, CopilotMode } from "@/state/CopilotContext";
 import { useAuth } from "@/state/AuthContext";
 import { useOrgProfile } from "@/state/OrgProfileContext";
@@ -14,7 +14,7 @@ const MODES: { value: CopilotMode; label: string }[] = [
 
 export default function TopBar() {
   const { mode, setMode } = useCopilot();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { orgProfile, completeSetup } = useOrgProfile();
   const location = useLocation();
   const navigate = useNavigate();
@@ -22,6 +22,10 @@ export default function TopBar() {
   const [searchValue, setSearchValue] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
+  const userDepartment = user?.user_metadata?.department || "";
+  const isDeptOfficer = userType === "department_officer";
 
   // Profile Modal State
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -372,13 +376,6 @@ export default function TopBar() {
                 <div className="text-[10px] text-muted-foreground leading-tight">{role}</div>
               </div>
             </div>
-            <button
-              onClick={signOut}
-              title="Sign out"
-              className="ml-1 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all border border-transparent hover:border-destructive/20"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </header>
@@ -467,8 +464,14 @@ export default function TopBar() {
 
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-extrabold uppercase text-foreground tracking-wider">Profile & Organization Settings</h3>
-                <p className="text-muted-foreground text-xs font-semibold mt-0.5">Configure organization details and compliance mode preferences.</p>
+                <h3 className="text-sm font-extrabold uppercase text-foreground tracking-wider">
+                  {isDeptOfficer ? "My Profile" : "Profile & Organization Settings"}
+                </h3>
+                <p className="text-muted-foreground text-xs font-semibold mt-0.5">
+                  {isDeptOfficer
+                    ? "Your account details and compliance mode preferences."
+                    : "Configure organization details and compliance mode preferences."}
+                </p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-6 pt-2">
@@ -511,106 +514,145 @@ export default function TopBar() {
                       ))}
                     </div>
                   </div>
-                </div>
-
-                {/* Organization Section */}
-                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-                  <span className="block text-xs font-bold text-primary uppercase tracking-wider border-l-2 border-primary pl-2 font-mono">Organization Details</span>
-                  <div>
-                    <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Organization Name</label>
-                    <input 
-                      type="text" 
-                      value={modalOrgName}
-                      onChange={(e) => setModalOrgName(e.target.value)}
-                      className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Industry Type</label>
-                    <select 
-                      value={modalIndustry}
-                      onChange={(e) => setModalIndustry(e.target.value as any)}
-                      className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
-                    >
-                      <option value="Banking">Banking (RBI Regulated)</option>
-                      <option value="FinTech">FinTech (Financial Services)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Organization Size</label>
-                    <select 
-                      value={modalOrgSize}
-                      onChange={(e) => setModalOrgSize(e.target.value as any)}
-                      className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
-                    >
-                      <option value="Startup">Startup (&lt;50)</option>
-                      <option value="Small">Small (50 - 250)</option>
-                      <option value="Medium">Medium (250 - 1000)</option>
-                      <option value="Enterprise">Enterprise (1000+)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Active Departments</label>
-                    <div className="grid grid-cols-2 gap-1.5 mt-1">
-                      {departmentsList.map(dept => {
-                        const isChecked = modalDepts.includes(dept);
-                        return (
-                          <button
-                            type="button"
-                            key={dept}
-                            onClick={() => {
-                              setModalDepts(prev => prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]);
-                            }}
-                            className={`flex items-center justify-between border px-2.5 py-1.5 text-[11px] text-left font-bold rounded-lg transition-all ${
-                              isChecked 
-                                ? "border-primary bg-primary/5 text-foreground" 
-                                : "border-border bg-background hover:bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            <span>{dept}</span>
-                            {isChecked && <Check className="w-3 h-3 text-primary" />}
-                          </button>
-                        );
-                      })}
+                </div>                {/* Organization Section — different view for dept officers vs admins */}
+                {isDeptOfficer ? (
+                  /* Dept Officer: read-only department view */
+                  <div className="space-y-4">
+                    <span className="block text-xs font-bold text-primary uppercase tracking-wider border-l-2 border-primary pl-2 font-mono">My Assignment</span>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Organization</label>
+                      <input
+                        disabled
+                        type="text"
+                        value={orgProfile.orgName || "—"}
+                        className="w-full border border-border px-3 py-2 text-xs text-muted-foreground bg-muted/30 cursor-not-allowed rounded-lg font-semibold h-10"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assigned Department</label>
+                      <div className="w-full border border-primary/40 bg-primary/5 px-3 py-2.5 rounded-lg flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                        <span className="text-xs font-extrabold text-primary">
+                          {userDepartment || "Not assigned"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 font-semibold">
+                        Department assignment is managed by your AI Compliance Officer.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Industry</label>
+                      <input
+                        disabled
+                        type="text"
+                        value={orgProfile.industryType || "—"}
+                        className="w-full border border-border px-3 py-2 text-xs text-muted-foreground bg-muted/30 cursor-not-allowed rounded-lg font-semibold h-10"
+                      />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Products & Services</label>
-                    <div className="grid grid-cols-2 gap-1.5 mt-1">
-                      {servicesList.map(service => {
-                        const isChecked = modalServices.includes(service);
-                        return (
-                          <button
-                            type="button"
-                            key={service}
-                            onClick={() => {
-                              setModalServices(prev => prev.includes(service) ? prev.filter(s => s !== service) : [...prev, service]);
-                            }}
-                            className={`flex items-center justify-between border px-2.5 py-1.5 text-[11px] text-left font-bold rounded-lg transition-all ${
-                              isChecked 
-                                ? "border-primary bg-primary/5 text-foreground" 
-                                : "border-border bg-background hover:bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            <span className="truncate pr-0.5">{service}</span>
-                            {isChecked && <Check className="w-3 h-3 text-primary flex-shrink-0" />}
-                          </button>
-                        );
-                      })}
+                ) : (
+                  /* Admin: full editable org profile */
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                    <span className="block text-xs font-bold text-primary uppercase tracking-wider border-l-2 border-primary pl-2 font-mono">Organization Details</span>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Organization Name</label>
+                      <input
+                        type="text"
+                        value={modalOrgName}
+                        onChange={(e) => setModalOrgName(e.target.value)}
+                        className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Industry Type</label>
+                      <select
+                        value={modalIndustry}
+                        onChange={(e) => setModalIndustry(e.target.value as any)}
+                        className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
+                      >
+                        <option value="Banking">Banking (RBI Regulated)</option>
+                        <option value="FinTech">FinTech (Financial Services)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Organization Size</label>
+                      <select
+                        value={modalOrgSize}
+                        onChange={(e) => setModalOrgSize(e.target.value as any)}
+                        className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
+                      >
+                        <option value="Startup">Startup (&lt;50)</option>
+                        <option value="Small">Small (50 - 250)</option>
+                        <option value="Medium">Medium (250 - 1000)</option>
+                        <option value="Enterprise">Enterprise (1000+)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Active Departments</label>
+                      <div className="grid grid-cols-2 gap-1.5 mt-1">
+                        {departmentsList.map(dept => {
+                          const isChecked = modalDepts.includes(dept);
+                          return (
+                            <button
+                              type="button"
+                              key={dept}
+                              onClick={() => {
+                                setModalDepts(prev => prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]);
+                              }}
+                              className={`flex items-center justify-between border px-2.5 py-1.5 text-[11px] text-left font-bold rounded-lg transition-all ${
+                                isChecked
+                                  ? "border-primary bg-primary/5 text-foreground"
+                                  : "border-border bg-background hover:bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <span>{dept}</span>
+                              {isChecked && <Check className="w-3 h-3 text-primary" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-1">Products &amp; Services</label>
+                      <div className="grid grid-cols-2 gap-1.5 mt-1">
+                        {servicesList.map(service => {
+                          const isChecked = modalServices.includes(service);
+                          return (
+                            <button
+                              type="button"
+                              key={service}
+                              onClick={() => {
+                                setModalServices(prev => prev.includes(service) ? prev.filter(s => s !== service) : [...prev, service]);
+                              }}
+                              className={`flex items-center justify-between border px-2.5 py-1.5 text-[11px] text-left font-bold rounded-lg transition-all ${
+                                isChecked
+                                  ? "border-primary bg-primary/5 text-foreground"
+                                  : "border-border bg-background hover:bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <span className="truncate pr-0.5">{service}</span>
+                              {isChecked && <Check className="w-3 h-3 text-primary flex-shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              <div className="pt-4 border-t border-border flex justify-end">
-                <button 
-                  disabled={saving}
-                  onClick={handleSaveSettings}
-                  className="bg-primary hover:opacity-90 text-primary-foreground font-extrabold text-xs px-6 py-2.5 rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save Settings"}
-                </button>
-              </div>
+              {/* Save button — only for admins */}
+              {!isDeptOfficer && (
+                <div className="pt-4 border-t border-border flex justify-end">
+                  <button
+                    disabled={saving}
+                    onClick={handleSaveSettings}
+                    className="bg-primary hover:opacity-90 text-primary-foreground font-extrabold text-xs px-6 py-2.5 rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Save Settings"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

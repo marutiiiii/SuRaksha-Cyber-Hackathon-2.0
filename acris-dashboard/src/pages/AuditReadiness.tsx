@@ -6,6 +6,7 @@ import JourneyTracker from "@/components/shared/JourneyTracker";
 import { ShieldCheck, ShieldAlert, ShieldX, FileWarning, Clock } from "lucide-react";
 import { api } from "@/lib/api";
 import { SkeletonPage } from "@/components/shared/States";
+import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
 
 function CircleScore({ score }: { score: number }) {
   const r = 60;
@@ -101,6 +102,8 @@ export default function AuditReadiness() {
   return (
     <div className="space-y-6">
       <PageHeader title="Audit Readiness Center" subtitle="Real-time audit health, findings, and evidence tracking" />
+
+      <ViewOnlyBanner />
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="section-container p-6 flex flex-col items-center justify-center text-center">

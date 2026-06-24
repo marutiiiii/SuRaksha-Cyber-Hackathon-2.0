@@ -1,20 +1,21 @@
 import os
 import uuid
 import json
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, date, timedelta
+from fastapi.responses import FileResponse
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin, require_dept_officer_scope
 from app.models.models import Map, Comparison, Evidence, User, Organization
-from app.schemas.schemas import MapResponse, MapCreate, MapStatusUpdate, EvidenceResponse
+from app.schemas.schemas import MapResponse, MapCreate, MapStatusUpdate, EvidenceResponse, EvidenceReviewRequest
 from app.core.config import settings
 
 router = APIRouter(prefix="/maps", tags=["MAP Management"])
 
-COLUMNS = ["Pending", "Assigned", "In Progress", "Review", "Completed"]
+COLUMNS = ["Pending", "Assigned", "In Progress", "Review", "Awaiting Validation", "Completed"]
 
 EVIDENCE_DIR = os.path.join(settings.STORAGE_PATH, "evidence")
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
@@ -189,7 +190,8 @@ def seed_user_default_maps(user_id: UUID, db: Session, copilot_mode: str = "begi
             severity=m["severity"],
             status=m["status"],
             deadline=m["deadline"],
-            copilot_mode=copilot_mode
+            copilot_mode=copilot_mode,
+            assigned_department=m["department"]
         ))
         
     db.add_all(db_items)
@@ -202,18 +204,26 @@ def get_user_maps(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
+    org_id = current_user.get("organization_id")
+    utype = current_user.get("user_type", "admin")
+    dept = current_user.get("department")
     copilot_mode = current_user.get("copilot_mode", "beginner")
-    existing = db.query(Map).filter(
-        Map.user_id == user_id,
-        Map.copilot_mode == copilot_mode
-    ).all()
-    # Auto-seed for both beginner and expert workspaces on first visit
-    if not existing:
-        seed_user_default_maps(user_id, db, copilot_mode=copilot_mode)
-    return db.query(Map).filter(
-        Map.user_id == user_id,
-        Map.copilot_mode == copilot_mode
-    ).order_by(Map.created_at.desc()).all()
+
+    if org_id:
+        org_user_ids = [u.id for u in db.query(User).filter(User.organization_id == org_id).all()]
+        existing_user_maps = db.query(Map).filter(Map.user_id == user_id, Map.copilot_mode == copilot_mode).first()
+        if not existing_user_maps:
+            seed_user_default_maps(user_id, db, copilot_mode=copilot_mode)
+            
+        q = db.query(Map).filter(Map.user_id.in_(org_user_ids), Map.copilot_mode == copilot_mode)
+        if utype == "department_officer":
+            q = q.filter(Map.assigned_department == dept)
+        return q.order_by(Map.created_at.desc()).all()
+    else:
+        existing = db.query(Map).filter(Map.user_id == user_id, Map.copilot_mode == copilot_mode).first()
+        if not existing:
+            seed_user_default_maps(user_id, db, copilot_mode=copilot_mode)
+        return db.query(Map).filter(Map.user_id == user_id, Map.copilot_mode == copilot_mode).order_by(Map.created_at.desc()).all()
 
 
 @router.post("", response_model=MapResponse)
@@ -224,7 +234,13 @@ def create_map(
 ):
     user_id = current_user.get("id")
     copilot_mode = current_user.get("copilot_mode", "beginner")
+    utype = current_user.get("user_type", "admin")
+    dept = current_user.get("department")
     
+    assigned_dept = schema.assigned_department
+    if utype == "department_officer":
+        assigned_dept = dept
+        
     new_map = Map(
         user_id=user_id,
         comparison_id=schema.comparison_id,
@@ -235,7 +251,8 @@ def create_map(
         severity=schema.severity,
         status="Pending",
         deadline=schema.deadline,
-        copilot_mode=copilot_mode
+        copilot_mode=copilot_mode,
+        assigned_department=assigned_dept
     )
     db.add(new_map)
     db.commit()
@@ -250,7 +267,15 @@ def update_map_status(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    utype = current_user.get("user_type", "admin")
+    if utype == "department_officer":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Evidence required. Use POST /maps/{id}/evidence with requested_status."
+        )
+        
     user_id = current_user.get("id")
+    org_id = current_user.get("organization_id")
     target_status = schema.status
     
     if target_status not in COLUMNS:
@@ -259,21 +284,24 @@ def update_map_status(
             detail=f"Invalid status: '{target_status}'. Allowed: {COLUMNS}"
         )
         
-    db_map = db.query(Map).filter(Map.id == map_id, Map.user_id == user_id).first()
+    if org_id:
+        org_user_ids = [u.id for u in db.query(User).filter(User.organization_id == org_id).all()]
+        db_map = db.query(Map).filter(Map.id == map_id, Map.user_id.in_(org_user_ids)).first()
+    else:
+        db_map = db.query(Map).filter(Map.id == map_id, Map.user_id == user_id).first()
+        
     if not db_map:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="MAP not found"
         )
         
-    # BR-014: Completed MAPs are locked and cannot be moved/modified
     if db_map.status == "Completed":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Workflow Locked: Completed MAPs cannot be modified."
         )
         
-    # BR-013: MAP status flow is sequential (allow 1 step forward or backward)
     source_index = COLUMNS.index(db_map.status)
     target_index = COLUMNS.index(target_status)
     
@@ -289,109 +317,84 @@ def update_map_status(
     
     return db_map
 
+
 # ─── Evidence Endpoints ────────────────────────────────────────────────────────
 
 @router.post("/{map_id}/evidence", response_model=EvidenceResponse)
 def upload_map_evidence(
     map_id: UUID,
     file: UploadFile = File(...),
+    requested_status: str = Form(...),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
+    utype = current_user.get("user_type", "admin")
+    user_dept = current_user.get("department")
+    org_id = current_user.get("organization_id")
     
-    # Verify MAP exists and belongs to user
-    m = db.query(Map).filter(Map.id == map_id, Map.user_id == user_id).first()
+    if org_id:
+        org_user_ids = [u.id for u in db.query(User).filter(User.organization_id == org_id).all()]
+        m = db.query(Map).filter(Map.id == map_id, Map.user_id.in_(org_user_ids)).first()
+    else:
+        m = db.query(Map).filter(Map.id == map_id, Map.user_id == user_id).first()
+        
     if not m:
         raise HTTPException(status_code=404, detail="MAP not found.")
         
-    # Save file locally
+    if utype == "department_officer":
+        require_dept_officer_scope(map_id, current_user, db)
+        
+    if requested_status not in COLUMNS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status: '{requested_status}'. Allowed: {COLUMNS}"
+        )
+        
+    if m.status == "Completed":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Workflow Locked: Completed MAPs cannot be modified."
+        )
+        
+    source_index = COLUMNS.index(m.status)
+    target_index = COLUMNS.index(requested_status)
+    if abs(target_index - source_index) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Workflow Violation: Cannot transition status directly from '{m.status}' to '{requested_status}'. Sequential flow required."
+        )
+        
     evidence_id = uuid.uuid4()
     ext = os.path.splitext(file.filename)[1] or ".pdf"
     filename = f"evidence-{evidence_id}{ext}"
     file_path = os.path.join(EVIDENCE_DIR, filename)
     
-    with open(file_path, "wb") as f:
-        f.write(file.file.read())
+    with open(file_path, "wb") as buffer:
+        buffer.write(file.file.read())
         
-    # Extract text if possible (PDF or text)
-    extracted_content = ""
-    if ext.lower() == ".txt":
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                extracted_content = f.read()
-        except:
-            pass
-    elif ext.lower() == ".pdf":
-        try:
-            from pypdf import PdfReader
-            reader = PdfReader(file_path)
-            extracted_content = "".join([page.extract_text() or "" for page in reader.pages])
-        except:
-            pass
-            
-    if not extracted_content:
-        extracted_content = f"[Uploaded File: {file.filename}]"
-        
-    # 1. Run local Llama 3 validation
-    from app.core.ai_service import LlamaAIService
-    
-    validation_status = ""
-    ai_notes = ""
-    
-    try:
-        res = LlamaAIService.validate_evidence(m.title, m.description, extracted_content)
-        validation_status = res.get("status", "Passed")
-        ai_notes = res.get("explanation", "Verified successfully via Llama 3 AI auditor.")
-    except Exception as e:
-        print(f"Llama 3 evidence validation error: {e}")
-        
-    # 2. Rule-based Heuristic Fallback
-    if not validation_status or not ai_notes or "heuristic audit checks" in ai_notes:
-        text_lower = extracted_content.lower() + " " + file.filename.lower()
-        keywords = []
-        if "fldg" in m.title.lower() or "fldg" in m.description.lower():
-            keywords = ["agreement", "cap", "lending", "percent", "5%", "limit", "board"]
-        elif "upi" in m.title.lower() or "upi" in m.description.lower():
-            keywords = ["limit", "velocity", "config", "switch", "transaction", "payment"]
-        elif "v-cip" in m.title.lower() or "kyc" in m.title.lower():
-            keywords = ["video", "vcip", "verification", "identity", "pan", "aadhaar", "customer"]
-        else:
-            keywords = ["audit", "report", "compliance", "log", "config"]
-            
-        matches = [kw for kw in keywords if kw in text_lower]
-        score = len(matches) / len(keywords) if keywords else 1.0
-        
-        if score >= 0.25 or "test" in text_lower or "demo" in text_lower or len(extracted_content) > 25:
-            validation_status = "Passed"
-            ai_notes = f"AI Validation: Proof verified successfully. Heuristic matches: {', '.join(matches or ['general proof'])}."
-        else:
-            validation_status = "Failed"
-            ai_notes = f"AI Validation: Proof rejected. Missing audit evidence keywords. Required keywords: {', '.join(keywords)}."
-            
-    # Save Evidence record in DB
     db_ev = Evidence(
         id=evidence_id,
         map_id=map_id,
         user_id=user_id,
         filename=file.filename,
         file_path=f"/storage/evidence/{filename}",
-        validation_status=validation_status,
-        ai_notes=ai_notes
+        validation_status="Pending",
+        department=user_dept,
+        organization_id=org_id,
+        requested_status=requested_status,
+        previous_status=m.status,
+        rejection_reason=None
     )
     db.add(db_ev)
     
-    # Progress Map task: if Passed, mark Completed, else reset to In Progress
-    if validation_status == "Passed":
-        m.status = "Completed"
-    else:
-        m.status = "In Progress"
-        
+    m.status = "Awaiting Validation"
     db.commit()
     db.refresh(db_ev)
     db.refresh(m)
     
     return db_ev
+
 
 @router.get("/{map_id}/evidence", response_model=List[EvidenceResponse])
 def get_map_evidence(
@@ -400,7 +403,114 @@ def get_map_evidence(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
-    m = db.query(Map).filter(Map.id == map_id, Map.user_id == user_id).first()
+    org_id = current_user.get("organization_id")
+    utype = current_user.get("user_type", "admin")
+    
+    if org_id:
+        org_user_ids = [u.id for u in db.query(User).filter(User.organization_id == org_id).all()]
+        m = db.query(Map).filter(Map.id == map_id, Map.user_id.in_(org_user_ids)).first()
+    else:
+        m = db.query(Map).filter(Map.id == map_id, Map.user_id == user_id).first()
+        
     if not m:
         raise HTTPException(status_code=404, detail="MAP not found.")
-    return db.query(Evidence).filter(Evidence.map_id == map_id).all()
+        
+    if utype == "department_officer":
+        require_dept_officer_scope(map_id, current_user, db)
+        
+    return db.query(Evidence).filter(Evidence.map_id == map_id).order_by(Evidence.created_at.desc()).all()
+
+
+@router.get("/evidence/{evidence_id}/download")
+def download_evidence(
+    evidence_id: UUID,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence record not found.")
+        
+    utype = current_user.get("user_type", "admin")
+    dept = current_user.get("department")
+    org_id = current_user.get("organization_id")
+    
+    if org_id and evidence.organization_id != org_id:
+        raise HTTPException(status_code=403, detail="Access denied: Evidence belongs to a different organization.")
+        
+    if utype == "department_officer" and evidence.department != dept:
+        raise HTTPException(status_code=403, detail="Access denied: Evidence belongs to a different department.")
+        
+    filename = os.path.basename(evidence.file_path)
+    file_path = os.path.join(EVIDENCE_DIR, filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Physical evidence file not found.")
+        
+    return FileResponse(
+        path=file_path,
+        filename=evidence.filename,
+        media_type="application/octet-stream"
+    )
+
+
+# ─── Evidence Review (Admin Only) ──────────────────────────────────────────
+
+@router.patch("/evidence/{evidence_id}/review", response_model=EvidenceResponse)
+def review_evidence(
+    evidence_id: UUID,
+    schema: EvidenceReviewRequest,
+    current_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not evidence:
+        raise HTTPException(status_code=404, detail="Evidence not found.")
+        
+    admin_org_id = current_user.get("organization_id")
+    if admin_org_id and evidence.organization_id != admin_org_id:
+        raise HTTPException(status_code=403, detail="Not authorized to review evidence from another organization.")
+        
+    map_task = db.query(Map).filter(Map.id == evidence.map_id).first()
+    if not map_task:
+        raise HTTPException(status_code=404, detail="Associated MAP not found.")
+        
+    if schema.status == "Passed":
+        evidence.validation_status = "Passed"
+        evidence.rejection_reason = None
+        
+        target_status = evidence.requested_status
+        if target_status not in COLUMNS:
+            raise HTTPException(status_code=400, detail=f"Invalid target status: '{target_status}'")
+            
+        map_task.status = target_status
+    elif schema.status == "Failed":
+        evidence.validation_status = "Failed"
+        evidence.rejection_reason = schema.rejection_reason or "Evidence did not satisfy compliance requirements."
+        
+        map_task.status = evidence.previous_status
+    else:
+        raise HTTPException(status_code=400, detail="Invalid review status. Must be 'Passed' or 'Failed'.")
+        
+    db.commit()
+    db.refresh(evidence)
+    db.refresh(map_task)
+    
+    return evidence
+
+
+@router.get("/evidence/all", response_model=List[EvidenceResponse])
+def get_all_evidences(
+    status: Optional[str] = None,
+    current_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    admin_org_id = current_user.get("organization_id")
+    if not admin_org_id:
+        raise HTTPException(status_code=400, detail="Admin has no organization associated.")
+        
+    q = db.query(Evidence).filter(Evidence.organization_id == admin_org_id)
+    if status:
+        q = q.filter(Evidence.validation_status == status)
+        
+    return q.order_by(Evidence.created_at.desc()).all()

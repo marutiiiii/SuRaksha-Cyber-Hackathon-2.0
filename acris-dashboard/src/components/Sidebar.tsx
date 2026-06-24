@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthContext";
 import { useTheme } from "@/state/ThemeContext";
+import { useIsExpert } from "@/state/CopilotContext";
+import Logo from "@/components/shared/Logo";
 import {
   LayoutDashboard, 
   BookOpen, 
@@ -18,52 +20,111 @@ import {
   ChevronLeft,
   ChevronRight,
   Sun,
-  Moon
+  Moon,
+  Users
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const navGroups = [
-  {
-    title: "Overview",
-    items: [{ label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, color: "#3B82F6" }],
-  },
-  {
-    title: "Intelligence",
-    items: [
-      { label: "Regulations", path: "/regulations", icon: BookOpen, color: "#06B6D4" },
-    ],
-  },
-  {
-    title: "Analysis",
-    items: [
-      { label: "Document Analysis", path: "/document-analysis", icon: FileUp, color: "#8B5CF6" },
-      { label: "Change Detection", path: "/change-detection", icon: GitCompareArrows, color: "#F59E0B" },
-      { label: "Impact Analysis", path: "/impact-analysis", icon: Target, color: "#EF4444" },
-      { label: "AI Copilot", path: "/copilot", icon: BrainCircuit, color: "#10B981" },
-    ],
-  },
-  {
-    title: "Actions",
-    items: [
-      { label: "MAP Management", path: "/maps", icon: KanbanSquare, color: "#F97316" },
-      { label: "Department Routing", path: "/department-routing", icon: Network, color: "#8B5CF6" },
-    ],
-  },
-  {
-    title: "Governance",
-    items: [
-      { label: "Audit Readiness", path: "/audit-readiness", icon: ShieldCheck, color: "#3B82F6" },
-      { label: "Reports", path: "/reports", icon: FileText, color: "#06B6D4" },
-    ],
-  },
-];
-
 export default function Sidebar() {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { theme, toggle: toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem("reguflow.sidebar.collapsed") === "true";
   });
+
+  const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
+
+  const isExpert = useIsExpert();
+
+  const filteredNavGroups = useMemo(() => {
+    const groups = [
+      {
+        title: "Overview",
+        items: [{ label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, color: "#3B82F6" }],
+      },
+      {
+        title: "Intelligence",
+        items: [
+          { label: "Regulations", path: "/regulations", icon: BookOpen, color: "#06B6D4" },
+        ],
+      },
+      {
+        title: "Analysis",
+        items: [
+          ...(isExpert ? [
+            { label: "Document Analysis", path: "/document-analysis", icon: FileUp, color: "#8B5CF6" },
+          ] : []),
+          { label: "Change Detection", path: "/change-detection", icon: GitCompareArrows, color: "#F59E0B" },
+          { label: "Impact Analysis", path: "/impact-analysis", icon: Target, color: "#EF4444" },
+          { label: "AI Copilot", path: "/copilot", icon: BrainCircuit, color: "#10B981" },
+        ],
+      },
+      {
+        title: "Actions",
+        items: [
+          { label: "MAP Management", path: "/maps", icon: KanbanSquare, color: "#F97316" },
+          { label: "Department Routing", path: "/department-routing", icon: Network, color: "#8B5CF6" },
+        ],
+      },
+      {
+        title: "Governance",
+        items: [
+          { label: "Audit Readiness", path: "/audit-readiness", icon: ShieldCheck, color: "#3B82F6" },
+          { label: "Reports", path: "/reports", icon: FileText, color: "#06B6D4" },
+        ],
+      },
+    ];
+
+    if (userType === "department_officer") {
+      // Department officers get all pages except Organization Members
+      return [
+        {
+          title: "Overview",
+          items: [{ label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, color: "#3B82F6" }],
+        },
+        {
+          title: "Intelligence",
+          items: [
+            { label: "Regulations", path: "/regulations", icon: BookOpen, color: "#06B6D4" },
+          ],
+        },
+        {
+          title: "Analysis",
+          items: [
+            ...(isExpert ? [
+              { label: "Document Analysis", path: "/document-analysis", icon: FileUp, color: "#8B5CF6" },
+            ] : []),
+            { label: "Change Detection", path: "/change-detection", icon: GitCompareArrows, color: "#F59E0B" },
+            { label: "Impact Analysis", path: "/impact-analysis", icon: Target, color: "#EF4444" },
+            { label: "AI Copilot", path: "/copilot", icon: BrainCircuit, color: "#10B981" },
+          ],
+        },
+        {
+          title: "Actions",
+          items: [
+            { label: "MAP Management", path: "/maps", icon: KanbanSquare, color: "#F97316" },
+            { label: "Department Routing", path: "/department-routing", icon: Network, color: "#8B5CF6" },
+          ],
+        },
+        {
+          title: "Governance",
+          items: [
+            { label: "Audit Readiness", path: "/audit-readiness", icon: ShieldCheck, color: "#3B82F6" },
+            { label: "Reports", path: "/reports", icon: FileText, color: "#06B6D4" },
+          ],
+        },
+      ];
+    } else {
+      const govIndex = groups.findIndex(g => g.title === "Governance");
+      if (govIndex !== -1) {
+        groups[govIndex].items.push(
+          { label: "Evidence Review", path: "/evidence-management", icon: ShieldCheck, color: "#EF4444" },
+          { label: "Organization Members", path: "/organization-members", icon: Users, color: "#8B5CF6" }
+        );
+      }
+      return groups;
+    }
+  }, [userType, isExpert]);
 
   useEffect(() => {
     localStorage.setItem("reguflow.sidebar.collapsed", String(isCollapsed));
@@ -78,22 +139,8 @@ export default function Sidebar() {
     )}>
       {/* Top Header / Brand Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-        {!isCollapsed ? (
-          <div className="flex items-center gap-2.5 overflow-hidden transition-all duration-300">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-primary/20">
-              R
-            </div>
-            <span className="font-extrabold text-sm tracking-wider text-foreground select-none">
-              REGUFLOW <span className="text-primary font-black">AI</span>
-            </span>
-          </div>
-        ) : (
-          <div className="mx-auto">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-              R
-            </div>
-          </div>
-        )}
+        <Logo collapsed={isCollapsed} size="md" />
+
 
         {/* Collapse Toggle Button */}
         {!isCollapsed && (
@@ -108,7 +155,7 @@ export default function Sidebar() {
 
       {/* Navigation List */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
-        {navGroups.map((group) => (
+        {filteredNavGroups.map((group) => (
           <div key={group.title} className="space-y-1">
             {!isCollapsed ? (
               <div className="sidebar-section-label mb-1.5">{group.title}</div>

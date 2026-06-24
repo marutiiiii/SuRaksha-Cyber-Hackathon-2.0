@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pypdf import PdfReader
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin
 from app.models.models import Document, Clause
 from app.schemas.schemas import DocumentResponse, ListDocumentsResponse, ClauseResponse
 from app.core.config import settings
@@ -34,7 +34,7 @@ def list_documents(
 async def upload_document(
     file: UploadFile = File(...),
     source: str = Form("Unknown"),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
@@ -77,7 +77,7 @@ async def upload_document(
 @router.post("/{document_id}/extract-text")
 def extract_document_text(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
@@ -116,7 +116,7 @@ def extract_document_text(
 @router.post("/{document_id}/extract-clauses")
 def extract_document_clauses(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")

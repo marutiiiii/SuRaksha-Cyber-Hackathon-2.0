@@ -151,9 +151,10 @@ export const api = {
     callApi<any>(`notifications/${id}/read`, {
       method: "PATCH",
     }),
-  uploadEvidence: (mapId: string, file: File) => {
+  uploadEvidence: (mapId: string, file: File, requestedStatus: string) => {
     const fd = new FormData();
     fd.append("file", file);
+    fd.append("requested_status", requestedStatus);
     return callApi<any>(`maps/${mapId}/evidence`, {
       method: "POST",
       body: fd,
@@ -161,6 +162,41 @@ export const api = {
   },
   listEvidence: (mapId: string) =>
     callApi<any[]>(`maps/${mapId}/evidence`),
+  downloadEvidence: async (evidenceId: string, filename: string) => {
+    const headers = await authHeaders();
+    const res = await fetch(`${BASE_URL}/maps/evidence/${evidenceId}/download`, {
+      headers,
+    });
+    if (!res.ok) {
+      throw new Error(`Download failed: ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  listAllEvidence: (status?: string) =>
+    callApi<any[]>(status ? `maps/evidence/all?status=${status}` : "maps/evidence/all"),
+  reviewEvidence: (evidenceId: string, status: "Passed" | "Failed", rejectionReason?: string) =>
+    callApi<any>(`maps/evidence/${evidenceId}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, rejection_reason: rejectionReason }),
+    }),
+  listMembers: () => callApi<any[]>("auth/members"),
+  approveMember: (userId: string) =>
+    callApi<any>(`auth/members/${userId}/approve`, {
+      method: "PATCH",
+    }),
+  blockMember: (userId: string) =>
+    callApi<any>(`auth/members/${userId}/block`, {
+      method: "PATCH",
+    }),
+  listOrganizations: () => callApi<any[]>("auth/organizations"),
   getDocumentClauses: (documentId: string) =>
     callApi<any[]>(`documents/${documentId}/clauses`),
   generateComplianceDocument: (type: string, comparisonId?: string, documentId?: string) =>

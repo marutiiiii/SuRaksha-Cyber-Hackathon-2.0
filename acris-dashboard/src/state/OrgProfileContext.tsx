@@ -59,6 +59,20 @@ export function OrgProfileProvider({ children }: { children: ReactNode }) {
   }, [orgProfile]);
 
   useEffect(() => {
+    const userType = user?.user_metadata?.user_type || user?.user_type || "admin";
+    const userDept = user?.user_metadata?.department || user?.department || "";
+    if (userType === "department_officer" && userDept) {
+      if (orgProfile.departments.length !== 1 || orgProfile.departments[0] !== userDept) {
+        setOrgProfile((prev) => ({
+          ...prev,
+          departments: [userDept]
+        }));
+      }
+    }
+  }, [user, orgProfile.departments]);
+
+
+  useEffect(() => {
     const stored = localStorage.getItem(KEY);
     if (stored) {
       try {

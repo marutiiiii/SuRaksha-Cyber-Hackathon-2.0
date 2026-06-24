@@ -7,7 +7,18 @@ interface AuthCtx {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  signInDemo: (customUser?: { id?: string; token?: string; email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => void;
+  signInDemo: (customUser?: { 
+    id?: string; 
+    token?: string; 
+    email: string; 
+    name: string; 
+    orgName: string; 
+    industryType: "Banking" | "FinTech";
+    userType?: "admin" | "department_officer";
+    department?: string;
+    status?: string;
+    role?: string;
+  }) => void;
 }
 
 const Ctx = createContext<AuthCtx>({
@@ -28,7 +39,13 @@ const mockUser: User = {
   confirmed_at: new Date().toISOString(),
   last_sign_in_at: new Date().toISOString(),
   app_metadata: { provider: "email", providers: ["email"] },
-  user_metadata: { name: "Aarav Mehta", role: "Compliance Officer" },
+  user_metadata: { 
+    name: "Aarav Mehta", 
+    role: "Compliance Officer",
+    user_type: "admin",
+    department: "",
+    status: "Active"
+  },
   identities: [],
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -79,7 +96,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signInDemo = (customUser?: { id?: string; token?: string; email: string; name: string; orgName: string; industryType: "Banking" | "FinTech" }) => {
+  const signInDemo = (customUser?: { 
+    id?: string; 
+    token?: string; 
+    email: string; 
+    name: string; 
+    orgName: string; 
+    industryType: "Banking" | "FinTech";
+    userType?: "admin" | "department_officer";
+    department?: string;
+    status?: string;
+  }) => {
     const sessionToSave = customUser ? {
       ...mockSession,
       access_token: customUser.token || "mock-access-token",
@@ -89,9 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: customUser.email,
         user_metadata: {
           name: customUser.name,
-          role: "Compliance Officer",
+          role: customUser.role || (customUser.userType === "admin" ? "AI Compliance Officer" : "Department Officer"),
           org_name: customUser.orgName,
-          industry_type: customUser.industryType
+          industry_type: customUser.industryType,
+          user_type: customUser.userType || "admin",
+          department: customUser.department || "",
+          status: customUser.status || "Active"
         }
       }
     } : mockSession;

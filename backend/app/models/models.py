@@ -53,6 +53,8 @@ class User(Base):
     # Hashed password stored here for local-DB auth fallback
     password_hash = Column(String(255), nullable=False)
     status = Column(String(50), nullable=False, default="Active")  # Active | Inactive
+    department = Column(String(100), nullable=True)
+    user_type = Column(String(50), nullable=False, default="admin")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -159,6 +161,7 @@ class Map(Base):
     status = Column(String(50), nullable=False, default="Open")
     deadline = Column(Date, nullable=True)
     copilot_mode = Column(String(50), nullable=True, default="beginner")
+    assigned_department = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -178,6 +181,11 @@ class Evidence(Base):
     file_path = Column(String, nullable=False)
     validation_status = Column(String(50), nullable=False, default="Pending")  # Pending | Passed | Failed
     ai_notes = Column(Text, nullable=True)
+    department = Column(String(100), nullable=True)
+    organization_id = Column(Uuid, nullable=True)
+    requested_status = Column(String(50), nullable=True)
+    previous_status = Column(String(50), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

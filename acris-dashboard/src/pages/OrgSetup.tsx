@@ -4,6 +4,7 @@ import { useOrgProfile } from "@/state/OrgProfileContext";
 import { useAuth } from "@/state/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Check, LogOut } from "lucide-react";
+import Logo from "@/components/shared/Logo";
 
 export default function OrgSetup() {
   const navigate = useNavigate();
@@ -139,12 +140,8 @@ export default function OrgSetup() {
       
       {/* Navbar */}
       <header className="w-full h-16 bg-card border-b border-border px-6 sm:px-12 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        <div className="relative h-16 w-48 flex items-center">
-          <img 
-            src="/logo.png" 
-            alt="ACRIS Logo" 
-            className="absolute left-0 top-[-16px] h-24 w-auto object-contain z-50 pointer-events-auto"
-          />
+        <div className="flex items-center">
+          <Logo theme="default" size="md" onClick={() => {}} />
         </div>
         <button 
           onClick={handleSignOut}

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin
 from app.models.models import Document, Clause, Comparison, Map, ImpactAnalysis
 from app.schemas.schemas import ComparisonRequest
 from app.core.config import settings
@@ -101,8 +101,15 @@ def list_comparisons(
     db: Session = Depends(get_db)
 ):
     from sqlalchemy.orm import aliased
+    from app.models.models import User
     user_id = current_user.get("id")
     copilot_mode = current_user.get("copilot_mode", "beginner")
+    
+    u = db.query(User).filter(User.id == user_id).first()
+    if u and u.organization_id:
+        org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
+    else:
+        org_user_ids = [user_id]
     
     DocumentOld = aliased(Document)
     DocumentNew = aliased(Document)
@@ -120,7 +127,7 @@ def list_comparisons(
     ).outerjoin(
         DocumentNew, Comparison.new_document_id == DocumentNew.id
     ).filter(
-        Comparison.user_id == user_id,
+        Comparison.user_id.in_(org_user_ids),
         Comparison.copilot_mode == copilot_mode
     ).order_by(Comparison.created_at.desc()).all()
     
@@ -143,14 +150,21 @@ def list_impact_history(
     db: Session = Depends(get_db)
 ):
     from sqlalchemy.orm import joinedload
+    from app.models.models import User
     user_id = current_user.get("id")
     copilot_mode = current_user.get("copilot_mode", "beginner")
     
+    u = db.query(User).filter(User.id == user_id).first()
+    if u and u.organization_id:
+        org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
+    else:
+        org_user_ids = [user_id]
+        
     history = db.query(ImpactAnalysis).options(
         joinedload(ImpactAnalysis.comparison).joinedload(Comparison.old_document),
         joinedload(ImpactAnalysis.comparison).joinedload(Comparison.new_document)
     ).join(Comparison).filter(
-        ImpactAnalysis.user_id == user_id,
+        ImpactAnalysis.user_id.in_(org_user_ids),
         Comparison.copilot_mode == copilot_mode
     ).order_by(ImpactAnalysis.created_at.desc()).all()
     
@@ -178,11 +192,19 @@ def get_comparison(
     db: Session = Depends(get_db)
 ):
     from sqlalchemy.orm import joinedload
+    from app.models.models import User
     user_id = current_user.get("id")
+    
+    u = db.query(User).filter(User.id == user_id).first()
+    if u and u.organization_id:
+        org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
+    else:
+        org_user_ids = [user_id]
+        
     cmp = db.query(Comparison).options(
         joinedload(Comparison.old_document).joinedload(Document.clauses),
         joinedload(Comparison.new_document).joinedload(Document.clauses)
-    ).filter(Comparison.id == comparison_id, Comparison.user_id == user_id).first()
+    ).filter(Comparison.id == comparison_id, Comparison.user_id.in_(org_user_ids)).first()
     
     if not cmp:
         raise HTTPException(status_code=404, detail="Comparison not found")
@@ -260,15 +282,22 @@ def get_comparison(
 @router.post("")
 def compare_documents(
     schema: ComparisonRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
     
     from sqlalchemy.orm import joinedload
+    from app.models.models import User
+    u = db.query(User).filter(User.id == user_id).first()
+    if u and u.organization_id:
+        org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
+    else:
+        org_user_ids = [user_id]
+
     docs = db.query(Document).options(joinedload(Document.clauses)).filter(
         Document.id.in_([schema.oldDocumentId, schema.newDocumentId]),
-        Document.user_id == user_id
+        Document.user_id.in_(org_user_ids)
     ).all()
     
     old_doc = next((d for d in docs if d.id == schema.oldDocumentId), None)
@@ -388,16 +417,30 @@ def generate_impact_analysis(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
+    user_type = current_user.get("user_type")
     
+    from app.models.models import User
+    u = db.query(User).filter(User.id == user_id).first()
+    if u and u.organization_id:
+        org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
+    else:
+        org_user_ids = [user_id]
+        
     # Check if we already have a saved impact analysis for this comparison
     existing = db.query(ImpactAnalysis).filter(
         ImpactAnalysis.comparison_id == comparison_id,
-        ImpactAnalysis.user_id == user_id
+        ImpactAnalysis.user_id.in_(org_user_ids)
     ).first()
     if existing:
         return {"matrix": existing.matrix_json, "perClause": existing.detail_json}
         
-    cmp = db.query(Comparison).filter(Comparison.id == comparison_id, Comparison.user_id == user_id).first()
+    if user_type != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: AI Compliance Officer Role Required. Operational Impact Analysis has not been generated for this comparison yet. Please ask an AI Compliance Officer to run the impact analysis."
+        )
+        
+    cmp = db.query(Comparison).filter(Comparison.id == comparison_id, Comparison.user_id.in_(org_user_ids)).first()
     if not cmp:
         raise HTTPException(status_code=404, detail="Comparison not found")
         
@@ -497,7 +540,14 @@ def generate_maps_from_comparison(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
-    cmp = db.query(Comparison).filter(Comparison.id == comparison_id, Comparison.user_id == user_id).first()
+    from app.models.models import User
+    u = db.query(User).filter(User.id == user_id).first()
+    if u and u.organization_id:
+        org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
+    else:
+        org_user_ids = [user_id]
+        
+    cmp = db.query(Comparison).filter(Comparison.id == comparison_id, Comparison.user_id.in_(org_user_ids)).first()
     if not cmp:
         raise HTTPException(status_code=404, detail="Comparison not found")
         

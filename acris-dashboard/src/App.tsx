@@ -29,6 +29,9 @@ const CompanyProfile = lazy(() => import("./pages/CompanyProfile"));
 const Maps = lazy(() => import("./pages/Maps"));
 const AuditReadiness = lazy(() => import("./pages/AuditReadiness"));
 const DepartmentRouting = lazy(() => import("./pages/DepartmentRouting"));
+const PendingApproval = lazy(() => import("./pages/PendingApproval"));
+const EvidenceManagement = lazy(() => import("./pages/EvidenceManagement"));
+const OrganizationMembers = lazy(() => import("./pages/OrganizationMembers"));
 
 const queryClient = new QueryClient();
 
@@ -44,6 +47,7 @@ const App = () => (
               <OrgProfileProvider>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/pending-approval" element={<Suspense fallback={<SkeletonPage />}><PendingApproval /></Suspense>} />
                   <Route path="/setup" element={<ProtectedRoute><OrgSetup /></ProtectedRoute>} />
                   <Route path="/" element={<Landing />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -60,6 +64,8 @@ const App = () => (
                     <Route path="/alerts" element={<Suspense fallback={<SkeletonPage />}><Alerts /></Suspense>} />
                     <Route path="/audit-logs" element={<Suspense fallback={<SkeletonPage />}><AuditLogs /></Suspense>} />
                     <Route path="/company-profile" element={<Suspense fallback={<SkeletonPage />}><CompanyProfile /></Suspense>} />
+                    <Route path="/evidence-management" element={<Suspense fallback={<SkeletonPage />}><EvidenceManagement /></Suspense>} />
+                    <Route path="/organization-members" element={<Suspense fallback={<SkeletonPage />}><OrganizationMembers /></Suspense>} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Routes>
