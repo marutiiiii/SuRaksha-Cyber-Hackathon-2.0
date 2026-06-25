@@ -85,6 +85,22 @@ class Regulation(Base):
 
     # Relationships
     findings = relationship("Finding", back_populates="regulation")
+    chunks = relationship("RegulationChunk", back_populates="regulation", cascade="all, delete-orphan")
+
+
+# ─── Regulation Chunk ──────────────────────────────────────────────────────────
+
+class RegulationChunk(Base):
+    __tablename__ = "regulation_chunks"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    regulation_id = Column(Uuid, ForeignKey("regulations.id", ondelete="CASCADE"), nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    regulation = relationship("Regulation", back_populates="chunks")
 
 
 # ─── Document ──────────────────────────────────────────────────────────────────

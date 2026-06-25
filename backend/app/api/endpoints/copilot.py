@@ -1,3 +1,4 @@
+import os
 import uuid
 from datetime import date
 from typing import Optional
@@ -13,6 +14,42 @@ from app.core.config import settings
 from app.core.embeddings import EmbeddingService
 
 router = APIRouter(prefix="/copilot", tags=["AI Copilot"])
+
+def search_chroma_chunks(query_vec: list[float], n_results: int = 5) -> list[dict]:
+    import chromadb
+    try:
+        _CHROMA_API_KEY = os.getenv("CHROMA_API_KEY", "ck-J8T4rhpHwaRyhni6jh2PGkRDNFLTFzxAF7ysxoXcKB49")
+        _CHROMA_TENANT = os.getenv("CHROMA_TENANT", "8a810af5-e80b-474e-b853-5a7eb2db214c")
+        _CHROMA_DB = os.getenv("CHROMA_DB", "acris-data")
+        _CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "regulations_bge")
+        
+        client = chromadb.CloudClient(
+            api_key=_CHROMA_API_KEY,
+            tenant=_CHROMA_TENANT,
+            database=_CHROMA_DB
+        )
+        collection = client.get_or_create_collection(_CHROMA_COLLECTION)
+        results = collection.query(
+            query_embeddings=[query_vec],
+            n_results=n_results,
+            include=["documents", "distances", "metadatas"]
+        )
+        
+        items = []
+        if results and "documents" in results and results["documents"]:
+            docs = results["documents"][0]
+            metas = results["metadatas"][0] if "metadatas" in results and results["metadatas"] else [None] * len(docs)
+            dists = results["distances"][0] if "distances" in results and results["distances"] else [0.0] * len(docs)
+            for doc, meta, dist in zip(docs, metas, dists):
+                items.append({
+                    "text": doc,
+                    "metadata": meta or {},
+                    "distance": dist
+                })
+        return items
+    except Exception as e:
+        print(f"[Copilot] ChromaDB query failed: {e}")
+        return []
 
 def text_similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
@@ -260,10 +297,46 @@ def copilot_chat(
         Map.copilot_mode == copilot_mode
     ).limit(10).all()
     
-    # 3. Construct context
+    # 3. Construct context and citations combining document clauses and global regulations
     context_list = []
-    for idx, (c, score) in enumerate(top_matches):
-        context_list.append(f"[{idx+1}] ({c.clause_id} · {c.document.title}) {c.text}")
+    citations = []
+    citation_idx = 1
+    
+    # Add top document clause matches
+    for c, score in top_matches:
+        context_list.append(f"[{citation_idx}] ({c.clause_id} · {c.document.title}) {c.text}")
+        citations.append({
+            "n": citation_idx,
+            "clauseId": c.clause_id,
+            "text": c.text,
+            "document": c.document.title,
+            "similarity": round(score, 2)
+        })
+        citation_idx += 1
+        
+    # Search ChromaDB for global regulations if semantic query is active
+    chroma_hits = []
+    if use_semantic:
+        chroma_hits = search_chroma_chunks(query_vec, n_results=5)
+        
+    for hit in chroma_hits:
+        doc_title = hit["metadata"].get("pdf_name", "RBI Circular")
+        chunk_idx = hit["metadata"].get("chunk_index", 1)
+        sim = round(1.0 - hit["distance"], 2)
+        
+        # Avoid duplicate context if already captured
+        if any(h["text"].strip().lower() == hit["text"].strip().lower() for h in citations):
+            continue
+            
+        context_list.append(f"[{citation_idx}] (Chunk {chunk_idx} · {doc_title}) {hit['text']}")
+        citations.append({
+            "n": citation_idx,
+            "clauseId": f"Chunk {chunk_idx}",
+            "text": hit["text"],
+            "document": doc_title,
+            "similarity": sim
+        })
+        citation_idx += 1
         
     context = "\n".join(context_list)
     
@@ -274,8 +347,6 @@ def copilot_chat(
     
     # 4. Generate answer using local Llama 3 AI service
     from app.core.ai_service import LlamaAIService
-    citations = [{"n": idx+1, "clauseId": c.clause_id, "text": c.text, "document": c.document.title, "similarity": round(score, 2)} for idx, (c, score) in enumerate(top_matches)]
-    
     answer = LlamaAIService.copilot_chat(message, context, maps_context)
             
     # Smart preset replies fallback if Llama 3 is missing, fails, or fails to output required headers

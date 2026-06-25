@@ -119,13 +119,68 @@ def execute_downstream_pipeline(db: Session, doc: Document, user_id: uuid.UUID, 
                 db.commit()
 
     # 3. Find Previous Document (for Change Detection / Comparison)
-    old_doc = db.query(Document).filter(
-        Document.user_id == user_id,
-        Document.source == doc.source,
-        Document.copilot_mode == copilot_mode,
-        Document.id != doc.id,
-        Document.status == "analyzed"
-    ).order_by(Document.created_at.desc()).first()
+    old_doc = None
+    
+    # Try semantic matching using ChromaDB
+    try:
+        import chromadb
+        from app.models.models import Regulation
+        
+        # Generate embedding for the uploaded document text (using a representative sample, e.g. first 40k chars)
+        sample_text = (doc.extracted_text or "")[:40000]
+        if sample_text:
+            query_vec = EmbeddingService.encode(sample_text)
+            
+            # ChromaDB connection
+            _CHROMA_API_KEY = os.getenv("CHROMA_API_KEY", "ck-J8T4rhpHwaRyhni6jh2PGkRDNFLTFzxAF7ysxoXcKB49")
+            _CHROMA_TENANT = os.getenv("CHROMA_TENANT", "8a810af5-e80b-474e-b853-5a7eb2db214c")
+            _CHROMA_DB = os.getenv("CHROMA_DB", "acris-data")
+            _CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "regulations_bge")
+            
+            chroma_client = chromadb.CloudClient(
+                api_key=_CHROMA_API_KEY,
+                tenant=_CHROMA_TENANT,
+                database=_CHROMA_DB
+            )
+            collection = chroma_client.get_or_create_collection(_CHROMA_COLLECTION)
+            
+            results = collection.query(
+                query_embeddings=[query_vec],
+                n_results=1,
+                include=["metadatas"]
+            )
+            
+            if results and "metadatas" in results and results["metadatas"] and results["metadatas"][0]:
+                meta = results["metadatas"][0][0]
+                matched_reg_id_str = meta.get("regulation_id")
+                if matched_reg_id_str:
+                    matched_reg_id = uuid.UUID(matched_reg_id_str)
+                    regulation = db.query(Regulation).filter(Regulation.id == matched_reg_id).first()
+                    if regulation:
+                        # Find the corresponding document for the current user that has been analyzed
+                        # Match by title
+                        matched_doc = db.query(Document).filter(
+                            Document.user_id == user_id,
+                            Document.title == regulation.title,
+                            Document.copilot_mode == copilot_mode,
+                            Document.id != doc.id,
+                            Document.status == "analyzed"
+                        ).first()
+                        if matched_doc:
+                            old_doc = matched_doc
+                            print(f"[Pipeline] Semantically matched reference regulation '{regulation.title}' (Document ID: {old_doc.id}) via ChromaDB.")
+    except Exception as e:
+        print(f"[Pipeline] ChromaDB semantic match fallback: {e}")
+
+    # Fallback: Find previous document by source and user
+    if not old_doc:
+        old_doc = db.query(Document).filter(
+            Document.user_id == user_id,
+            Document.source == doc.source,
+            Document.copilot_mode == copilot_mode,
+            Document.id != doc.id,
+            Document.status == "analyzed"
+        ).order_by(Document.created_at.desc()).first()
 
     if not old_doc:
         print("[Pipeline] No previous document found for comparison. Creating dummy baseline...")
