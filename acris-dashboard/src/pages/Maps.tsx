@@ -34,13 +34,13 @@ function Card({ map }: { map: MAP }) {
     disabled: isLocked,
   });
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined;
-  
+
   let sevBorder = "border-l-rose-500";
   if (map.severity === "Medium") sevBorder = "border-l-amber-500";
   else if (map.severity === "Low") sevBorder = "border-l-emerald-500";
 
-  const initials = map.owner 
-    ? map.owner.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() 
+  const initials = map.owner
+    ? map.owner.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
     : "—";
 
   return (
@@ -49,11 +49,10 @@ function Card({ map }: { map: MAP }) {
       style={style}
       {...(!isLocked ? listeners : {})}
       {...(!isLocked ? attributes : {})}
-      className={`bg-card border border-border rounded-lg p-3.5 shadow-sm transition-all border-l-4 ${sevBorder} ${
-        isLocked
+      className={`bg-card border border-border rounded-lg p-3.5 shadow-sm transition-all border-l-4 ${sevBorder} ${isLocked
           ? "cursor-default opacity-75 bg-muted/5"
           : "cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
-      } ${isDragging ? "opacity-45 shadow-lg" : ""}`}
+        } ${isDragging ? "opacity-45 shadow-lg" : ""}`}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-[9px] font-mono font-bold text-muted-foreground flex items-center gap-1.5 uppercase">
@@ -78,11 +77,10 @@ function Card({ map }: { map: MAP }) {
 function Column({ status, cards, onOpen }: { status: MapStatus; cards: MAP[]; onOpen: (m: MAP) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div 
-      ref={setNodeRef} 
-      className={`bg-muted/10 border border-border rounded-xl flex flex-col min-h-[460px] transition-all overflow-hidden ${
-        isOver ? "ring-2 ring-primary/30 bg-primary/5 border-primary/40" : ""
-      }`}
+    <div
+      ref={setNodeRef}
+      className={`bg-muted/10 border border-border rounded-xl flex flex-col min-h-[460px] transition-all overflow-hidden ${isOver ? "ring-2 ring-primary/30 bg-primary/5 border-primary/40" : ""
+        }`}
     >
       <div className="px-3.5 py-2.5 border-b border-border bg-muted/30 flex items-center justify-between">
         <span className="text-xs font-extrabold uppercase tracking-wider text-foreground">{status}</span>
@@ -111,7 +109,7 @@ export default function Maps() {
   const { user } = useAuth();
   const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
   const userDepartment = user?.user_metadata?.department || "";
-  
+
   const [items, setItems] = useState<MAP[]>([]);
   const [open, setOpen] = useState<MAP | null>(null);
   const isBeginner = useIsBeginner();
@@ -153,7 +151,7 @@ export default function Maps() {
           evidenceRequired: m.severity === "Critical" ? ["QA Validation", "Security Log Scan"] : ["Verification Record"],
           impact: m.description
         }));
-        
+
         setItems(mapped);
         setLoading(false);
       })
@@ -201,7 +199,7 @@ export default function Maps() {
 
   const handleEvidenceUpload = async (file: File, requestedStatus: string) => {
     if (!open?.id) return;
-    
+
     setUploadingEvidence(true);
     let currentMapId = open.id;
 
@@ -227,13 +225,13 @@ export default function Maps() {
 
     try {
       const res = await api.uploadEvidence(currentMapId, file, requestedStatus);
-      toast({ 
-        title: "Evidence submitted", 
+      toast({
+        title: "Evidence submitted",
         description: `Compliance evidence uploaded successfully. MAP status changed to Awaiting Validation.`,
       });
       const updatedList = await api.listEvidence(currentMapId);
       setEvidenceList(updatedList || []);
-      
+
       loadMaps();
       setOpen(null);
     } catch (err: any) {
@@ -246,12 +244,15 @@ export default function Maps() {
   const filteredItems = useMemo(() => {
     // For department officers: filter strictly to their assigned department
     if (userType === "department_officer" && userDepartment) {
-      return items.filter(item => item.department === userDepartment);
+      return items.filter(item => item.department === userDepartment || item.department.replace(" Team", "") === userDepartment.replace(" Team", ""));
     }
     // For admins: filter by org-wide selected departments
     const selectedDepts = orgProfile.departments || [];
     if (selectedDepts.length === 0) return items;
-    return items.filter(item => selectedDepts.includes(item.department));
+    return items.filter(item =>
+      selectedDepts.includes(item.department) ||
+      selectedDepts.includes(item.department.replace(" Team", ""))
+    );
   }, [items, orgProfile.departments, userType, userDepartment]);
 
   const kpis = useMemo(() => ({
@@ -372,8 +373,8 @@ export default function Maps() {
 
       {isBeginner && (
         <BeginnerHint>
-          {userType === "admin" 
-            ? "Drag cards across the pipeline stages to update accountability progress. Double click any card to view logs." 
+          {userType === "admin"
+            ? "Drag cards across the pipeline stages to update accountability progress. Double click any card to view logs."
             : "Drag cards to request a transition. Upload compliance evidence to submit your request for approval."}
         </BeginnerHint>
       )}
@@ -464,7 +465,7 @@ export default function Maps() {
               <RiskBadge risk={open.severity} />
               <span className="badge badge-info uppercase tracking-wider text-[10px]">{open.department}</span>
             </div>
-            
+
             <div className="space-y-1.5">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Obligation Action</h4>
               <p className="text-foreground leading-relaxed font-semibold bg-muted/20 border border-border p-3.5 rounded-lg">{open.description}</p>
@@ -488,7 +489,7 @@ export default function Maps() {
                 <span className="badge bg-muted text-foreground border-border uppercase text-[9px] tracking-wider font-extrabold">{open.status}</span>
               </div>
             </div>
-            
+
             {open.evidenceRequired && open.evidenceRequired.length > 0 && (
               <div className="space-y-1.5">
                 <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">Evidence Required</h4>
@@ -517,7 +518,7 @@ export default function Maps() {
             {/* Evidence Proof Management Panel */}
             <div className="border-t border-border pt-4 space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Compliance Evidence Proof</h4>
-              
+
               {evidenceLoading ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Loading audit history...
@@ -528,11 +529,10 @@ export default function Maps() {
                     <div key={ev.id} className="border border-border p-3 rounded-lg bg-muted/20 text-xs space-y-2">
                       <div className="flex items-center justify-between font-bold">
                         <span className="truncate max-w-[60%] text-foreground" title={ev.filename}>{ev.filename}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${
-                          ev.validation_status === "Passed" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                          : ev.validation_status === "Failed" ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
-                          : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                        }`}>{ev.validation_status}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${ev.validation_status === "Passed" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : ev.validation_status === "Failed" ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                              : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          }`}>{ev.validation_status}</span>
                       </div>
                       <div className="text-[10px] text-muted-foreground space-y-0.5 font-semibold">
                         <div>Transition to: <span className="text-foreground uppercase font-extrabold">{ev.requested_status}</span></div>
@@ -550,7 +550,7 @@ export default function Maps() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {evidenceList.length === 0 && (
                     <p className="text-xs text-muted-foreground italic font-semibold text-center py-4 bg-muted/10 border border-dashed border-border rounded-lg">
                       No compliance evidence documents uploaded yet
@@ -573,7 +573,7 @@ export default function Maps() {
                       <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block">
                         Select Target transition status
                       </label>
-                      <select 
+                      <select
                         value={drawerTargetStatus}
                         onChange={(e) => setDrawerTargetStatus(e.target.value)}
                         className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
@@ -591,10 +591,10 @@ export default function Maps() {
                   <label className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-card relative">
                     <span className="text-xs font-bold text-primary uppercase tracking-wider">Upload Verification Evidence</span>
                     <span className="text-[10px] text-muted-foreground mt-1">PDF or TXT accepted</span>
-                    <input 
-                      type="file" 
-                      accept=".pdf,.txt" 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      accept=".pdf,.txt"
+                      className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -627,14 +627,14 @@ export default function Maps() {
           <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-sm font-extrabold uppercase tracking-wider text-foreground">Upload Compliance Evidence</h3>
-              <button 
-                onClick={() => { setEvidenceModal(null); setModalFile(null); }} 
+              <button
+                onClick={() => { setEvidenceModal(null); setModalFile(null); }}
                 className="text-muted-foreground hover:text-foreground text-xs font-bold"
               >
                 Close
               </button>
             </div>
-            
+
             <div className="text-xs space-y-2">
               <div>
                 <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider">MAP Title</span>
@@ -649,9 +649,9 @@ export default function Maps() {
             </div>
 
             <div className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors text-center relative bg-muted/5">
-              <input 
-                type="file" 
-                accept=".pdf,.txt" 
+              <input
+                type="file"
+                accept=".pdf,.txt"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={(e) => setModalFile(e.target.files?.[0] || null)}
                 disabled={modalUploading}
@@ -663,14 +663,14 @@ export default function Maps() {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button 
+              <button
                 onClick={() => { setEvidenceModal(null); setModalFile(null); }}
                 className="px-4 py-2 border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted/50"
                 disabled={modalUploading}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={async () => {
                   if (!modalFile) {
                     toast({ title: "No file selected", description: "Please choose an evidence file first.", variant: "destructive" });
@@ -694,8 +694,8 @@ export default function Maps() {
                       }
                     }
                     await api.uploadEvidence(currentMapId, modalFile, evidenceModal.requestedStatus);
-                    toast({ 
-                      title: "Evidence submitted", 
+                    toast({
+                      title: "Evidence submitted",
                       description: "Evidence uploaded successfully. Status changed to Awaiting Validation.",
                     });
                     setEvidenceModal(null);

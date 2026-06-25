@@ -13,6 +13,7 @@ acris-data-pipeline/data/processed/
 **/__pycache__/
 **/*.pyc
 backend/app.db
+backend/backend.db
 backend/storage/
 backend/.env
 backend/app/storage/

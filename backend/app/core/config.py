@@ -29,10 +29,10 @@ class Settings(BaseSettings):
         )
 
     # Database Configuration
-    # Fallback to local sqlite or placeholder if DATABASE_URL is not set
+    # Fallback to local sqlite file when DATABASE_URL is not set
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
-        "postgresql://postgres:postgres@localhost:5432/postgres"
+        "DATABASE_URL",
+        "sqlite:///./backend.db"
     )
     
     # ChromaDB Configuration

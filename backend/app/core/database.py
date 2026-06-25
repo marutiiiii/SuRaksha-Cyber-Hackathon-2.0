@@ -3,6 +3,7 @@ import logging
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from app.core.config import settings
 
 logger = logging.getLogger("uvicorn.error")
@@ -12,20 +13,27 @@ db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-# Create the PostgreSQL engine only (no SQLite fallback)
+# Create the database engine
 try:
-    engine = create_engine(
-        db_url,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20
-    )
+    if db_url.startswith("sqlite:"):
+        engine = create_engine(
+            db_url,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        engine = create_engine(
+            db_url,
+            pool_pre_ping=True,
+            pool_size=10,
+            max_overflow=20,
+        )
     # Ping the database to verify connectivity
     with engine.connect() as conn:
         pass
-    logger.info("Connected to PostgreSQL database successfully.")
+    logger.info("Database engine created successfully.")
 except Exception as e:
-    logger.error(f"PostgreSQL database connection failed: {e}")
+    logger.error(f"Database connection failed: {e}")
     raise e
 
 
