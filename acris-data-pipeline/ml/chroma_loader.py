@@ -7,14 +7,15 @@ client = chromadb.CloudClient(
 )
 
 collection = client.get_or_create_collection(
-    name="regulations"
+    name="regulations_bge"
 )
 
 
 def store_chunk(
     chunk_id,
     chunk_text,
-    embedding
+    embedding,
+    regulation_id
 ):
 
     try:
@@ -22,17 +23,20 @@ def store_chunk(
         collection.add(
             ids=[chunk_id],
             documents=[chunk_text],
-            embeddings=[embedding]
+            embeddings=[embedding],
+            metadatas=[{
+                "regulation_id": regulation_id
+            }]
         )
 
         print(
             f"Stored: {chunk_id}"
         )
 
-    except Exception:
+    except Exception as e:
 
         print(
-            f"Already Exists: {chunk_id}"
+            f"Failed to Store {chunk_id}: {e}"
         )
 
 
@@ -46,7 +50,8 @@ def search_similar_chunks(
         n_results=n_results,
         include=[
             "documents",
-            "distances"
+            "distances",
+            "metadatas"
         ]
     )
 

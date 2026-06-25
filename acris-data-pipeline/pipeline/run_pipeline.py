@@ -5,10 +5,25 @@ from extract.rbi import (
     get_pdf_url
 )
 
-from transform.pdf_downloader import download_pdf
-from transform.pdf_parser import extract_text_from_pdf
-from transform.cleaner import clean_text
-from transform.chunker import chunk_text
+from transform.pdf_downloader import (
+    download_pdf
+)
+
+from transform.pdf_parser import (
+    extract_text_from_pdf
+)
+
+from transform.cleaner import (
+    clean_text
+)
+
+from transform.regulation_extractor import (
+    extract_regulations
+)
+
+from transform.chunker import (
+    chunk_text
+)
 
 from load.supabase_loader import (
     insert_regulation,
@@ -29,16 +44,17 @@ def process_notification(notification):
     )
 
     if not pdf_url:
+
         print("No PDF Found")
+
         return
 
-    # Extract PDF name before download
     pdf_name = (
         pdf_url.split("/")[-1]
         .replace(".PDF", "")
+        .replace(".pdf", "")
     )
 
-    # Duplicate Check
     if regulation_exists(pdf_name):
 
         print(
@@ -52,28 +68,70 @@ def process_notification(notification):
     pdf_path = download_pdf(pdf_url)
 
     # Extract Text
-    text = extract_text_from_pdf(pdf_path)
+    text = extract_text_from_pdf(
+        pdf_path
+    )
 
     # Clean Text
-    cleaned_text = clean_text(text)
+    cleaned_text = clean_text(
+        text
+    )
 
-    # Chunk Text
-    chunks = chunk_text(cleaned_text)
+    print(
+        f"Original Length: "
+        f"{len(cleaned_text)}"
+    )
+
+    # Extract Regulations Only
+    regulation_text = extract_regulations(
+        cleaned_text
+    )
+
+    print(
+        f"Regulation Length: "
+        f"{len(regulation_text)}"
+    )
+
+    if not regulation_text:
+
+        print(
+            "No Regulations Found."
+        )
+
+        return
+
+    # Create Chunks
+    chunks = chunk_text(
+        regulation_text
+    )
+
+    print(
+        f"Total Chunks: "
+        f"{len(chunks)}"
+    )
 
     # Prepare Data
     regulation_data = {
-        "source": notification["source"],
-        "pdf_name": pdf_name,
-        "total_chunks": len(chunks),
-        "content": cleaned_text
+
+        "source":
+            notification["source"],
+
+        "pdf_name":
+            pdf_name,
+
+        "total_chunks":
+            len(chunks),
+
+        "content":
+            regulation_text
     }
 
-    # Load Regulation
+    # Insert Regulation
     regulation_id = insert_regulation(
         regulation_data
     )
 
-    # Load Chunks
+    # Insert Chunks
     insert_chunks(
         regulation_id,
         chunks
@@ -84,7 +142,7 @@ def process_notification(notification):
         f"{notification['title']}"
     )
 
-    # Delete PDF after successful load
+    # Delete PDF
     if os.path.exists(pdf_path):
 
         os.remove(pdf_path)
@@ -105,7 +163,6 @@ def main():
         f"notifications"
     )
 
-    # Testing only first 3 notifications
     for notification in notifications[:20]:
 
         process_notification(
@@ -114,4 +171,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()

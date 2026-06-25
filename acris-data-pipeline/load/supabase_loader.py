@@ -67,3 +67,16 @@ def get_all_chunks():
     )
 
     return response.data
+
+def get_regulation_by_id(
+    regulation_id
+):
+
+    response = (
+        supabase.table("regulations")
+        .select("*")
+        .eq("id", regulation_id)
+        .execute()
+    )
+
+    return response.data[0]

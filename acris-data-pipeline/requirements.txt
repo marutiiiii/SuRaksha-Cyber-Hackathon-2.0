@@ -1,3 +1,10 @@
 requests
 beautifulsoup4
 pandas
+streamlit
+sentence-transformers
+scikit-learn
+chromadb
+supabase
+pymupdf
+python-dotenv
