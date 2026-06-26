@@ -1,16 +1,8 @@
 import os
+import fitz  # PyMuPDF
 import tempfile
+from PIL import Image
 from typing import List
-
-try:
-    import fitz  # PyMuPDF
-except ModuleNotFoundError:  # pragma: no cover - environment-dependent
-    fitz = None
-
-try:
-    from PIL import Image
-except ModuleNotFoundError:  # pragma: no cover - environment-dependent
-    Image = None
 
 def convert_pdf_to_images(pdf_path: str, max_pages: int = 3) -> List[str]:
     """
@@ -19,8 +11,6 @@ def convert_pdf_to_images(pdf_path: str, max_pages: int = 3) -> List[str]:
     """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF file not found at: {pdf_path}")
-    if fitz is None:
-        raise ModuleNotFoundError("PyMuPDF is not installed; cannot render PDF pages")
         
     image_paths = []
     doc = fitz.open(pdf_path)
@@ -34,10 +24,10 @@ def convert_pdf_to_images(pdf_path: str, max_pages: int = 3) -> List[str]:
         # Use high resolution zoom for clear text extraction (2.0x zoom)
         zoom = 2.0
         mat = fitz.Matrix(zoom, zoom)
-        page_pix = page.get_pixmap(matrix=mat)
+        pix = page.get_pixmap(matrix=mat)
         
         img_path = os.path.join(temp_dir, f"pdf_page_{os.path.basename(pdf_path)}_{i}.png")
-        page_pix.save(img_path)
+        pix.save(img_path)
         image_paths.append(img_path)
         
     doc.close()
@@ -51,8 +41,6 @@ def validate_image(image_path: str) -> bool:
         return False
     if os.path.getsize(image_path) == 0:
         return False
-    if Image is None:
-        return True
     try:
         with Image.open(image_path) as img:
             img.verify()

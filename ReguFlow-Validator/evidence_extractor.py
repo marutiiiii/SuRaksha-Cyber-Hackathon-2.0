@@ -1,22 +1,11 @@
 import os
 import re
+import fitz  # PyMuPDF
 import time
 from typing import Dict, List, Any
-
-try:
-    import fitz  # PyMuPDF
-except ModuleNotFoundError:  # pragma: no cover - environment dependent
-    fitz = None
-
-from app.core.qwen_service import run_qwen_json_inference
-from app.core.timing_tracker import tracker
-
-try:
-    from app.core.image_utils import convert_pdf_to_images, validate_image
-except Exception as exc:  # pragma: no cover - environment-dependent
-    convert_pdf_to_images = None
-    validate_image = None
-    print(f"Image utilities unavailable during import: {exc}")
+from services.qwen_service import run_qwen_json_inference
+from utils.image_utils import convert_pdf_to_images, validate_image
+from utils.timing_tracker import tracker
 
 def extract_relevant_sections(evidence_text: str, task_description: str, max_chars: int = 4000) -> str:
     """
@@ -75,9 +64,6 @@ def extract_evidence_details(file_path: str, task_description: str = "") -> Dict
       "tables": []
     }
     """
-    if fitz is None:
-        print("PyMuPDF is not installed; falling back to text file handling only.")
-
     file_ext = os.path.splitext(file_path)[1].lower()
     image_files = []
     pdf_text = ""
@@ -88,8 +74,6 @@ def extract_evidence_details(file_path: str, task_description: str = "") -> Dict
         print("PDF extraction started")
         t_ext_start = time.time()
         try:
-            if fitz is None:
-                raise ModuleNotFoundError("PyMuPDF is not installed")
             doc = fitz.open(file_path)
             num_pages = len(doc)
             for page in doc:
@@ -106,8 +90,6 @@ def extract_evidence_details(file_path: str, task_description: str = "") -> Dict
             print("Scanned or image-only PDF detected. Converting pages to images for OCR...")
             t_conv_start = time.time()
             try:
-                if convert_pdf_to_images is None or validate_image is None:
-                    raise ModuleNotFoundError("Image utilities are unavailable in this environment")
                 image_files = convert_pdf_to_images(file_path)
                 for img in image_files:
                     if not validate_image(img):
@@ -117,21 +99,8 @@ def extract_evidence_details(file_path: str, task_description: str = "") -> Dict
                 raise e
             tracker.add_image_conversion(time.time() - t_conv_start)
             num_pages = len(image_files)
-    elif file_ext == ".txt":
-        print("TXT extraction started")
-        t_ext_start = time.time()
-        try:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                pdf_text = f.read()
-        except Exception as e:
-            print(f"Error reading native TXT text: {e}")
-            raise e
-        tracker.add_pdf_extraction(time.time() - t_ext_start)
-        num_pages = 1
     elif file_ext in [".png", ".jpg", ".jpeg", ".bmp"]:
-        if validate_image is None:
-            print("Image validation unavailable; accepting uploaded image without local verification")
-        elif not validate_image(file_path):
+        if not validate_image(file_path):
             raise ValueError(f"Uploaded image is corrupted or invalid: {file_path}")
         image_files = [file_path]
         num_pages = 1
@@ -150,14 +119,50 @@ def extract_evidence_details(file_path: str, task_description: str = "") -> Dict
         # Clean native PDF text lines
         lines = [line.strip() for line in pdf_text.split("\n") if line.strip()]
         combined_result["text"].extend(lines)
-        print("\n==================================================")
-        print("         DIGITAL PDF BYPASS (NO QWEN CALL)        ")
-        print("==================================================")
-        print("  - Number of Regulations loaded/passed to Qwen: 0")
-        print("  - Number of MAPs loaded/passed to Qwen: 0")
-        print(f"  - Number of Evidence Pages processed: {num_pages}")
-        print("  - Exact Prompt/Context size: 0 (Fast-path local checker)")
-        print("==================================================\n")
+        
+        # Handle large document chunking for prompt
+        processed_text = pdf_text
+        if len(processed_text) > 4000 and task_description:
+            processed_text = extract_relevant_sections(processed_text, task_description)
+            
+        t_prompt_start = time.time()
+        prompt = f"""Analyze the provided document text.
+Extract and categorize structural components into:
+1. text: A list of key text snippets, headings, settings, policy headers, or notices.
+2. objects: A list of visual interface components, graphics, or items mentioned or implied (e.g., "cyber awareness banner", "submit button", "bank logo", "checkbox").
+3. screens: A list of screen designs, page types, or UI frames described (e.g., "Login Page", "Dashboard", "Compliance Certificate").
+4. tables: A list of table descriptions or data rows extracted from tables.
+
+Your response must be a JSON object with this exact schema:
+{{
+  "text": ["extracted text line 1", "extracted text line 2"],
+  "objects": ["object name 1", "object name 2"],
+  "screens": ["screen type/name"],
+  "tables": ["table data or description 1"]
+}}
+
+Document Text:
+{processed_text}
+"""
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+        tracker.add_prompt_generation(time.time() - t_prompt_start)
+        
+        try:
+            page_data = run_qwen_json_inference(messages, max_tokens=1000)
+            for key in ["text", "objects", "screens", "tables"]:
+                if key in page_data and isinstance(page_data[key], list):
+                    for item in page_data[key]:
+                        if item and item not in combined_result[key]:
+                            combined_result[key].append(item)
+        except Exception as e:
+            print(f"Error calling text-only Qwen extraction: {e}")
             
     else:
         # Scanned PDF or Image page-by-page Vision OCR
@@ -169,12 +174,12 @@ Extract and categorize structural and visual components into:
 4. tables: A list of table descriptions or data rows extracted from visible tables.
 
 Your response must be a JSON object with this exact schema:
-{
+{{
   "text": ["extracted text line 1", "extracted text line 2"],
   "objects": ["object name 1", "object name 2"],
   "screens": ["screen type/name"],
   "tables": ["table data or description 1"]
-}
+}}
 """
         for idx, img_path in enumerate(image_files):
             print(f"Analyzing evidence page/image {idx+1}/{len(image_files)}: {img_path}")
@@ -184,12 +189,7 @@ Your response must be a JSON object with this exact schema:
                 {
                     "role": "user",
                     "content": [
-                        {
-                            "type": "image", 
-                            "image": img_path,
-                            "min_pixels": 256 * 28 * 28,  # ~200k pixels
-                            "max_pixels": 512 * 28 * 28   # ~400k pixels
-                        },
+                        {"type": "image", "image": img_path},
                         {"type": "text", "text": prompt}
                     ]
                 }
@@ -225,3 +225,4 @@ Your response must be a JSON object with this exact schema:
     
     print(f"Text extraction completed. Pages processed: {num_pages}")
     return combined_result
+

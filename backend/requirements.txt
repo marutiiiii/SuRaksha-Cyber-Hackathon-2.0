@@ -11,6 +11,7 @@ pypdf>=4.0.0
 python-multipart>=0.0.9
 fpdf2>=2.7.0
 beautifulsoup4>=4.12.0
+pillow>=10.0.0
 sentence-transformers>=2.5.0
 chromadb>=0.4.0
 

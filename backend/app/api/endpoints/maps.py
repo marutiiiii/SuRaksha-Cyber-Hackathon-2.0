@@ -19,7 +19,25 @@ from app.core.offline_map_provider import generate_maps_from_regulation
 
 router = APIRouter(prefix="/maps", tags=["MAP Management"])
 
-COLUMNS = ["Pending", "Assigned", "In Progress", "Review", "Awaiting Validation", "Completed"]
+COLUMNS = ["Pending", "In Progress", "Awaiting Validation", "Completed"]
+
+
+def _can_transition_status(current_status: str, target_status: str, allow_evidence_submission: bool = False) -> bool:
+    if current_status not in COLUMNS or target_status not in COLUMNS:
+        return False
+    if current_status == target_status:
+        return True
+
+    source_index = COLUMNS.index(current_status)
+    target_index = COLUMNS.index(target_status)
+
+    if allow_evidence_submission and current_status == "Pending" and target_status == "Awaiting Validation":
+        return True
+    if allow_evidence_submission and current_status == "In Progress" and target_status == "Awaiting Validation":
+        return True
+
+    return abs(target_index - source_index) <= 1
+
 
 EVIDENCE_DIR = os.path.join(settings.STORAGE_PATH, "evidence")
 os.makedirs(EVIDENCE_DIR, exist_ok=True)
@@ -255,7 +273,7 @@ def _static_fallback_maps(services: list, departments: list) -> list:
          "deadline": date.today() + timedelta(days=14), "department": "Legal Team"},
         {"clause_ref": "RBI-2026-001", "title": "Re-paper FLDG contracts",
          "description": "Amend FLDG schedules with all LSP partners to cap at 5%.",
-         "owner": "Legal Team", "severity": "High", "status": "Assigned",
+         "owner": "Legal Team", "severity": "High", "status": "Pending",
          "deadline": date.today() + timedelta(days=29), "department": "Legal Team"},
         {"clause_ref": "RBI-2026-001", "title": "Stand up DLA quarterly reporting",
          "description": "Build pipeline to RBI portal for DLA metrics.",
@@ -267,7 +285,7 @@ def _static_fallback_maps(services: list, departments: list) -> list:
          "deadline": date.today() + timedelta(days=6), "department": "Cybersecurity Team"},
         {"clause_ref": "SEBI-2026-003", "title": "Update materiality policy",
          "description": "Refresh disclosure thresholds per SEBI LODR amendment.",
-         "owner": "Compliance Team", "severity": "Medium", "status": "Review",
+         "owner": "Compliance Team", "severity": "Medium", "status": "Awaiting Validation",
          "deadline": date.today() + timedelta(days=14), "department": "Compliance Team"},
         {"clause_ref": "NPCI-2026-005", "title": "UPI velocity rules rollout",
          "description": "Deploy new velocity rules in payments switch.",
@@ -279,7 +297,7 @@ def _static_fallback_maps(services: list, departments: list) -> list:
          "deadline": date.today() + timedelta(days=8), "department": "HR Team"},
         {"clause_ref": "INT-2026-007", "title": "Refresh vendor risk templates",
          "description": "Push new vendor onboarding templates live.",
-         "owner": "Audit Team", "severity": "Low", "status": "Assigned",
+         "owner": "Audit Team", "severity": "Low", "status": "Pending",
          "deadline": date.today() + timedelta(days=21), "department": "Audit Team"},
         {"clause_ref": "RBI-2026-002", "title": "Configure V-CIP as default",
          "description": "Set V-CIP as preferred onboarding journey.",
@@ -579,10 +597,7 @@ def update_map_status(
             detail="Workflow Locked: Completed MAPs cannot be modified."
         )
         
-    source_index = COLUMNS.index(db_map.status)
-    target_index = COLUMNS.index(target_status)
-    
-    if abs(target_index - source_index) > 1:
+    if not _can_transition_status(db_map.status, target_status):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Workflow Violation: Cannot transition status directly from '{db_map.status}' to '{target_status}'. Sequential flow required."
@@ -635,11 +650,9 @@ def upload_map_evidence(
             detail="Workflow Locked: Completed MAPs cannot be modified."
         )
         
-    source_index = COLUMNS.index(m.status)
-    target_index = COLUMNS.index(requested_status)
-    if abs(target_index - source_index) > 1:
+    if not _can_transition_status(m.status, requested_status, allow_evidence_submission=True):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Workflow Violation: Cannot transition status directly from '{m.status}' to '{requested_status}'. Sequential flow required."
         )
     

@@ -170,7 +170,7 @@ export const regSources: RegSource[] = [
   { key: "Internal", name: "Internal Policies", latestUpdate: "2026-04-28", risk: "Low", activeCount: 27, status: "Healthy" },
 ];
 
-export type MapStatus = "Pending" | "Assigned" | "In Progress" | "Review" | "Awaiting Validation" | "Completed";
+export type MapStatus = "Pending" | "In Progress" | "Awaiting Validation" | "Completed";
 
 export interface MAP {
   id: string;
@@ -189,13 +189,13 @@ export interface MAP {
 
 export const maps: MAP[] = [
   { id: "MAP-001", title: "Update KYC Verification Workflow", description: "Reconfigure CBS to trigger annual KYC review for high-risk segment.", owner: "Aarav Mehta", ownerInitials: "AM", department: "Compliance", dueDate: "2026-06-15", severity: "High", status: "In Progress", regulationId: "RBI-2026-002", evidenceRequired: ["CBS change ticket", "QA sign-off"], impact: "Affects 1.2M high-risk customers." },
-  { id: "MAP-002", title: "Re-paper FLDG contracts", description: "Amend FLDG schedules with all LSP partners to cap at 5%.", owner: "Priya Shah", ownerInitials: "PS", department: "Legal", dueDate: "2026-06-30", severity: "High", status: "Assigned", regulationId: "RBI-2026-001", evidenceRequired: ["Signed amendments"], impact: "12 active LSP contracts." },
+  { id: "MAP-002", title: "Re-paper FLDG contracts", description: "Amend FLDG schedules with all LSP partners to cap at 5%.", owner: "Priya Shah", ownerInitials: "PS", department: "Legal", dueDate: "2026-06-30", severity: "High", status: "Pending", regulationId: "RBI-2026-001", evidenceRequired: ["Signed amendments"], impact: "12 active LSP contracts." },
   { id: "MAP-003", title: "Stand up DLA quarterly reporting", description: "Build pipeline to RBI portal for DLA metrics.", owner: "Rohit Kumar", ownerInitials: "RK", department: "IT", dueDate: "2026-07-10", severity: "Medium", status: "Pending", regulationId: "RBI-2026-001", evidenceRequired: ["Pipeline runbook", "First report submission"], impact: "Operational reporting." },
   { id: "MAP-004", title: "Patch Java middleware CVE-2026-3344", description: "Roll emergency patch across core banking nodes.", owner: "Sneha Iyer", ownerInitials: "SI", department: "Cybersecurity", dueDate: "2026-05-27", severity: "Critical", status: "In Progress", regulationId: "CERT-2026-006", evidenceRequired: ["Patch report", "Vulnerability re-scan"], impact: "Prevents potential breach." },
-  { id: "MAP-005", title: "Update materiality policy", description: "Refresh disclosure thresholds per SEBI LODR amendment.", owner: "Karan Nair", ownerInitials: "KN", department: "Compliance", dueDate: "2026-06-05", severity: "Medium", status: "Review", regulationId: "SEBI-2026-003", evidenceRequired: ["Board approval"], impact: "Investor disclosures." },
+  { id: "MAP-005", title: "Update materiality policy", description: "Refresh disclosure thresholds per SEBI LODR amendment.", owner: "Karan Nair", ownerInitials: "KN", department: "Compliance", dueDate: "2026-06-05", severity: "Medium", status: "Awaiting Validation", regulationId: "SEBI-2026-003", evidenceRequired: ["Board approval"], impact: "Investor disclosures." },
   { id: "MAP-006", title: "UPI velocity rules rollout", description: "Deploy new velocity rules in payments switch.", owner: "Devika Rao", ownerInitials: "DR", department: "IT", dueDate: "2026-06-20", severity: "Medium", status: "Pending", regulationId: "NPCI-2026-005", evidenceRequired: ["Change record"], impact: "Reduces fraud exposure." },
   { id: "MAP-007", title: "Train insider trading designated persons", description: "Conduct mandatory training on updated windows.", owner: "Ishaan Verma", ownerInitials: "IV", department: "HR", dueDate: "2026-05-30", severity: "Low", status: "Completed", regulationId: "SEBI-2026-004", evidenceRequired: ["Attendance log"], impact: "118 designated persons." },
-  { id: "MAP-008", title: "Refresh vendor risk templates", description: "Push new vendor onboarding templates live.", owner: "Meera Joshi", ownerInitials: "MJ", department: "Procurement", dueDate: "2026-06-12", severity: "Low", status: "Assigned", regulationId: "INT-2026-007", evidenceRequired: ["Template version log"], impact: "All net-new vendors." },
+  { id: "MAP-008", title: "Refresh vendor risk templates", description: "Push new vendor onboarding templates live.", owner: "Meera Joshi", ownerInitials: "MJ", department: "Procurement", dueDate: "2026-06-12", severity: "Low", status: "Pending", regulationId: "INT-2026-007", evidenceRequired: ["Template version log"], impact: "All net-new vendors." },
   { id: "MAP-009", title: "Configure V-CIP as default", description: "Set V-CIP as preferred onboarding journey.", owner: "Aarav Mehta", ownerInitials: "AM", department: "Operations", dueDate: "2026-06-25", severity: "High", status: "Pending", regulationId: "RBI-2026-002", evidenceRequired: ["Journey screenshots"], impact: "All remote onboarding." },
 ];
 
@@ -392,7 +392,7 @@ export const kpiDetails = {
   pendingMaps: {
     pending: 3,
     overdue: 1,
-    assigned: 2,
+    awaitingValidation: 2,
     completed: 1,
   },
 };

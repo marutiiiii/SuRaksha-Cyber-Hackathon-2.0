@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReguFlow Compliance Proof Verification System</title>
+    <!-- Inter Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070913;
+            --bg-card: rgba(22, 28, 45, 0.4);
+            --bg-card-hover: rgba(22, 28, 45, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-color-glow: rgba(59, 130, 246, 0.3);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --color-primary: #3b82f6;
+            --color-primary-hover: #2563eb;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --font-main: 'Inter', sans-serif;
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 3rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: rgba(7, 9, 19, 0.7);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-success));
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            background-color: rgba(59, 130, 246, 0.15);
+            color: var(--color-primary);
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            text-transform: uppercase;
+        }
+
+        /* Dashboard Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 3rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(8px);
+            transition: all var(--transition-speed) ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        /* Main Workspace Grid */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Left Column: Regulations list & upload */
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Card styles */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        /* Uploader Area */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            background-color: rgba(255, 255, 255, 0.02);
+            margin-bottom: 1rem;
+        }
+
+        .upload-area:hover {
+            border-color: var(--color-primary);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-text strong {
+            color: var(--text-primary);
+        }
+
+        .text-input-toggle {
+            font-size: 0.8rem;
+            color: var(--color-primary);
+            text-align: right;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            display: block;
+            text-decoration: underline;
+        }
+
+        textarea.regulation-textarea {
+            width: 100%;
+            height: 120px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            color: var(--text-primary);
+            padding: 0.5rem;
+            font-family: inherit;
+            font-size: 0.85rem;
+            resize: none;
+            margin-bottom: 0.75rem;
+        }
+
+        textarea.regulation-textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background-color: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        .btn-success {
+            background-color: var(--color-success);
+        }
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        /* Regulations List */
+        .regulation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .regulation-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .regulation-item:hover, .regulation-item.active {
+            border-color: var(--color-primary-glow);
+            background-color: rgba(59, 130, 246, 0.08);
+            transform: translateX(2px);
+        }
+
+        .regulation-item-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .regulation-item-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Right Column: Tasks Board */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Tasks Layout */
+        .tasks-view {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .tasks-filter-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .search-input {
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            width: 250px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .dept-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .badge-filter {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.02);
+            color: var(--text-secondary);
+            transition: all var(--transition-speed) ease;
+        }
+
+        .badge-filter.active {
+            background-color: var(--color-primary);
+            color: #fff;
+            border-color: var(--color-primary);
+        }
+
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .task-row {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: grid;
+            grid-template-columns: 1fr 180px 140px 140px;
+            align-items: center;
+            gap: 1.5rem;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .task-row:hover {
+            background-color: var(--bg-card-hover);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: scale(1.005);
+        }
+
+        .task-main-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .task-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .task-desc-brief {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 500px;
+        }
+
+        .task-dept {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            background-color: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            width: fit-content;
+            text-align: center;
+        }
+
+        .task-deadline {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-align: center;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            width: fit-content;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0;
+        }
+
+        .status-badge.NOT_STARTED {
+            background-color: rgba(239, 68, 68, 0.12);
+            color: var(--color-danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .status-badge.IN_PROGRESS {
+            background-color: rgba(245, 158, 11, 0.12);
+            color: var(--color-warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .status-badge.COMPLETED {
+            background-color: rgba(16, 185, 129, 0.12);
+            color: var(--color-success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        /* Modal side panel */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            display: none;
+            justify-content: flex-end;
+        }
+
+        .modal-sidebar {
+            width: 650px;
+            background-color: #0b0f19;
+            border-left: 1px solid var(--border-color);
+            height: 100%;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .modal-close-btn {
+            align-self: flex-start;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .modal-close-btn:hover {
+            color: #fff;
+        }
+
+        .modal-task-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .evidence-uploader-box {
+            border: 2px dashed rgba(255,255,255,0.06);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            background-color: rgba(255,255,255,0.01);
+        }
+
+        .evidence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .evidence-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+        }
+
+        .evidence-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .evidence-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .evidence-type {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 0.05rem 0.35rem;
+            border-radius: 0.2rem;
+            width: fit-content;
+        }
+
+        .verify-trigger-btn {
+            background-color: var(--color-primary);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 0.25rem;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .verify-trigger-btn:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        /* Compliance Report Presentation */
+        .report-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.5));
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .report-confidence-gauge {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .confidence-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .confidence-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--color-primary);
+        }
+
+        .checklist-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .checklist-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .checklist-item {
+            font-size: 0.85rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .checklist-icon {
+            font-weight: bold;
+            margin-top: 0.1rem;
+        }
+
+        .checklist-icon.check {
+            color: var(--color-success);
+        }
+
+        .checklist-icon.cross {
+            color: var(--color-danger);
+        }
+
+        .report-reason-box {
+            background-color: rgba(0,0,0,0.25);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border-left: 3px solid var(--color-primary);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        /* Loading Spinner */
+        .spinner-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 0;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            animation: pulse 1.5s infinite ease-in-out;
+            text-align: center;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-section">
+            <div class="logo-icon">R</div>
+            <div class="logo-text">ReguFlow <strong>Validator</strong></div>
+            <div class="logo-tag">AI Auditing</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                Offline Local Engine: <strong>Qwen2.5-VL-3B-Instruct</strong>
+            </div>
+            <div id="ai-health-badge" class="status-badge NOT_STARTED" style="font-size: 0.7rem; padding: 0.15rem 0.5rem; margin-top: 0;">AI CHECKING...</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Stats Overview -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Compliance Tasks</div>
+                <div class="stat-value" id="stat-total-tasks">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Completed Tasks</div>
+                <div class="stat-value" id="stat-completed-tasks" style="color: var(--color-success);">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">In Progress</div>
+                <div class="stat-value" id="stat-inprogress-tasks" style="color: var(--color-warning);">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Not Started</div>
+                <div class="stat-value" id="stat-notstarted-tasks" style="color: var(--color-danger);">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Compliance Rate</div>
+                <div class="stat-value" id="stat-compliance-rate">-</div>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="workspace-grid">
+            
+            <!-- Left Column: Upload Regulation & Regulations List -->
+            <div class="left-column">
+                
+                <!-- Upload Regulation -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>New Regulation</span>
+                    </div>
+                    
+                    <span class="text-input-toggle" id="toggle-input-type" onclick="toggleInputType()">Or paste plain text</span>
+                    
+                    <div id="file-uploader-group">
+                        <div class="upload-area" id="reg-dropzone" onclick="document.getElementById('reg-file-input').click()">
+                            <div class="upload-icon">✦</div>
+                            <div class="upload-text">Drag & drop regulation file or <br><strong>click to upload</strong></div>
+                            <div class="upload-text" style="font-size:0.75rem; margin-top:0.4rem;">Supports PDF / TXT</div>
+                            <input type="file" id="reg-file-input" style="display:none;" accept=".pdf,.txt" onchange="uploadRegulationFile(this.files[0])">
+                        </div>
+                    </div>
+                    
+                    <div id="text-uploader-group" style="display:none;">
+                        <textarea class="regulation-textarea" id="reg-text-input" placeholder="Paste regulation content here... e.g. Banks must display cyber awareness notices..."></textarea>
+                        <button class="btn btn-success" onclick="uploadRegulationText()">Extract Compliance Tasks</button>
+                    </div>
+                </div>
+
+                <!-- Regulations Registry -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>Regulation Registry</span>
+                    </div>
+                    <div class="regulation-list" id="regulation-list">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Compliance Tasks Board -->
+            <div class="right-column">
+                <div class="card" style="min-height: 500px;">
+                    <div class="tabs-container">
+                        <button class="tab-btn active" id="tab-all" onclick="filterByDept('All')">All Departments</button>
+                        <button class="tab-btn" onclick="filterByDept('IT')">IT</button>
+                        <button class="tab-btn" onclick="filterByDept('Security')">Security</button>
+                        <button class="tab-btn" onclick="filterByDept('Compliance')">Compliance</button>
+                        <button class="tab-btn" onclick="filterByDept('Operations')">Operations</button>
+                    </div>
+
+                    <div class="tasks-view">
+                        <div class="tasks-filter-bar">
+                            <input type="text" class="search-input" id="search-task" placeholder="Search tasks..." oninput="searchTasks(this.value)">
+                            <div class="dept-badges" id="status-filters">
+                                <span class="badge-filter active" onclick="filterByStatus('All', this)">All Statuses</span>
+                                <span class="badge-filter" onclick="filterByStatus('COMPLETED', this)">Completed</span>
+                                <span class="badge-filter" onclick="filterByStatus('IN_PROGRESS', this)">In Progress</span>
+                                <span class="badge-filter" onclick="filterByStatus('NOT_STARTED', this)">Not Started</span>
+                            </div>
+                        </div>
+
+                        <div class="tasks-list" id="tasks-list">
+                            <!-- Tasks rows loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Task Detail Overlay -->
+    <div class="modal-overlay" id="task-modal" onclick="closeModal(event)">
+        <div class="modal-sidebar" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="hideModal()">← Back to Dashboard</button>
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <span class="task-dept" id="modal-task-dept">IT</span>
+                <span class="status-badge" id="modal-task-status">NOT STARTED</span>
+            </div>
+            
+            <h2 class="modal-task-title" id="modal-task-title">Task Title</h2>
+            
+            <div style="background-color: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 1.25rem; border-radius: 0.5rem;">
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.35rem; font-weight:700; text-transform:uppercase;">Task Requirement Details</div>
+                <div id="modal-task-desc" style="font-size: 0.9rem; color: var(--text-primary);">Detailed description of what is required to comply.</div>
+                <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                    Compliance Deadline: <strong id="modal-task-deadline" style="color: #fff;">2026-09-30</strong>
+                </div>
+            </div>
+
+            <!-- Upload Evidence Section -->
+            <div>
+                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: #fff;">Uploaded Compliance Proof</h3>
+                
+                <div class="evidence-uploader-box">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.50rem;">Upload screenshot, image, or policy PDF proof</div>
+                    <button class="btn" style="width: auto; background-color: rgba(255,255,255,0.06); border: 1px solid var(--border-color);" onclick="document.getElementById('evidence-file-input').click()">Select File</button>
+                    <input type="file" id="evidence-file-input" style="display:none;" accept=".pdf,.png,.jpg,.jpeg" onchange="uploadEvidenceFile(this.files[0])">
+                </div>
+
+                <div class="evidence-list" id="modal-evidence-list">
+                    <!-- Evidence items loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- AI Auditing Spinner -->
+            <div class="spinner-container" id="ai-loading">
+                <div class="spinner"></div>
+                <div class="spinner-text" id="ai-loading-text">Qwen2.5-VL-3B extracting text and matching requirements...</div>
+            </div>
+
+            <!-- AI Auditing Compliance Report -->
+            <div id="modal-report-section" style="display: none;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">AI Compliance Auditor Report</h3>
+                <div class="report-card" id="modal-report-card">
+                    <!-- Report items loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '';
+        let currentRegulationId = null;
+        let selectedTaskId = null;
+        let allTasks = [];
+        let activeDeptFilter = 'All';
+        let activeStatusFilter = 'All';
+        let isTextUpload = false;
+
+        // On Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAIHealth();
+            fetchStats();
+            fetchRegulations();
+            fetchTasks();
+            setupDragAndDrop();
+            
+            // Poll health endpoint every 8 seconds
+            setInterval(checkAIHealth, 8000);
+        });
+
+        // Check AI Model Health status
+        async function checkAIHealth() {
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                const data = await res.json();
+                const badge = document.getElementById('ai-health-badge');
+                
+                if (data.ready) {
+                    badge.textContent = `AI READY (${data.device.toUpperCase()})`;
+                    badge.className = 'status-badge COMPLETED';
+                    badge.style.cursor = 'default';
+                    badge.title = `Model is running locally on ${data.device}`;
+                } else if (data.model_loaded) {
+                    badge.textContent = 'AI INITIALIZING...';
+                    badge.className = 'status-badge IN_PROGRESS';
+                    badge.style.cursor = 'default';
+                } else if (data.error) {
+                    badge.textContent = 'AI OFFLINE (INCOMPLETE)';
+                    badge.className = 'status-badge NOT_STARTED';
+                    badge.title = data.error + " (Hover for info)";
+                    badge.style.cursor = 'help';
+                } else {
+                    badge.textContent = 'AI LOADING...';
+                    badge.className = 'status-badge IN_PROGRESS';
+                    badge.style.cursor = 'default';
+                }
+            } catch(e) {
+                const badge = document.getElementById('ai-health-badge');
+                badge.textContent = 'AI DISCONNECTED';
+                badge.className = 'status-badge NOT_STARTED';
+                badge.style.cursor = 'default';
+            }
+        }
+
+        // Setup drag & drop for regulations
+        function setupDragAndDrop() {
+            const zone = document.getElementById('reg-dropzone');
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.style.borderColor = 'var(--color-primary)';
+                zone.style.backgroundColor = 'rgba(59, 130, 246, 0.08)';
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.style.borderColor = 'var(--border-color)';
+                zone.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+            });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.style.borderColor = 'var(--border-color)';
+                zone.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                if(e.dataTransfer.files.length > 0) {
+                    uploadRegulationFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function toggleInputType() {
+            isTextUpload = !isTextUpload;
+            const toggle = document.getElementById('toggle-input-type');
+            const fileGroup = document.getElementById('file-uploader-group');
+            const textGroup = document.getElementById('text-uploader-group');
+            
+            if(isTextUpload) {
+                toggle.textContent = "Or upload document file";
+                fileGroup.style.display = "none";
+                textGroup.style.display = "block";
+            } else {
+                toggle.textContent = "Or paste plain text";
+                fileGroup.style.display = "block";
+                textGroup.style.display = "none";
+            }
+        }
+
+        // Fetch Stats
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_URL}/stats`);
+                const data = await res.json();
+                
+                document.getElementById('stat-total-tasks').textContent = data.total_tasks;
+                document.getElementById('stat-completed-tasks').textContent = data.completed_tasks;
+                document.getElementById('stat-inprogress-tasks').textContent = data.in_progress_tasks;
+                document.getElementById('stat-notstarted-tasks').textContent = data.not_started_tasks;
+                document.getElementById('stat-compliance-rate').textContent = (data.compliance_rate * 100).toFixed(0) + '%';
+            } catch(e) {
+                console.error("Error fetching stats:", e);
+            }
+        }
+
+        // Fetch Regulations
+        async function fetchRegulations() {
+            try {
+                const res = await fetch(`${API_URL}/regulations`);
+                const regs = await res.json();
+                const container = document.getElementById('regulation-list');
+                container.innerHTML = '';
+                
+                if(regs.length === 0) {
+                    container.innerHTML = '<div style="font-size:0.8rem; color:var(--text-secondary); text-align:center; padding:1rem;">No regulations uploaded.</div>';
+                    return;
+                }
+
+                regs.forEach(r => {
+                    const item = document.createElement('div');
+                    item.className = `regulation-item ${currentRegulationId === r.id ? 'active' : ''}`;
+                    item.onclick = () => selectRegulation(r.id);
+                    
+                    const dateFormatted = new Date(r.created_at).toLocaleDateString();
+                    item.innerHTML = `
+                        <div class="regulation-item-title">${r.title}</div>
+                        <div class="regulation-item-meta">
+                            <span>Tasks: ${r.actions_required.length}</span>
+                            <span>${dateFormatted}</span>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch(e) {
+                console.error("Error regulations:", e);
+            }
+        }
+
+        // Select Regulation
+        function selectRegulation(id) {
+            if(currentRegulationId === id) {
+                currentRegulationId = null; // Toggle off filter
+            } else {
+                currentRegulationId = id;
+            }
+            fetchRegulations();
+            fetchTasks();
+        }
+
+        // Fetch Tasks
+        async function fetchTasks() {
+            try {
+                let url = `${API_URL}/tasks`;
+                if(currentRegulationId) {
+                    url += `?regulation_id=${currentRegulationId}`;
+                }
+                const res = await fetch(url);
+                allTasks = await res.json();
+                renderTasksBoard();
+            } catch(e) {
+                console.error("Error tasks:", e);
+            }
+        }
+
+        // Render Tasks board
+        function renderTasksBoard() {
+            const container = document.getElementById('tasks-list');
+            container.innerHTML = '';
+            
+            let filtered = allTasks;
+            
+            // Search filter
+            const query = document.getElementById('search-task').value.toLowerCase().trim();
+            if(query) {
+                filtered = filtered.filter(t => t.title.toLowerCase().includes(query) || t.description.toLowerCase().includes(query));
+            }
+            
+            // Department filter
+            if(activeDeptFilter !== 'All') {
+                filtered = filtered.filter(t => t.department === activeDeptFilter);
+            }
+            
+            // Status filter
+            if(activeStatusFilter !== 'All') {
+                filtered = filtered.filter(t => t.status === activeStatusFilter);
+            }
+
+            if(filtered.length === 0) {
+                container.innerHTML = '<div style="padding:3rem; text-align:center; color:var(--text-secondary); font-size:0.9rem;">No compliance tasks found matching criteria.</div>';
+                return;
+            }
+
+            filtered.forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'task-row';
+                row.onclick = () => openTaskDetails(t.id);
+                
+                row.innerHTML = `
+                    <div class="task-main-info">
+                        <div class="task-title">${t.title}</div>
+                        <div class="task-desc-brief">${t.description}</div>
+                    </div>
+                    <div>
+                        <span class="task-dept">${t.department}</span>
+                    </div>
+                    <div class="task-deadline">${t.deadline}</div>
+                    <div>
+                        <span class="status-badge ${t.status}">${t.status.replace('_', ' ')}</span>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function filterByDept(dept) {
+            activeDeptFilter = dept;
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(t => {
+                if(t.textContent.trim() === dept || (dept === 'All' && t.textContent.includes('All'))) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            renderTasksBoard();
+        }
+
+        function filterByStatus(status, badgeElement) {
+            activeStatusFilter = status;
+            const badges = document.querySelectorAll('.badge-filter');
+            badges.forEach(b => b.classList.remove('active'));
+            badgeElement.classList.add('active');
+            renderTasksBoard();
+        }
+
+        function searchTasks(val) {
+            renderTasksBoard();
+        }
+
+        // Upload Regulation File
+        async function uploadRegulationFile(file) {
+            if(!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Show loading placeholder
+            const container = document.getElementById('regulation-list');
+            container.innerHTML = '<div style="font-size:0.8rem; color:var(--text-secondary); text-align:center; padding:1.5rem;">Extracting tasks using Qwen2.5-VL...</div>';
+            
+            try {
+                const res = await fetch(`${API_URL}/regulations/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || "Server error occurred");
+                }
+                
+                const data = await res.json();
+                currentRegulationId = data.id;
+                fetchStats();
+                fetchRegulations();
+                fetchTasks();
+            } catch(e) {
+                console.error("Error uploading regulation:", e);
+                alert("Failed to process regulation file: " + e.message);
+                fetchRegulations();
+                fetchTasks();
+            }
+        }
+
+        // Upload Regulation Text
+        async function uploadRegulationText() {
+            const text = document.getElementById('reg-text-input').value.trim();
+            if(!text) return;
+            
+            const formData = new FormData();
+            formData.append('text_content', text);
+            
+            // Show loading
+            const container = document.getElementById('regulation-list');
+            container.innerHTML = '<div style="font-size:0.8rem; color:var(--text-secondary); text-align:center; padding:1.5rem;">Extracting tasks using Qwen2.5-VL...</div>';
+            
+            try {
+                const res = await fetch(`${API_URL}/regulations/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || "Server error occurred");
+                }
+                
+                const data = await res.json();
+                document.getElementById('reg-text-input').value = '';
+                currentRegulationId = data.id;
+                fetchStats();
+                fetchRegulations();
+                fetchTasks();
+            } catch(e) {
+                console.error("Error uploading regulation:", e);
+                alert("Failed to process regulation text: " + e.message);
+                fetchRegulations();
+                fetchTasks();
+            }
+        }
+
+        // Modal sidebar controls
+        async function openTaskDetails(taskId) {
+            selectedTaskId = taskId;
+            document.getElementById('task-modal').style.display = 'flex';
+            document.getElementById('modal-report-section').style.display = 'none';
+            document.getElementById('ai-loading').style.display = 'none';
+            
+            fetchTaskDetails(taskId);
+        }
+
+        function hideModal() {
+            document.getElementById('task-modal').style.display = 'none';
+            selectedTaskId = null;
+            fetchStats();
+            fetchTasks(); 
+        }
+
+        function closeModal(e) {
+            hideModal();
+        }
+
+        // Fetch task details for modal
+        async function fetchTaskDetails(id) {
+            try {
+                const res = await fetch(`${API_URL}/tasks/${id}`);
+                const t = await res.json();
+                
+                document.getElementById('modal-task-title').textContent = t.title;
+                document.getElementById('modal-task-desc').textContent = t.description;
+                document.getElementById('modal-task-deadline').textContent = t.deadline;
+                document.getElementById('modal-task-dept').textContent = t.department;
+                
+                const statusBadge = document.getElementById('modal-task-status');
+                statusBadge.textContent = t.status.replace('_', ' ');
+                statusBadge.className = `status-badge ${t.status}`;
+                
+                // Render evidence list
+                const evidenceContainer = document.getElementById('modal-evidence-list');
+                evidenceContainer.innerHTML = '';
+                
+                if(t.evidence.length === 0) {
+                    evidenceContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-secondary); text-align:center; padding:1rem 0;">No evidence files uploaded yet.</div>';
+                } else {
+                    t.evidence.forEach(e => {
+                        const filename = e.file_path.split(/[\\/]/).pop().replace(`task_${id}_`, '');
+                        const item = document.createElement('div');
+                        item.className = 'evidence-item';
+                        
+                        item.innerHTML = `
+                            <div class="evidence-meta">
+                                <span class="evidence-name">${filename}</span>
+                                <span class="evidence-type">${e.file_type}</span>
+                            </div>
+                            <button class="verify-trigger-btn" onclick="triggerAIVerification(${e.id})">Verify Proof</button>
+                        `;
+                        evidenceContainer.appendChild(item);
+                    });
+                }
+                
+                // Show latest report if exists
+                if(t.reports && t.reports.length > 0) {
+                    displayComplianceReport(t.reports[0]);
+                }
+            } catch(err) {
+                console.error("Error loading task details:", err);
+            }
+        }
+
+        // Upload Evidence
+        async function uploadEvidenceFile(file) {
+            if(!file || !selectedTaskId) return;
+            
+            const formData = new FormData();
+            formData.append('task_id', selectedTaskId);
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch(`${API_URL}/evidence/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || "Server error occurred");
+                }
+                
+                fetchTaskDetails(selectedTaskId);
+            } catch(e) {
+                console.error("Error uploading evidence:", e);
+                alert("Failed to upload evidence: " + e.message);
+            }
+        }
+
+        // Trigger AI Verification
+        async function triggerAIVerification(evidenceId) {
+            if(!selectedTaskId) return;
+            
+            const loader = document.getElementById('ai-loading');
+            const loaderText = document.getElementById('ai-loading-text');
+            const reportSection = document.getElementById('modal-report-section');
+            
+            loader.style.display = 'flex';
+            loaderText.textContent = "AI compliance verification queued...";
+            reportSection.style.display = 'none';
+            
+            try {
+                const res = await fetch(`${API_URL}/evidence/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        task_id: selectedTaskId,
+                        evidence_id: evidenceId
+                    })
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || "Server error occurred");
+                }
+                
+                const responseData = await res.json();
+                const reportId = responseData.report_id;
+                
+                // Start polling status
+                pollVerificationStatus(reportId);
+                
+            } catch(e) {
+                console.error("AI verify error:", e);
+                alert("AI verification failed: " + e.message);
+                loader.style.display = 'none';
+            }
+        }
+
+        // Poll verification status until finished
+        function pollVerificationStatus(reportId) {
+            const loader = document.getElementById('ai-loading');
+            const loaderText = document.getElementById('ai-loading-text');
+            const reportSection = document.getElementById('modal-report-section');
+            
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_URL}/verification/${reportId}`);
+                    if (!res.ok) {
+                        clearInterval(interval);
+                        throw new Error("Failed to fetch verification status");
+                    }
+                    
+                    const report = await res.json();
+                    
+                    if (report.status === "QUEUED") {
+                        loaderText.textContent = "Verification queued... (" + (report.progress || "0%") + ")";
+                    } else if (report.status === "PROCESSING") {
+                        loaderText.textContent = "Qwen analyzing evidence... (" + (report.progress || "50%") + ")";
+                    } else if (report.status === "FAILED") {
+                        clearInterval(interval);
+                        loader.style.display = 'none';
+                        alert("AI verification failed: " + report.reason);
+                        fetchTaskDetails(selectedTaskId);
+                    } else {
+                        // Success / finished states (COMPLETED, IN_PROGRESS, NOT_STARTED)
+                        clearInterval(interval);
+                        loader.style.display = 'none';
+                        displayComplianceReport(report);
+                        fetchTaskDetails(selectedTaskId);
+                        fetchStats(); // Update dashboard overview stats
+                    }
+                } catch(e) {
+                    clearInterval(interval);
+                    console.error("Polling error:", e);
+                    loader.style.display = 'none';
+                    alert("AI verification status polling error: " + e.message);
+                }
+            }, 2000);
+        }
+
+
+        // Display compliance report
+        function displayComplianceReport(report) {
+            const reportSection = document.getElementById('modal-report-section');
+            const card = document.getElementById('modal-report-card');
+            reportSection.style.display = 'block';
+            
+            const confPct = (report.confidence * 100).toFixed(0) + '%';
+            
+            // Build checklist
+            let matchedHTML = '';
+            report.evidence_found.forEach(item => {
+                matchedHTML += `
+                    <div class="checklist-item">
+                        <span class="checklist-icon check">✓</span>
+                        <span>${item}</span>
+                    </div>
+                `;
+            });
+            
+            let missingHTML = '';
+            report.missing_requirements.forEach(item => {
+                missingHTML += `
+                    <div class="checklist-item">
+                        <span class="checklist-icon cross">✗</span>
+                        <span>${item}</span>
+                    </div>
+                `;
+            });
+            
+            card.innerHTML = `
+                <div class="report-header">
+                    <span class="status-badge ${report.status}">${report.status.replace('_', ' ')}</span>
+                    <div class="report-confidence-gauge">
+                        <span class="confidence-label">AI Confidence</span>
+                        <span class="confidence-value">${confPct}</span>
+                    </div>
+                </div>
+                
+                <div class="checklist-group">
+                    <div class="checklist-title" style="color:var(--color-success);">Evidence Found</div>
+                    ${matchedHTML ? matchedHTML : '<div style="font-size:0.8rem; color:var(--text-secondary);">No supporting evidence items matched.</div>'}
+                </div>
+                
+                <div class="checklist-group">
+                    <div class="checklist-title" style="color:var(--color-danger);">Missing / Incomplete Requirements</div>
+                    ${missingHTML ? missingHTML : '<div style="font-size:0.8rem; color:var(--text-secondary);">No missing requirements found.</div>'}
+                </div>
+                
+                <div class="report-reason-box" style="border-left-color: ${report.status === 'COMPLETED' ? 'var(--color-success)' : report.status === 'IN_PROGRESS' ? 'var(--color-warning)' : 'var(--color-danger)'};">
+                    ${report.reason}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

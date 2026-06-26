@@ -15,11 +15,16 @@ if db_url.startswith("postgres://"):
 
 # Create the database engine
 try:
-    if db_url.startswith("sqlite:"):
+    if "sqlite:///:memory:" in db_url:
         engine = create_engine(
             db_url,
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
+        )
+    elif db_url.startswith("sqlite:"):
+        engine = create_engine(
+            db_url,
+            connect_args={"check_same_thread": False, "timeout": 30.0},
         )
     else:
         engine = create_engine(

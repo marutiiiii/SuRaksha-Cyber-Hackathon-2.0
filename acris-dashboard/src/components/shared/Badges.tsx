@@ -22,7 +22,7 @@ export function StatusBadge({ status }: { status: string }) {
   const cls =
     s.includes("complete") || s === "active" || s === "healthy"
       ? "bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))] border-[hsl(var(--success)/0.4)]"
-      : s.includes("pending") || s.includes("attention") || s.includes("review")
+      : s.includes("pending") || s.includes("attention") || s.includes("review") || s.includes("validation")
       ? "bg-[hsl(var(--warning)/0.12)] text-[hsl(var(--warning))] border-[hsl(var(--warning)/0.4)]"
       : s.includes("progress") || s.includes("assigned")
       ? "bg-[hsl(var(--info)/0.12)] text-[hsl(var(--info))] border-[hsl(var(--info)/0.4)]"

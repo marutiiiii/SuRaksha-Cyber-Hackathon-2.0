@@ -145,9 +145,35 @@ try:
                         m.assigned_department = "Operations"
             db.commit()
             print("Backfilled assigned_department for existing maps")
+            
+        # Clean up obsolete statuses in existing database records
+        db.execute(text("UPDATE maps SET status = 'Pending' WHERE status = 'Assigned'"))
+        db.execute(text("UPDATE maps SET status = 'Awaiting Validation' WHERE status = 'Review'"))
+        db.execute(text("UPDATE evidences SET requested_status = 'Pending' WHERE requested_status = 'Assigned'"))
+        db.execute(text("UPDATE evidences SET requested_status = 'Awaiting Validation' WHERE requested_status = 'Review'"))
+        db.execute(text("UPDATE evidences SET previous_status = 'Pending' WHERE previous_status = 'Assigned'"))
+        db.execute(text("UPDATE evidences SET previous_status = 'Awaiting Validation' WHERE previous_status = 'Review'"))
+        
+        # Clean up stale/processing evidence records stuck during restart (progress != 0% and progress != 100%)
+        stale_evidences = db.execute(text("SELECT id, map_id, previous_status FROM evidences WHERE validation_status = 'Pending' AND progress != '0%' AND progress != '100%'")).fetchall()
+        if stale_evidences:
+            for row in stale_evidences:
+                ev_id, map_id, prev_status = row
+                target_status = prev_status or 'Pending'
+                db.execute(text("UPDATE maps SET status = :status WHERE id = :map_id"), {"status": target_status, "map_id": map_id})
+            
+            db.execute(text("""
+                UPDATE evidences 
+                SET validation_status = 'Failed', progress = '100%', rejection_reason = 'Validation interrupted due to server restart.', ai_notes = 'Validation interrupted due to server restart.'
+                WHERE validation_status = 'Pending' AND progress != '0%' AND progress != '100%'
+            """))
+            print(f"Cleaned up {len(stale_evidences)} stale evidence records stuck in progress.")
+            
+        db.commit()
+        print("Migrated obsolete MAP and Evidence statuses ('Assigned' -> 'Pending', 'Review' -> 'Awaiting Validation')")
     except Exception as ex:
         db.rollback()
-        print(f"Error backfilling assigned_department: {ex}")
+        print(f"Error backfilling or migrating statuses: {ex}")
 
     # Seed default demo user and organization
     from app.models.models import Organization, User
@@ -430,4 +456,4 @@ backfill_thread.start()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)

@@ -29,9 +29,9 @@ class TestComplianceEngine(unittest.TestCase):
         
     def test_br_013_sequential_transitions(self):
         """
-        Verify sequential status flow: Pending -> Assigned -> In Progress -> Review -> Completed
+        Verify sequential status flow: Pending -> In Progress -> Awaiting Validation -> Completed
         """
-        COLUMNS = ["Pending", "Assigned", "In Progress", "Review", "Completed"]
+        COLUMNS = ["Pending", "In Progress", "Awaiting Validation", "Completed"]
         
         # Helper to validate sequential transition
         def is_transition_valid(current: str, target: str) -> bool:
@@ -41,16 +41,14 @@ class TestComplianceEngine(unittest.TestCase):
             target_idx = COLUMNS.index(target)
             return abs(target_idx - source_idx) <= 1
             
-        self.assertTrue(is_transition_valid("Pending", "Assigned"))
-        self.assertTrue(is_transition_valid("Assigned", "In Progress"))
-        self.assertTrue(is_transition_valid("In Progress", "Review"))
-        self.assertTrue(is_transition_valid("Review", "Completed"))
-        self.assertTrue(is_transition_valid("Review", "In Progress"))  # Allow backtracking by 1 step for corrections
+        self.assertTrue(is_transition_valid("Pending", "In Progress"))
+        self.assertTrue(is_transition_valid("In Progress", "Awaiting Validation"))
+        self.assertTrue(is_transition_valid("Awaiting Validation", "Completed"))
+        self.assertTrue(is_transition_valid("Awaiting Validation", "In Progress"))  # Allow backtracking by 1 step for corrections
         
         # Disallowed transitions (skipping stages)
         self.assertFalse(is_transition_valid("Pending", "Completed"))
-        self.assertFalse(is_transition_valid("Assigned", "Completed"))
-        self.assertFalse(is_transition_valid("Pending", "In Progress"))
+        self.assertFalse(is_transition_valid("Pending", "Awaiting Validation"))
         self.assertFalse(is_transition_valid("In Progress", "Completed"))
         
     def test_br_014_completed_maps_locked(self):

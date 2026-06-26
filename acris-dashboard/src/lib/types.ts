@@ -4,7 +4,7 @@
 
 export type Risk = "High" | "Medium" | "Low";
 export type Severity = "Critical" | "High" | "Medium" | "Low";
-export type MapStatus = "Pending" | "Assigned" | "In Progress" | "Review" | "Awaiting Validation" | "Completed";
+export type MapStatus = "Pending" | "In Progress" | "Awaiting Validation" | "Completed";
 
 export interface MAP {
   id: string;

@@ -1,27 +1,13 @@
 import os
+import torch
 import json
 import re
 import time
 import threading
 from typing import List, Dict, Any, Optional
-
-try:
-    import torch
-except ModuleNotFoundError:
-    torch = None
-
-try:
-    from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
-except ModuleNotFoundError:
-    Qwen2_5_VLForConditionalGeneration = None
-    AutoProcessor = None
-
-try:
-    from qwen_vl_utils import process_vision_info
-except ModuleNotFoundError:
-    process_vision_info = None
-
-from app.core.config import settings
+from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+from qwen_vl_utils import process_vision_info
+import config
 
 # Global variables for model state
 _model = None
@@ -35,26 +21,12 @@ load_time_sec = 0.0
 # Concurrency lock to prevent concurrent model invocations
 _model_lock = threading.Lock()
 
-
-def _qwen_runtime_available() -> bool:
-    return (
-        torch is not None
-        and Qwen2_5_VLForConditionalGeneration is not None
-        and AutoProcessor is not None
-        and process_vision_info is not None
-    )
-
-
 def verify_model_integrity() -> bool:
     """
     Check if the local Qwen2.5-VL-3B-Instruct directory exists and
     all key metadata and weight files are present and non-empty.
     """
-    if not _qwen_runtime_available():
-        print("Qwen runtime dependencies are not installed; skipping integrity check.")
-        return False
-
-    model_path = settings.QWEN_MODEL_PATH
+    model_path = config.MODEL_PATH
     if not os.path.exists(model_path):
         print(f"Model path does not exist: {model_path}")
         return False
@@ -92,18 +64,12 @@ def load_qwen_model_on_startup() -> bool:
             print("Local Qwen model already loaded and ready.")
             return True
             
-        if not _qwen_runtime_available():
-            load_error_message = "Qwen runtime dependencies are not installed. Install torch, transformers, and qwen_vl_utils to enable model-based evidence analysis."
-            print(load_error_message)
-            model_ready = False
-            return False
-
         print("--------------------------------------------------")
-        print(f"Model Path: {settings.QWEN_MODEL_PATH}")
+        print(f"Model Path: {config.MODEL_PATH}")
         
         # 1. Verify files exist
         if not verify_model_integrity():
-            load_error_message = f"Model integrity check failed at {settings.QWEN_MODEL_PATH}. Ensure all config and safetensors files are fully present."
+            load_error_message = f"Model integrity check failed at {config.MODEL_PATH}. Ensure all config and safetensors files are fully present."
             print(f"Error: {load_error_message}")
             print("--------------------------------------------------")
             model_ready = False
@@ -137,7 +103,7 @@ def load_qwen_model_on_startup() -> bool:
         try:
             print("Loading processor...")
             _processor = AutoProcessor.from_pretrained(
-                settings.QWEN_MODEL_PATH,
+                config.MODEL_PATH,
                 local_files_only=True
             )
             
@@ -147,7 +113,7 @@ def load_qwen_model_on_startup() -> bool:
                     print("Loading model on GPU...")
                     # We load in bfloat16 for fast GPU inference
                     _model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-                        settings.QWEN_MODEL_PATH,
+                        config.MODEL_PATH,
                         torch_dtype=torch.bfloat16,
                         device_map="auto",
                         local_files_only=True
@@ -161,19 +127,20 @@ def load_qwen_model_on_startup() -> bool:
                     device_used = "cpu"
                     
             if not cuda_available:
-                print("Loading model on CPU (float32)...")
+                print("Loading model on CPU (bfloat16)...")
                 try:
                     _model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-                        settings.QWEN_MODEL_PATH,
-                        torch_dtype=torch.float32,
+                        config.MODEL_PATH,
+                        torch_dtype=torch.bfloat16,
                         device_map="cpu",
                         local_files_only=True
                     )
-                except Exception as cpu_f32_err:
-                    print(f"CPU float32 load failed: {cpu_f32_err}. Retrying in float32 without device_map...")
+                except Exception as cpu_bf16_err:
+                    print(f"CPU bfloat16 load failed: {cpu_bf16_err}. Retrying in float32...")
                     _model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-                        settings.QWEN_MODEL_PATH,
+                        config.MODEL_PATH,
                         torch_dtype=torch.float32,
+                        device_map="cpu",
                         local_files_only=True
                     )
                 model_loaded = True
@@ -206,9 +173,6 @@ def run_qwen_inference(messages: List[Dict[str, Any]], max_tokens: int = 2048) -
     """
     Thread-safe inference using the Qwen2.5-VL model.
     """
-    if not _qwen_runtime_available():
-        raise RuntimeError("Qwen runtime dependencies are not installed. Falling back to local validation logic.")
-
     model, processor = get_model_and_processor()
     
     with _model_lock:
@@ -236,7 +200,6 @@ def run_qwen_inference(messages: List[Dict[str, Any]], max_tokens: int = 2048) -
             # Print prompt and image statistics before inference
             prompt_len = len(text)
             num_pages = len(image_inputs) if image_inputs else 0
-            prompt_tokens = inputs.input_ids.shape[1] if hasattr(inputs, "input_ids") else 0
             
             # Calculate evidence text length
             evidence_text_len = 0
@@ -251,26 +214,27 @@ def run_qwen_inference(messages: List[Dict[str, Any]], max_tokens: int = 2048) -
                             # Exclude prompt instructions from evidence length calculation if possible
                             if "compliance requirements" not in text_val.lower() and "compliance audit" not in text_val.lower():
                                 evidence_text_len += len(text_val)
-
-            print("\n==================================================")
-            print("         QWEN MODEL INPUT STATISTICS              ")
-            print("==================================================")
-            print("  - Number of Regulations loaded/passed to Qwen: 0")
-            print("  - Number of MAPs loaded/passed to Qwen: 0 (processed locally)")
-            print(f"  - Number of Evidence Pages being sent to Qwen: {num_pages}")
-            print(f"  - Exact Prompt Character Size: {prompt_len} chars")
-            print(f"  - Exact Prompt Token Count (Context Size): {prompt_tokens} tokens")
-            print(f"  - Model Device: {device}")
-            print(f"  - Model Dtype: {model.dtype}")
-            print("==================================================\n")
+            
+            print(f"Evidence text length: {evidence_text_len}")
+            print(f"Prompt length: {prompt_len}")
+            print(f"Number of pages: {num_pages}")
+            
+            # Print before inference details
+            prompt_tokens = inputs.input_ids.shape[1] if hasattr(inputs, "input_ids") else 0
+            print(f"Model Device: {device}")
+            print(f"Model Dtype: {model.dtype}")
+            print(f"Prompt Tokens: {prompt_tokens}")
+            print(f"Evidence Characters: {evidence_text_len}")
             
             # 4. Generate response in inference mode
-            from app.core.timing_tracker import tracker
+            import time
+            from utils.timing_tracker import tracker
             t_inf_start = time.time()
             with torch.inference_mode():
                 generated_ids = model.generate(**inputs, max_new_tokens=max_tokens)
             tracker.add_model_inference(time.time() - t_inf_start)
 
+                
             # Trim input tokens
             generated_ids_trimmed = [
                 out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -292,10 +256,6 @@ def run_qwen_json_inference(messages: List[Dict[str, Any]], max_tokens: int = 20
     """
     Run inference and enforce/parse JSON output from the model.
     """
-    if not _qwen_runtime_available():
-        print("Qwen runtime dependencies are not installed; returning empty structured fallback data.")
-        return {"text": [], "objects": [], "screens": [], "tables": []}
-
     json_instruction = "\nIMPORTANT: Return ONLY a valid JSON object. Do not include any introductory or concluding text. Your entire response must parse as a JSON object."
     
     # Clone messages

@@ -13,7 +13,7 @@ import { api } from "@/lib/api";
 import { useOrgProfile } from "@/state/OrgProfileContext";
 import { useAuth } from "@/state/AuthContext";
 
-const COLUMNS: MapStatus[] = ["Pending", "Assigned", "In Progress", "Review", "Awaiting Validation", "Completed"];
+const COLUMNS: MapStatus[] = ["Pending", "In Progress", "Awaiting Validation", "Completed"];
 
 function RiskBadge({ risk }: { risk: string }) {
   let badgeClass = "badge-medium";
@@ -27,7 +27,15 @@ function RiskBadge({ risk }: { risk: string }) {
   );
 }
 
-function Card({ map }: { map: MAP }) {
+function Card({ 
+  map, 
+  onViewDetails, 
+  onDoubleClick 
+}: { 
+  map: MAP; 
+  onViewDetails: () => void; 
+  onDoubleClick?: () => void; 
+}) {
   const isLocked = map.status === "Completed" || map.status === "Awaiting Validation";
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: map.id,
@@ -49,6 +57,7 @@ function Card({ map }: { map: MAP }) {
       style={style}
       {...(!isLocked ? listeners : {})}
       {...(!isLocked ? attributes : {})}
+      onDoubleClick={onDoubleClick}
       className={`bg-card border border-border rounded-lg p-3.5 shadow-sm transition-all border-l-4 ${sevBorder} ${isLocked
           ? "cursor-default opacity-75 bg-muted/5"
           : "cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
@@ -60,21 +69,39 @@ function Card({ map }: { map: MAP }) {
           {map.status === "Completed" && <Lock className="h-3 w-3 text-muted-foreground/80" />}
           {map.status === "Awaiting Validation" && <Loader2 className="h-3 w-3 animate-spin text-amber-500" />}
         </span>
-        <RiskBadge risk={map.severity} />
+        <button 
+          onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+          className="text-[9px] text-[#1E40AF] hover:underline font-bold"
+        >
+          View details
+        </button>
       </div>
       <div className="text-xs font-bold text-foreground leading-snug mb-2.5">{map.title}</div>
       <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
         <span className="flex items-center gap-1.5" title={map.owner || "Unowned"}><User className="h-3 w-3" />{initials}</span>
         <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />{map.dueDate}</span>
       </div>
-      <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mt-2 pt-1 border-t border-border/40">
-        {map.department || "Compliance"}
+      <div className="flex items-center justify-between mt-2 pt-1 border-t border-border/40">
+        <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
+          {map.department || "Compliance"}
+        </div>
+        <RiskBadge risk={map.severity} />
       </div>
     </div>
   );
 }
 
-function Column({ status, cards, onOpen }: { status: MapStatus; cards: MAP[]; onOpen: (m: MAP) => void }) {
+function Column({ 
+  status, 
+  cards, 
+  onViewDetails, 
+  onProceed 
+}: { 
+  status: MapStatus; 
+  cards: MAP[]; 
+  onViewDetails: (m: MAP) => void; 
+  onProceed: (m: MAP) => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
     <div
@@ -90,9 +117,12 @@ function Column({ status, cards, onOpen }: { status: MapStatus; cards: MAP[]; on
       </div>
       <div className="p-2.5 space-y-2.5 flex-1 overflow-y-auto max-h-[500px]">
         {cards.map((c) => (
-          <div key={c.id} onDoubleClick={() => onOpen(c)}>
-            <Card map={c} />
-          </div>
+          <Card 
+            key={c.id} 
+            map={c} 
+            onViewDetails={() => onViewDetails(c)} 
+            onDoubleClick={() => onProceed(c)} 
+          />
         ))}
         {cards.length === 0 && (
           <div className="h-full flex items-center justify-center py-10 text-center">
@@ -131,8 +161,7 @@ export default function Maps() {
   const [modalFile, setModalFile] = useState<File | null>(null);
   const [modalUploading, setModalUploading] = useState(false);
 
-  // Drawer upload target state
-  const [drawerTargetStatus, setDrawerTargetStatus] = useState<string>("");
+  // Drawer upload target state removed since transition is sequential/automatic
 
   const loadMaps = () => {
     api.listMaps()
@@ -236,17 +265,7 @@ export default function Maps() {
     }
   }, [open?.id, evidenceList, open?.status]);
 
-  // Set default drawer target status on load
-  useEffect(() => {
-    if (open) {
-      const currentIndex = COLUMNS.indexOf(open.status);
-      const allowed = COLUMNS.filter((col, idx) => {
-        if (col === "Awaiting Validation") return false;
-        return Math.abs(idx - currentIndex) === 1;
-      });
-      setDrawerTargetStatus(allowed[0] || "");
-    }
-  }, [open]);
+  // Default target status effect removed
 
   const handleEvidenceUpload = async (file: File, requestedStatus: string) => {
     if (!open?.id) return;
@@ -310,12 +329,28 @@ export default function Maps() {
   const kpis = useMemo(() => ({
     total: filteredItems.length,
     pending: filteredItems.filter((m) => m.status === "Pending").length,
-    assigned: filteredItems.filter((m) => m.status === "Assigned").length,
     inProgress: filteredItems.filter((m) => m.status === "In Progress").length,
     awaitingValidation: filteredItems.filter((m) => m.status === "Awaiting Validation").length,
     completed: filteredItems.filter((m) => m.status === "Completed").length,
     overdue: filteredItems.filter((m) => m.status !== "Completed" && m.status !== "Awaiting Validation" && new Date(m.dueDate) < new Date()).length,
   }), [filteredItems]);
+
+  const handleProceed = (card: MAP) => {
+    if (card.status === "Completed" || card.status === "Awaiting Validation") {
+      setOpen(card);
+      return;
+    }
+    const currentIndex = COLUMNS.indexOf(card.status);
+    const nextStatus = COLUMNS[currentIndex + 1];
+    if (nextStatus) {
+      setEvidenceModal({
+        open: true,
+        mapId: card.id,
+        mapTitle: card.title,
+        requestedStatus: nextStatus,
+      });
+    }
+  };
 
   const onDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
@@ -333,70 +368,27 @@ export default function Maps() {
       return;
     }
 
-    if (target === "Awaiting Validation" && userType !== "admin") {
-      toast({
-        title: "Invalid Action",
-        description: "Moving cards directly to 'Awaiting Validation' is not allowed. Upload evidence to request this transition.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (target === card.status) return;
 
     const sourceIndex = COLUMNS.indexOf(card.status);
     const targetIndex = COLUMNS.indexOf(target);
 
-    if (Math.abs(targetIndex - sourceIndex) > 1) {
+    if (targetIndex - sourceIndex !== 1) {
       toast({
         title: "Workflow Violation",
-        description: `Cannot move MAP from "${card.status}" directly to "${target}". Transitions must be sequential.`,
+        description: `Cannot move MAP from "${card.status}" to "${target}". You must move it sequentially to the next column.`,
         variant: "destructive",
       });
       return;
     }
 
-    if (userType === "department_officer") {
-      setEvidenceModal({
-        open: true,
-        mapId: card.id,
-        mapTitle: card.title,
-        requestedStatus: target,
-      });
-      return;
-    }
-
-    // Admin direct transition
-    const previousItems = [...items];
-    setItems((arr) => arr.map((m) => (m.id === active.id ? { ...m, status: target } : m)));
-
-    try {
-      let currentMapId = card.id;
-      if (card.id.startsWith("MAP-")) {
-        const created = await api.createMap({
-          title: card.title,
-          description: card.description,
-          owner: card.owner,
-          severity: card.severity,
-          deadline: card.dueDate,
-          clause_ref: card.regulationId,
-        });
-        currentMapId = created.id;
-        setItems((arr) => arr.map((m) => (m.id === active.id ? { ...m, id: created.id, status: target } : m)));
-      }
-
-      await api.updateMapStatus(currentMapId, target);
-      toast({
-        title: "MAP status updated",
-        description: `"${card.title}" moved to "${target}".`,
-      });
-      loadMaps();
-    } catch (err: any) {
-      setItems(previousItems);
-      toast({
-        title: "Failed to update MAP",
-        description: err.message || "An error occurred.",
-        variant: "destructive",
-      });
-    }
+    // Open evidence upload modal for all users to proceed
+    setEvidenceModal({
+      open: true,
+      mapId: card.id,
+      mapTitle: card.title,
+      requestedStatus: target,
+    });
   };
 
   const allowedDrawerStatuses = useMemo(() => {
@@ -445,10 +437,10 @@ export default function Maps() {
           subMetrics={[{ label: "Avg Age", value: "4.1 days" }]}
         />
         <EnhancedKpiCard
-          label="Assigned"
-          value={kpis.assigned}
-          tone="info"
-          subMetrics={[{ label: "Owners", value: `${new Set(filteredItems.map(m => m.department)).size} depts` }]}
+          label="Awaiting Validation"
+          value={kpis.awaitingValidation}
+          tone="warning"
+          subMetrics={[{ label: "Pending Review", value: `${kpis.awaitingValidation} tasks` }]}
         />
         <EnhancedKpiCard
           label="In Progress"
@@ -476,9 +468,7 @@ export default function Maps() {
           title="Workflow Pipeline Progress"
           steps={[
             { label: "Pending", count: kpis.pending, tone: "warning" },
-            { label: "Assigned", count: kpis.assigned, tone: "info" },
             { label: "In Progress", count: kpis.inProgress, tone: "info" },
-            { label: "Review", count: filteredItems.filter((m) => m.status === "Review").length, tone: "warning" },
             { label: "Awaiting Validation", count: kpis.awaitingValidation, tone: "warning" },
             { label: "Completed", count: kpis.completed, tone: "success" },
           ]}
@@ -502,9 +492,15 @@ export default function Maps() {
 
       {/* DND Board */}
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {COLUMNS.map((c) => (
-            <Column key={c} status={c} cards={filteredItems.filter((m) => m.status === c)} onOpen={setOpen} />
+            <Column 
+              key={c} 
+              status={c} 
+              cards={filteredItems.filter((m) => m.status === c)} 
+              onViewDetails={setOpen} 
+              onProceed={handleProceed} 
+            />
           ))}
         </div>
       </DndContext>
@@ -699,28 +695,10 @@ export default function Maps() {
 
               {open.status !== "Completed" && open.status !== "Awaiting Validation" && (
                 <div className="pt-2 space-y-3">
-                  {userType === "department_officer" && (
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground block">
-                        Select Target transition status
-                      </label>
-                      <select
-                        value={drawerTargetStatus}
-                        onChange={(e) => setDrawerTargetStatus(e.target.value)}
-                        className="w-full bg-card border border-border rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary/50 text-foreground"
-                      >
-                        {allowedDrawerStatuses.map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                        {allowedDrawerStatuses.length === 0 && (
-                          <option value="">No transition available</option>
-                        )}
-                      </select>
-                    </div>
-                  )}
-
                   <label className="border border-dashed border-border hover:border-primary/50 hover:bg-muted/10 rounded-lg p-5 flex flex-col items-center justify-center cursor-pointer transition-colors text-center bg-card relative">
-                    <span className="text-xs font-bold text-primary uppercase tracking-wider">Upload Verification Evidence</span>
+                    <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                      Upload Proof to proceed to {open.status === "Pending" ? "In Progress" : "Completed"}
+                    </span>
                     <span className="text-[10px] text-muted-foreground mt-1">PDF or TXT accepted</span>
                     <input
                       type="file"
@@ -729,15 +707,11 @@ export default function Maps() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const target = userType === "admin" ? COLUMNS[COLUMNS.indexOf(open.status) + 1] || "Completed" : drawerTargetStatus;
-                          if (!target) {
-                            toast({ title: "Invalid transition", description: "No sequential target status available.", variant: "destructive" });
-                            return;
-                          }
+                          const target = open.status === "Pending" ? "In Progress" : "Completed";
                           handleEvidenceUpload(file, target);
                         }
                       }}
-                      disabled={uploadingEvidence || (userType === "department_officer" && !drawerTargetStatus)}
+                      disabled={uploadingEvidence}
                     />
                   </label>
                   {uploadingEvidence && (

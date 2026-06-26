@@ -305,7 +305,7 @@ export default function DepartmentRouting() {
                     const deptColor = DEPARTMENTS.find(d => d.name.toLowerCase() === task.department.toLowerCase())?.color || "#64748B";
                     const statusColor = 
                       task.status === "Completed" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                      : task.status === "Review" ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                      : task.status === "Awaiting Validation" ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
                       : task.status === "In Progress" ? "bg-primary/10 text-primary border-primary/20"
                       : "bg-muted text-muted-foreground border-border";
 
