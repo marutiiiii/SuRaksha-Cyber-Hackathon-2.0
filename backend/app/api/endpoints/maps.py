@@ -3,7 +3,8 @@ import uuid
 import json
 import re
 import requests as _requests
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, BackgroundTasks
+from app.core.evidence_analyzer import verify_evidence_background
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
@@ -599,6 +600,7 @@ def update_map_status(
 @router.post("/{map_id}/evidence", response_model=EvidenceResponse)
 def upload_map_evidence(
     map_id: UUID,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     requested_status: str = Form(...),
     current_user: dict = Depends(get_current_user),
@@ -668,6 +670,9 @@ def upload_map_evidence(
     db.commit()
     db.refresh(db_ev)
     db.refresh(m)
+    
+    # Trigger background compliance verification task
+    background_tasks.add_task(verify_evidence_background, db_ev.id, db)
     
     return db_ev
 

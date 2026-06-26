@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Date, DateTime, Boolean, ForeignKey, Uuid, JSON, ARRAY, Text, Numeric
+from sqlalchemy import Column, String, Integer, Date, DateTime, Boolean, ForeignKey, Uuid, JSON, ARRAY, Text, Numeric, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -202,6 +202,11 @@ class Evidence(Base):
     requested_status = Column(String(50), nullable=True)
     previous_status = Column(String(50), nullable=True)
     rejection_reason = Column(Text, nullable=True)
+    confidence = Column(Float, nullable=True, default=0.0)
+    score = Column(Float, nullable=True, default=0.0)
+    evidence_found = Column(Text, nullable=True)
+    missing_requirements = Column(Text, nullable=True)
+    progress = Column(String(50), nullable=True, default="0%")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

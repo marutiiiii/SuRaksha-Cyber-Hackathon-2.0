@@ -185,6 +185,57 @@ export default function Maps() {
     }
   }, [open?.id]);
 
+  // Poll evidence if latest is still processing or Awaiting Validation
+  useEffect(() => {
+    if (!open?.id || open.id.startsWith("MAP-")) return;
+    
+    const latest = evidenceList[0];
+    const isProcessing = latest && latest.progress && latest.progress !== "100%";
+    const awaitingVal = open.status === "Awaiting Validation";
+    
+    if (isProcessing || awaitingVal) {
+      const interval = setInterval(() => {
+        api.listEvidence(open.id)
+          .then((res) => {
+            setEvidenceList(res || []);
+            const newLatest = res?.[0];
+            if (newLatest && newLatest.progress === "100%") {
+              api.listMaps()
+                .then((maps) => {
+                  const mapped = (maps || []).map((m: any) => ({
+                    id: m.id,
+                    title: m.title,
+                    description: m.description,
+                    owner: m.owner || "Compliance Team",
+                    ownerInitials: m.owner ? m.owner.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "CT",
+                    department: m.assigned_department || "Compliance",
+                    dueDate: m.deadline || new Date().toISOString().slice(0, 10),
+                    severity: m.severity,
+                    status: m.status as MapStatus,
+                    regulationId: m.clause_ref || "Circular",
+                    evidenceRequired: m.severity === "Critical" ? ["QA Validation", "Security Log Scan"] : ["Verification Record"],
+                    impact: m.description
+                  }));
+                  setItems(mapped);
+                  const updatedMap = mapped.find((m: any) => m.id === open.id);
+                  if (updatedMap) {
+                    setOpen(updatedMap);
+                  }
+                })
+                .catch((err) => {
+                  console.error("Failed to load maps during polling", err);
+                });
+            }
+          })
+          .catch((err) => {
+            console.error("Failed polling evidence list", err);
+          });
+      }, 3000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [open?.id, evidenceList, open?.status]);
+
   // Set default drawer target status on load
   useEffect(() => {
     if (open) {
@@ -233,7 +284,8 @@ export default function Maps() {
       setEvidenceList(updatedList || []);
 
       loadMaps();
-      setOpen(null);
+      // Keep drawer open and set status to Awaiting Validation so polling begins immediately
+      setOpen(prev => prev ? { ...prev, status: "Awaiting Validation" } : null);
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {
@@ -500,7 +552,7 @@ export default function Maps() {
             )}
 
             {/* Rejection notice if failed */}
-            {latestEvidence && latestEvidence.validation_status === "Failed" && (
+            {latestEvidence && latestEvidence.validation_status === "Failed" && latestEvidence.progress === "100%" && (
               <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-4 rounded-lg space-y-2">
                 <div className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider">
                   <AlertTriangle className="h-4 w-4 text-rose-500 animate-pulse" />
@@ -515,6 +567,28 @@ export default function Maps() {
               </div>
             )}
 
+            {/* AI Auditor Verification Progress Bar */}
+            {latestEvidence && latestEvidence.progress && latestEvidence.progress !== "100%" && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-4 rounded-lg space-y-2.5 animate-pulse">
+                <div className="flex items-center justify-between font-bold text-xs uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                    AI Compliance Verification in Progress...
+                  </span>
+                  <span className="font-mono text-xs">{latestEvidence.progress}</span>
+                </div>
+                <div className="w-full bg-muted border border-border h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-amber-500 h-full transition-all duration-500 ease-out" 
+                    style={{ width: latestEvidence.progress }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground font-semibold italic">
+                  Current stage: {latestEvidence.ai_notes || "Analyzing document details..."}
+                </p>
+              </div>
+            )}
+
             {/* Evidence Proof Management Panel */}
             <div className="border-t border-border pt-4 space-y-3">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-foreground">Compliance Evidence Proof</h4>
@@ -525,31 +599,88 @@ export default function Maps() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {evidenceList.map((ev) => (
-                    <div key={ev.id} className="border border-border p-3 rounded-lg bg-muted/20 text-xs space-y-2">
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="truncate max-w-[60%] text-foreground" title={ev.filename}>{ev.filename}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${ev.validation_status === "Passed" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                            : ev.validation_status === "Failed" ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                              : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                          }`}>{ev.validation_status}</span>
+                  {evidenceList.map((ev) => {
+                    const parseJsonSafe = (str: string | null) => {
+                      if (!str) return [];
+                      try {
+                        return JSON.parse(str);
+                      } catch {
+                        return [];
+                      }
+                    };
+                    const matchedReqs = parseJsonSafe(ev.evidence_found);
+                    const missingReqs = parseJsonSafe(ev.missing_requirements);
+
+                    return (
+                      <div key={ev.id} className="border border-border p-3 rounded-lg bg-muted/20 text-xs space-y-2">
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="truncate max-w-[60%] text-foreground" title={ev.filename}>{ev.filename}</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border ${
+                            ev.validation_status === "Passed" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              : ev.validation_status === "Failed" ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          }`}>{ev.validation_status === "Pending" && ev.progress && ev.progress !== "100%" ? `Validating (${ev.progress})` : ev.validation_status}</span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground space-y-0.5 font-semibold">
+                          <div>Transition to: <span className="text-foreground uppercase font-extrabold">{ev.requested_status}</span></div>
+                          <div>Previous state: <span className="text-foreground uppercase font-extrabold">{ev.previous_status || "—"}</span></div>
+                          <div>Uploaded: <span>{new Date(ev.created_at || ev.submitted_at).toLocaleString()}</span></div>
+                        </div>
+                        
+                        {ev.progress === "100%" && (
+                          <div className="border-t border-border/50 pt-2.5 mt-2.5 space-y-2 text-[10px] font-semibold">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">AI Audit Confidence:</span>
+                              <span className="font-bold text-foreground">{Math.round((ev.confidence || 0) * 100)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">Requirement Score:</span>
+                              <span className="font-bold text-foreground">{Math.round((ev.score || 0) * 100)}%</span>
+                            </div>
+                            
+                            {ev.ai_notes && (
+                              <div className="bg-muted/10 border border-border p-2.5 rounded text-foreground font-medium leading-relaxed mt-1">
+                                <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider block mb-1">AI Audit Findings:</span>
+                                {ev.ai_notes}
+                              </div>
+                            )}
+
+                            {matchedReqs.length > 0 && (
+                              <div className="mt-1">
+                                <span className="text-emerald-500 uppercase text-[9px] font-bold tracking-wider block mb-1">Requirements Satisfied:</span>
+                                <ul className="list-disc ml-4 space-y-0.5 text-muted-foreground">
+                                  {matchedReqs.map((item: string, idx: number) => (
+                                    <li key={idx} className="leading-snug">{item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {missingReqs.length > 0 && (
+                              <div className="mt-1">
+                                <span className="text-rose-500 uppercase text-[9px] font-bold tracking-wider block mb-1">Missing Elements:</span>
+                                <ul className="list-disc ml-4 space-y-0.5 text-muted-foreground">
+                                  {missingReqs.map((item: string, idx: number) => (
+                                    <li key={idx} className="leading-snug">{item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={() => api.downloadEvidence(ev.id, ev.filename)}
+                            className="px-2.5 py-1 bg-primary/10 border border-primary/20 hover:bg-primary/15 text-primary text-[10px] font-bold rounded flex items-center gap-1"
+                          >
+                            <FileDown className="h-3.5 w-3.5" />
+                            Download Proof
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-[10px] text-muted-foreground space-y-0.5 font-semibold">
-                        <div>Transition to: <span className="text-foreground uppercase font-extrabold">{ev.requested_status}</span></div>
-                        <div>Previous state: <span className="text-foreground uppercase font-extrabold">{ev.previous_status || "—"}</span></div>
-                        <div>Uploaded: <span>{new Date(ev.created_at || ev.submitted_at).toLocaleString()}</span></div>
-                      </div>
-                      <div className="flex gap-2 pt-1">
-                        <button
-                          onClick={() => api.downloadEvidence(ev.id, ev.filename)}
-                          className="px-2.5 py-1 bg-primary/10 border border-primary/20 hover:bg-primary/15 text-primary text-[10px] font-bold rounded flex items-center gap-1"
-                        >
-                          <FileDown className="h-3.5 w-3.5" />
-                          Download Proof
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {evidenceList.length === 0 && (
                     <p className="text-xs text-muted-foreground italic font-semibold text-center py-4 bg-muted/10 border border-dashed border-border rounded-lg">
