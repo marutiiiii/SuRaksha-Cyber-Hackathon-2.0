@@ -65,219 +65,181 @@ def generate_structured_fallback(
 ) -> str:
     msg_lower = message.lower()
     
-    # 1. Check if user is asking for open MAPs
-    if any(k in msg_lower for k in ["open map", "open maps", "pending task", "pending tasks", "my tasks", "action items"]):
-        total_open = len(open_maps)
-        if total_open > 0:
-            task_bullets = []
-            depts = set()
-            for m, _ in top_matches:
-                # Find matching maps or just list all open maps
-                pass
-            for m in open_maps[:5]:
-                task_bullets.append(f"- **{m.title}**: Assigned to {m.owner or 'Unassigned'} (Deadline: {m.deadline or 'No deadline'}). {m.description or ''}")
-                if m.owner:
-                    depts.add(m.owner.replace(" Team", ""))
-            
-            dept_str = ", ".join(depts) if depts else "Compliance and Operations"
-            return (
-                "### Executive Summary\n"
-                f"You currently have {total_open} open compliance action items (Mitigation Action Points) requiring attention.\n\n"
-                "### Key Changes / Rules\n"
-                "The outstanding compliance actions cover key operational updates:\n"
-                + "\n".join(task_bullets) + "\n\n"
-                "### Business Impact\n"
-                "Delaying completion of these items exposes the organization to regulatory audits and audit readiness gaps.\n\n"
-                "### Affected Departments\n"
-                f"The primary teams responsible for executing these actions are: {dept_str}.\n\n"
-                "### Recommended MAPs / Next Actions\n"
-                "1. Instruct owners to upload audit evidence for validation.\n"
-                "2. Prioritize high/critical severity items to close critical compliance exposures."
-            )
-        else:
-            return (
-                "### Executive Summary\n"
-                "All compliance obligations and action points (MAP tasks) have been successfully mitigated. No open tasks remain.\n\n"
-                "### Key Changes / Rules\n"
-                "- System parameters are fully aligned with the active regulations.\n\n"
-                "### Business Impact\n"
-                "Low risk posture. The bank is in a secure, audit-ready compliance state.\n\n"
-                "### Affected Departments\n"
-                "- None. All departments are performing with 100% readiness.\n\n"
-                "### Recommended MAPs / Next Actions\n"
-                "1. Continue to monitor for newly published regulatory circulars."
-            )
-
-    # 2. Check if user is asking about departments impacted
-    elif any(k in msg_lower for k in ["department", "departments", "impacted", "routing"]):
-        from app.models.models import ImpactAnalysis
-        latest_impact = db.query(ImpactAnalysis).filter(ImpactAnalysis.user_id == user_id).order_by(ImpactAnalysis.created_at.desc()).first()
+    # Gather retrieved clauses/documents/snippets
+    sources = []
+    
+    # 1. Clause records from database
+    for c, score in (top_matches or []):
+        sources.append({
+            "type": "clause",
+            "ref": f"Clause {c.clause_id}",
+            "doc": c.document.title,
+            "text": c.text,
+            "obligation": c.obligation or c.text[:200],
+            "category": c.category or "General",
+            "severity": c.severity or "Medium"
+        })
         
-        if latest_impact and latest_impact.matrix_json:
-            highest_dept = "Compliance"
-            highest_score = 0
-            dept_impacts = []
-            for item in latest_impact.matrix_json:
-                d_name = item.get("department")
-                d_score = item.get("impact", 0)
-                d_risk = item.get("risk", "Low")
-                dept_impacts.append(f"- **{d_name}**: Impact Score {d_score}% ({d_risk} Risk)")
-                if d_score > highest_score:
-                    highest_score = d_score
-                    highest_dept = d_name
+    # 2. Regulation table
+    for reg, score in (top_regs or []):
+        if score > 0.05:
+            obs = []
+            if reg.obligations:
+                try:
+                    obs = reg.obligations if isinstance(reg.obligations, list) else []
+                except:
+                    pass
+            sources.append({
+                "type": "regulation",
+                "ref": reg.title,
+                "doc": f"{reg.source} Regulation",
+                "text": reg.summary or "",
+                "obligation": "; ".join(obs[:2]) if obs else (reg.summary or ""),
+                "category": "General",
+                "severity": "Medium"
+            })
             
-            return (
-                "### Executive Summary\n"
-                f"The latest regulatory circular changes most heavily impact the **{highest_dept}** department (Score: {highest_score}%).\n\n"
-                "### Key Changes / Rules\n"
-                "Departmental impact scores extracted from the latest audit run:\n"
-                + "\n".join(dept_impacts) + "\n\n"
-                "### Business Impact\n"
-                f"High operational alignment is required. Critical workflows in {highest_dept} must be updated immediately to satisfy the directives.\n\n"
-                "### Affected Departments\n"
-                f"The primary affected departments are: {', '.join([item.get('department') for item in latest_impact.matrix_json if item.get('impact', 0) > 40]) or 'Compliance'}.\n\n"
-                "### Recommended MAPs / Next Actions\n"
-                f"1. Update the Standard Operating Procedures (SOPs) for the {highest_dept} team.\n"
-                f"2. Initiate targeted compliance checks to ensure parameters are updated."
-            )
-        else:
-            depts = set()
-            for c, _ in top_matches:
-                depts.add(c.category or "Compliance")
-            dept_list = list(depts) if depts else ["Compliance", "Operations"]
-            
-            dept_bullets = [f"- **{d}**: Requires operational review under the matching clauses." for d in dept_list]
-            return (
-                "### Executive Summary\n"
-                f"Multiple bank departments require operational updates based on matching regulatory clauses, primarily: {', '.join(dept_list)}.\n\n"
-                "### Key Changes / Rules\n"
-                "Impact analysis of matching regulatory categories:\n"
-                + "\n".join(dept_bullets) + "\n\n"
-                "### Business Impact\n"
-                "Medium severity. Workflows must be audited to align parameter thresholds with mandatory clauses.\n\n"
-                "### Affected Departments\n"
-                f"Impacted teams: {', '.join(dept_list)}.\n\n"
-                "### Recommended MAPs / Next Actions\n"
-                "1. Create custom checklists for the affected teams.\n"
-                "2. Conduct SOP gap assessments to ensure full policy coverage."
-            )
+    # 3. ChromaDB snippets
+    for sim, source_label, doc_text in (chroma_snippets or []):
+        if sim > 0.05:
+            sources.append({
+                "type": "chroma",
+                "ref": source_label,
+                "doc": source_label,
+                "text": doc_text,
+                "obligation": doc_text[:200],
+                "category": "General",
+                "severity": "Medium"
+            })
 
-    # 3. Check if user is asking about comparison/changes
-    elif any(k in msg_lower for k in ["change", "changes", "what changed", "difference", "compare"]):
+    if not sources:
+        return (
+            "I searched the compliance database, but couldn't find any specific regulatory clauses or documents related to your query.\n\n"
+            "To help me assist you better, you can:\n"
+            "1. Upload a PDF Circular or regulatory document via the **Regulations** or **Document Upload** dashboard.\n"
+            "2. Run a **Comparison** between circular versions to generate clause differences.\n"
+            "3. Verify that your query contains the correct keywords (e.g. 'KCC', 'cybersecurity', etc.) that match your uploaded documents."
+        )
+
+    # Classify intent
+    is_comparison = any(k in msg_lower for k in ["compare", "comparison", "difference", "changed", "change", "versus", "vs", "new version", "old version"])
+    is_checklist = any(k in msg_lower for k in ["compliance", "checklist", "step", "steps", "requirement", "requirements", "mitigate", "action point", "action points", "maps", "todo", "task", "tasks", "pending"])
+    is_summary = any(k in msg_lower for k in ["summarize", "summary", "brief", "concise", "overview"])
+
+    # 1. Comparison Intent
+    if is_comparison:
         from app.models.models import Comparison
         latest_comp = db.query(Comparison).filter(Comparison.user_id == user_id).order_by(Comparison.created_at.desc()).first()
         
         if latest_comp:
-            added = latest_comp.result_json.get("added", [])
-            modified = latest_comp.result_json.get("modified", [])
-            removed = latest_comp.result_json.get("removed", [])
+            added = latest_comp.result_json.get("added", []) if latest_comp.result_json else []
+            modified = latest_comp.result_json.get("modified", []) if latest_comp.result_json else []
+            removed = latest_comp.result_json.get("removed", []) if latest_comp.result_json else []
             
-            bullets = []
-            for a in added[:3]:
-                bullets.append(f"- **[Added]** Clause {a.get('id')}: {a.get('text', '')[:120]}...")
-            for m in modified[:3]:
-                bullets.append(f"- **[Modified]** Clause {m.get('id')}: {m.get('newText', '')[:120]}...")
-            for r in removed[:3]:
-                bullets.append(f"- **[Removed]** Clause {r.get('id')}: {r.get('text', '')[:120]}...")
-                
-            if not bullets:
-                bullets.append("- No substantial difference or clause changes detected between versions.")
-                
-            return (
-                "### Executive Summary\n"
-                f"The compliance comparison run detected {len(added)} added, {len(modified)} modified, and {len(removed)} removed clauses.\n\n"
-                "### Key Changes / Rules\n"
-                "Summary of identified differences:\n"
-                + "\n".join(bullets) + "\n\n"
-                "### Business Impact\n"
-                "Operational adjustments are required to implement newly added rules and transition modified thresholds.\n\n"
-                "### Affected Departments\n"
-                "Compliance, Legal, and affected Operations teams must align procedures with the updated version.\n\n"
-                "### Recommended MAPs / Next Actions\n"
-                "1. Run MAP Task Generator to automatically assign owners to all added/modified requirements.\n"
-                "2. Archive obsolete SOP workflows affected by removed clauses."
-            )
+            response_parts = [
+                "Here is a comparative analysis based on the latest document comparison run:",
+                f"- **Added Obligations ({len(added)})**: Mandatory new requirements that the organization must adopt.",
+                f"- **Modified Obligations ({len(modified)})**: Existing guidelines where thresholds, reporting timelines, or terms changed.",
+                f"- **Removed Obligations ({len(removed)})**: Rules that are no longer active."
+            ]
             
-    # 4. Check if user is asking to summarize latest regulation
-    elif any(k in msg_lower for k in ["summarize", "summary", "latest regulation", "latest document"]):
-        from app.models.models import Document
-        latest_doc = db.query(Document).filter(Document.user_id == user_id).order_by(Document.created_at.desc()).first()
+            if added:
+                response_parts.append("\n**Key Added Requirements:**")
+                for a in added[:3]:
+                    response_parts.append(f"- **Clause {a.get('id', 'N/A')}**: {a.get('text', '')[:150]}...")
+            if modified:
+                response_parts.append("\n**Key Modified Requirements:**")
+                for m in modified[:3]:
+                    response_parts.append(f"- **Clause {m.get('id', 'N/A')}**:\n  - *Old*: {m.get('oldText', '')[:120]}...\n  - *New*: {m.get('newText', '')[:120]}...")
+            if removed:
+                response_parts.append("\n**Key Removed Requirements:**")
+                for r in removed[:3]:
+                    response_parts.append(f"- **Clause {r.get('id', 'N/A')}**: {r.get('text', '')[:150]}...")
+                    
+            response_parts.append("\n**Operational Checklist & Action Plan:**")
+            response_parts.append("1. Run the MAP Task Generator to assign owners and deadlines to the added/modified rules.")
+            response_parts.append("2. Deprecate outdated procedures mapped to the removed clauses.")
+            return "\n".join(response_parts)
+        else:
+            response_parts = [
+                "I could not find a formal document comparison run in your dashboard history.",
+                "However, comparing the retrieved regulations and clauses related to your query, here are the different rules identified:",
+            ]
+            for idx, src in enumerate(sources[:3]):
+                response_parts.append(f"{idx+1}. **{src['ref']}** (from *{src['doc']}*): {src['text'][:150]}...")
+            response_parts.append("\n*To perform a precise side-by-side version comparison, please upload both the old and new circular PDF versions in the Comparison dashboard.*")
+            return "\n".join(response_parts)
+
+    # 2. Compliance Checklist/Steps Intent
+    elif is_checklist:
+        response_parts = [
+            "Based on your query, here is the compliance checklist and necessary action steps to ensure system alignment:\n",
+            "### 📋 Regulatory Compliance Checklist"
+        ]
         
-        if latest_doc:
-            bullets = []
-            for c, _ in top_matches:
-                bullets.append(f"- **Clause {c.clause_id}** ({c.category or 'General'}): {c.text[:120]}...")
-            if not bullets:
-                bullets.append("- Review and audit system logging and parameter controls.")
-                
-            return (
-                "### Executive Summary\n"
-                f"Summary of the latest uploaded compliance document: **{latest_doc.title}** (Source: {latest_doc.source or 'Unknown'}).\n\n"
-                "### Key Changes / Rules\n"
-                "Core regulatory obligations extracted from this circular:\n"
-                + "\n".join(bullets) + "\n\n"
-                "### Business Impact\n"
-                "High. Mandates specific process updates and audit trails to align with regulatory reporting timelines.\n\n"
-                "### Affected Departments\n"
-                "Operations, Compliance, and IT divisions must establish verification check loops.\n\n"
-                "### Recommended MAPs / Next Actions\n"
-                "1. Draft corresponding SOP notices and circular updates.\n"
-                "2. Conduct automated checks for daily transaction limit configurations."
-            )
-
-    # 5. Default structured response using top matches, top regulations, or chroma snippets
-    bullets = []
-    
-    # 5a. Extract from document clauses
-    if top_matches:
-        for c, _ in top_matches:
-            bullets.append(f"- **Clause {c.clause_id}** ({c.category or 'General'}): {c.text[:120]}...")
+        # List obligations from sources
+        for src in sources[:4]:
+            response_parts.append(f"- [ ] **[{src['category']}]** obligation under **{src['ref']}**: {src['obligation']}")
             
-    # 5b. Extract from Regulation table
-    if top_regs:
-        for reg, score in top_regs:
-            if score > 0.05 or len(bullets) < 3:
-                bullets.append(f"- **{reg.title}** ({reg.source}, {reg.date.isoformat()}): {reg.summary or 'No summary.'}")
-                
-    # 5c. Extract from ChromaDB snippets
-    if chroma_snippets:
-        for sim, source_label, doc_text in chroma_snippets:
-            if sim > 0.05 or len(bullets) < 3:
-                snippet_text = doc_text.strip().replace("\n", " ")[:150]
-                bullets.append(f"- **{source_label}** (ChromaDB): {snippet_text}...")
+        # List active MAP tasks if any matching
+        map_bullets = []
+        for m in open_maps[:5]:
+            map_bullets.append(f"- [ ] **[MAP Task] {m.title}** (Owner: {m.owner or 'Unassigned'}, Severity: {m.severity or 'Medium'}): {m.description or ''}")
+            
+        if map_bullets:
+            response_parts.append("\n### ⚙️ Active Action Items (Pending MAP Tasks)")
+            response_parts.extend(map_bullets)
+            
+        response_parts.append("\n**Next Steps to Compliance:**")
+        response_parts.append("1. Assign owners and timelines to any unassigned action items.")
+        response_parts.append("2. Update Standard Operating Procedures (SOPs) for the affected systems.")
+        response_parts.append("3. Upload required audit evidence to the dashboard once implementation is complete.")
+        
+        return "\n".join(response_parts)
 
-    # Limit to top 5 bullet points
-    bullets = bullets[:5]
+    # 3. Summary Intent
+    elif is_summary:
+        response_parts = [
+            "Here is a concise executive summary of the regulations related to your query:\n",
+            "### 🔍 Key Findings & Overview"
+        ]
+        
+        for src in sources[:3]:
+            snippet = src['text'].strip().replace("\n", " ")
+            if len(snippet) > 200:
+                snippet = snippet[:200] + "..."
+            response_parts.append(f"- **{src['ref']}** ({src['doc']}): {snippet}")
+            
+        response_parts.append("\n### 💼 Business Impact")
+        response_parts.append("These rules introduce compliance mandates. Non-compliance could result in audit findings, financial penalties, or security vulnerabilities.")
+        
+        response_parts.append("\n### 👥 Affected Departments")
+        depts = set(src['category'] for src in sources if src['category'] != "General")
+        if not depts:
+            depts = {"Compliance", "Operations"}
+        response_parts.append(f"The operational changes primarily affect the **{', '.join(depts)}** department(s).")
+        
+        return "\n".join(response_parts)
 
-    if bullets:
-        return (
-            "### Executive Summary\n"
-            "Based on the available regulatory database, I have retrieved the most relevant regulatory clauses and guidelines matching your query.\n\n"
-            "### Key Changes / Rules\n"
-            "The following rules and mandates apply to your inquiry:\n"
-            + "\n".join(bullets) + "\n\n"
-            "### Business Impact\n"
-            "These mandates represent compliance obligations. Failing to implement controls exposes the organization to audit findings and regulatory risk.\n\n"
-            "### Affected Departments\n"
-            "Primarily Compliance, Legal, and affected Operations teams responsible for procedural and system updates.\n\n"
-            "### Recommended MAPs / Next Actions\n"
-            "1. Review the detailed circulars and clauses for specific compliance gaps.\n"
-            "2. Map specific tasks to individual stakeholders to ensure mitigation evidence is uploaded."
-        )
+    # 4. Detailed Explanation Intent (Default)
     else:
-        return (
-            "### Executive Summary\n"
-            "I could not find any matching regulatory clauses or documents in the database for your query.\n\n"
-            "### Key Changes / Rules\n"
-            "- No active regulatory text or compared versions found.\n\n"
-            "### Business Impact\n"
-            "Unknown risk exposure. To evaluate risk, please upload a regulatory document or comparison.\n\n"
-            "### Affected Departments\n"
-            "Compliance team should upload regulations to seed the intelligence layer.\n\n"
-            "### Recommended MAPs / Next Actions\n"
-            "1. Upload a PDF Circular via the 'Regulations' or 'Document Upload' dashboard sections.\n"
-            "2. Start a new Comparison run to generate clause diffs."
-        )
+        response_parts = [
+            "Here is a detailed explanation of the regulations and requirements matching your inquiry:\n",
+            "### 📖 Regulatory Context & Requirements"
+        ]
+        
+        for idx, src in enumerate(sources[:3]):
+            response_parts.append(
+                f"**{idx+1}. {src['ref']}** (Category: *{src['category']}*, Severity: *{src['severity']}*)\n"
+                f"Source Document: {src['doc']}\n"
+                f"Obligation details: {src['obligation']}\n"
+            )
+            
+        response_parts.append("### ⚡ Operational Guidance & Next Actions")
+        response_parts.append("- **Business Exposure**: Review the system parameters to ensure thresholds match the mandate. Ensure audit trails are maintained for review.")
+        response_parts.append("- **Action Plan**: Stakeholders should prioritize any open Mitigation Action Points (MAPs) matching this regulation.")
+        
+        return "\n".join(response_parts)
 
 @router.post("/chat", response_model=CopilotResponse)
 def copilot_chat(
@@ -451,14 +413,8 @@ def copilot_chat(
     )
     answer = LlamaAIService.copilot_chat(message, context, maps_context)
 
-    # Fallback if LLM is offline or returns bad format
-    has_headers = (
-        answer
-        and "### Executive Summary" in answer
-        and "### Key Changes" in answer
-        and "### Business Impact" in answer
-    )
-    if not answer or not has_headers:
+    # Fallback if LLM is offline or returns empty answer
+    if not answer or not answer.strip():
         answer = generate_structured_fallback(
             message,
             top_matches,
