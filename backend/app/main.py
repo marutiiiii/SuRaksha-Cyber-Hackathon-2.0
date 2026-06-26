@@ -286,7 +286,7 @@ try:
         _startup_logger.info(f"[Startup] Embeddings: all-MiniLM-L6-v2 ready (dim={len(test_vec)})")
 except Exception as e:
     _startup_logger.warning(f"[Startup] Embeddings check failed: {e}")
- 
+
 # 3. Qwen Vision Model startup check/load
 try:
     import threading
@@ -295,22 +295,6 @@ try:
     threading.Thread(target=load_qwen_model_on_startup, daemon=True).start()
 except Exception as e:
     _startup_logger.warning(f"[Startup] Qwen model check failed: {e}")
-
-# 3. ReguFlow Validation — Qwen2.5-VL model pre-load (background thread, non-blocking)
-try:
-    import threading
-    from app.core.validation.qwen_service import load_qwen_model_on_startup, verify_model_integrity
-    if verify_model_integrity():
-        _startup_logger.info(f"[Startup] Qwen2.5-VL model files detected at '{settings.QWEN_MODEL_PATH}'. Pre-loading in background...")
-        _qwen_thread = threading.Thread(target=load_qwen_model_on_startup, daemon=True)
-        _qwen_thread.start()
-    else:
-        _startup_logger.warning(
-            f"[Startup] Qwen2.5-VL model NOT found at '{settings.QWEN_MODEL_PATH}'. "
-            "Evidence will require manual review. Set QWEN_MODEL_PATH env var to enable AI verification."
-        )
-except Exception as e:
-    _startup_logger.warning(f"[Startup] Qwen startup check failed: {e}")
 
 # Create storage directories locally on startup
 os.makedirs(os.path.join(settings.STORAGE_PATH, "documents"), exist_ok=True)
