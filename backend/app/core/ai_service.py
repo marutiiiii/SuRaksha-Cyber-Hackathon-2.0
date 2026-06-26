@@ -214,43 +214,55 @@ class LlamaAIService:
                 logger.error(f"Gemini Cloud API failed: {e}. Falling back...")
 
         # 3. Local Ollama Fallback
-        health = cls.check_ollama_health()
-        if not health["online"]:
-            raise ConnectionError("Ollama service and all cloud fallbacks are offline.")
+        try:
+            health = cls.check_ollama_health()
+            if health["online"]:
+                models = health["models_available"]
+                selected_model = cls._select_best_model(models)
+                if selected_model:
+                    logger.info(f"Ollama: using model '{selected_model}'")
+                    url = f"{settings.OLLAMA_BASE_URL}/api/generate"
+                    payload = {
+                        "model": selected_model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.2,
+                            "top_p": 0.9,
+                            "num_predict": 512,
+                        }
+                    }
+                    if system_prompt:
+                        payload["system"] = system_prompt
+                    if json_format:
+                        payload["format"] = "json"
 
-        models = health["models_available"]
-        selected_model = cls._select_best_model(models)
-        
-        if not selected_model:
-            raise ValueError("No models available in Ollama. Run: ollama pull llama3")
+                    response = requests.post(url, json=payload, timeout=300)
+                    if response.status_code == 200:
+                        response_text = response.json().get("response", "").strip()
+                        cls._save_to_cache(cache_file, prompt_hash, response_text)
+                        return response_text
+                    else:
+                        logger.warning(f"Ollama returned error status: {response.status_code}")
+        except Exception as ollama_err:
+            logger.warning(f"Ollama local call failed: {ollama_err}")
 
-        logger.info(f"Ollama: using model '{selected_model}'")
+        # 4. Local Qwen Fallback (if loaded and ready)
+        try:
+            from app.core.qwen_service import model_ready, run_qwen_inference
+            if model_ready:
+                logger.info("Routing request to local Qwen model (VL-3B-Instruct)")
+                messages = []
+                if system_prompt:
+                    messages.append({"role": "system", "content": system_prompt})
+                messages.append({"role": "user", "content": prompt})
+                response_text = run_qwen_inference(messages)
+                cls._save_to_cache(cache_file, prompt_hash, response_text)
+                return response_text
+        except Exception as qwen_err:
+            logger.error(f"Local Qwen inference failed: {qwen_err}")
 
-        url = f"{settings.OLLAMA_BASE_URL}/api/generate"
-        payload = {
-            "model": selected_model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.2,
-                "top_p": 0.9,
-                "num_predict": 512,
-            }
-        }
-        
-        if system_prompt:
-            payload["system"] = system_prompt
-            
-        if json_format:
-            payload["format"] = "json"
-
-        response = requests.post(url, json=payload, timeout=300)
-        if response.status_code != 200:
-            raise RuntimeError(f"Ollama returned error: {response.text}")
-            
-        response_text = response.json().get("response", "").strip()
-        cls._save_to_cache(cache_file, prompt_hash, response_text)
-        return response_text
+        raise ConnectionError("Ollama service, local Qwen model, and all cloud fallbacks are offline.")
 
     @classmethod
     def startup_health_check(cls) -> Dict[str, Any]:
