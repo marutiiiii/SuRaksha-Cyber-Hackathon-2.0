@@ -22,6 +22,7 @@ backend/.venv/
 .venv/
 venv/
 env/
+backend/chroma_db/
 
 # General ignores
 **/.env

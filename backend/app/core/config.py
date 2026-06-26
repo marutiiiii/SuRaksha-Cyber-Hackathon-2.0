@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
     OLLAMA_PREFERRED_MODELS: list = ["llama3", "llama3.2", "qwen2.5:7b", "qwen3", "tinyllama"]
 
+    # ReguFlow Validation Engine — local Qwen2.5-VL-3B-Instruct model path
+    # Used for AI-powered MAP evidence verification
+    QWEN_MODEL_PATH: str = os.getenv("QWEN_MODEL_PATH", "D:/AI-Models/Qwen2.5-VL-3B-Instruct")
+
     class Config:
         case_sensitive = True
         env_file = ".env"

@@ -17,7 +17,15 @@ router = APIRouter(prefix="/copilot", tags=["AI Copilot"])
 def text_similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
-def generate_structured_fallback(message: str, top_matches: list, open_maps: list, db: Session, user_id: uuid.UUID) -> str:
+def generate_structured_fallback(
+    message: str,
+    top_matches: list,
+    open_maps: list,
+    db: Session,
+    user_id: uuid.UUID,
+    top_regs: list = None,
+    chroma_snippets: list = None
+) -> str:
     msg_lower = message.lower()
     
     # 1. Check if user is asking for open MAPs
@@ -180,24 +188,43 @@ def generate_structured_fallback(message: str, top_matches: list, open_maps: lis
                 "2. Conduct automated checks for daily transaction limit configurations."
             )
 
-    # 5. Default structured response using top matches
+    # 5. Default structured response using top matches, top regulations, or chroma snippets
+    bullets = []
+    
+    # 5a. Extract from document clauses
     if top_matches:
-        bullets = []
         for c, _ in top_matches:
             bullets.append(f"- **Clause {c.clause_id}** ({c.category or 'General'}): {c.text[:120]}...")
             
+    # 5b. Extract from Regulation table
+    if top_regs:
+        for reg, score in top_regs:
+            if score > 0.05 or len(bullets) < 3:
+                bullets.append(f"- **{reg.title}** ({reg.source}, {reg.date.isoformat()}): {reg.summary or 'No summary.'}")
+                
+    # 5c. Extract from ChromaDB snippets
+    if chroma_snippets:
+        for sim, source_label, doc_text in chroma_snippets:
+            if sim > 0.05 or len(bullets) < 3:
+                snippet_text = doc_text.strip().replace("\n", " ")[:150]
+                bullets.append(f"- **{source_label}** (ChromaDB): {snippet_text}...")
+
+    # Limit to top 5 bullet points
+    bullets = bullets[:5]
+
+    if bullets:
         return (
             "### Executive Summary\n"
-            "I have retrieved the most relevant regulatory clauses matching your query from the indexed compliance circulars.\n\n"
+            "Based on the available regulatory database, I have retrieved the most relevant regulatory clauses and guidelines matching your query.\n\n"
             "### Key Changes / Rules\n"
-            "The following mandates apply to your inquiry:\n"
+            "The following rules and mandates apply to your inquiry:\n"
             + "\n".join(bullets) + "\n\n"
             "### Business Impact\n"
-            "These mandates represent compliance obligations. Failing to implement controls exposes the bank to audit findings.\n\n"
+            "These mandates represent compliance obligations. Failing to implement controls exposes the organization to audit findings and regulatory risk.\n\n"
             "### Affected Departments\n"
-            "Primarily Compliance, Operations, and IT systems responsible for parameter updates.\n\n"
+            "Primarily Compliance, Legal, and affected Operations teams responsible for procedural and system updates.\n\n"
             "### Recommended MAPs / Next Actions\n"
-            "1. Run targeted audits against the matching clauses.\n"
+            "1. Review the detailed circulars and clauses for specific compliance gaps.\n"
             "2. Map specific tasks to individual stakeholders to ensure mitigation evidence is uploaded."
         )
     else:
@@ -221,80 +248,191 @@ def copilot_chat(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    from app.models.models import Regulation
+    from app.core.ai_service import LlamaAIService
+
     user_id = current_user.get("id")
     copilot_mode = current_user.get("copilot_mode", "beginner")
     session_id = schema.sessionId or uuid.uuid4()
     message = schema.message
-    
-    # 1. Retrieve all clauses for this user's documents
+
+    # ── Encode the user query once ─────────────────────────────────────────────
+    query_vec = EmbeddingService.encode(message)
+    use_semantic = not EmbeddingService.is_zero_vector(query_vec)
+
+    # ── Source 1: Clause records from uploaded Documents ───────────────────────
     clauses = db.query(Clause).join(Document).filter(
         Document.user_id == user_id,
         Document.copilot_mode == copilot_mode
     ).limit(200).all()
-    
-    # 2. Score by SEMANTIC similarity (cosine on embeddings) with text fallback
-    scored = []
-    query_vec = EmbeddingService.encode(message)  # encode user query
-    use_semantic = not EmbeddingService.is_zero_vector(query_vec)
-    
+
+    clause_scored = []
     for c in clauses:
         if use_semantic:
             clause_vec = EmbeddingService.from_db(c.embedding)
-            if not EmbeddingService.is_zero_vector(clause_vec):
-                score = EmbeddingService.cosine_similarity(query_vec, clause_vec)
-            else:
-                # Fallback to text for clauses that have old placeholder embeddings
-                score = text_similarity(message.lower(), (c.text or "").lower())
+            score = (
+                EmbeddingService.cosine_similarity(query_vec, clause_vec)
+                if not EmbeddingService.is_zero_vector(clause_vec)
+                else text_similarity(message.lower(), (c.text or "").lower())
+            )
         else:
             score = text_similarity(message.lower(), (c.text or "").lower())
-        scored.append((c, score))
-        
-    # Get top 5 matches by similarity score
-    scored.sort(key=lambda x: x[1], reverse=True)
-    top_matches = scored[:5]
-    
-    # Get open MAPs for context
+        clause_scored.append((c, score))
+
+    clause_scored.sort(key=lambda x: x[1], reverse=True)
+    top_matches = clause_scored[:5]
+
+    # ── Source 2: Regulation table (summaries + titles) ────────────────────────
+    # Always pull from the Regulation table — it is always populated (seeded + scraped)
+    all_regulations = db.query(Regulation).order_by(Regulation.date.desc()).limit(100).all()
+
+    reg_scored = []
+    for reg in all_regulations:
+        reg_text = f"{reg.title}. {reg.summary or ''}".strip()
+        if use_semantic:
+            reg_vec = EmbeddingService.encode(reg_text)
+            score = EmbeddingService.cosine_similarity(query_vec, reg_vec)
+        else:
+            score = text_similarity(message.lower(), reg_text.lower())
+        reg_scored.append((reg, score))
+
+    reg_scored.sort(key=lambda x: x[1], reverse=True)
+    top_regs = reg_scored[:8]
+
+    # ── Source 3: ChromaDB semantic search ─────────────────────────────────────
+    chroma_snippets = []
+    try:
+        import chromadb
+        chroma_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
+        collection_names = [c.name for c in chroma_client.list_collections()]
+        for cname in collection_names:
+            try:
+                col = chroma_client.get_collection(cname)
+                results = col.query(
+                    query_embeddings=[query_vec] if use_semantic else None,
+                    query_texts=[message] if not use_semantic else None,
+                    n_results=min(5, col.count()),
+                    include=["documents", "metadatas", "distances"],
+                )
+                docs = results.get("documents", [[]])[0]
+                metas = results.get("metadatas", [[]])[0]
+                dists = results.get("distances", [[]])[0]
+                for doc_text, meta, dist in zip(docs, metas, dists):
+                    # ChromaDB returns L2 distance; convert to similarity score 0-1
+                    sim = max(0.0, 1.0 - (dist / 2.0))
+                    source_label = meta.get("source", meta.get("title", cname))
+                    chroma_snippets.append((sim, source_label, doc_text))
+            except Exception as col_err:
+                import logging as _log
+                _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB collection '{cname}' query failed: {col_err}")
+        chroma_snippets.sort(key=lambda x: x[0], reverse=True)
+        chroma_snippets = chroma_snippets[:5]
+    except Exception as e:
+        import logging as _log
+        _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB unavailable: {e}")
+
+    # ── Build unified context for the LLM ──────────────────────────────────────
+    context_parts = []
+    citation_idx = 1
+
+    # From Clause records
+    citations = []
+    for c, score in top_matches:
+        context_parts.append(f"[{citation_idx}] (Clause {c.clause_id} · {c.document.title}) {c.text}")
+        citations.append({
+            "n": citation_idx,
+            "clauseId": c.clause_id,
+            "text": c.text,
+            "document": c.document.title,
+            "similarity": round(score, 2),
+        })
+        citation_idx += 1
+
+    # From Regulation table — always included even when no docs are uploaded
+    for reg, score in top_regs:
+        if score > 0.05:  # only include if somewhat relevant
+            obligations_str = ""
+            if reg.obligations:
+                try:
+                    obs = reg.obligations if isinstance(reg.obligations, list) else []
+                    if obs:
+                        obligations_str = " Obligations: " + "; ".join(obs[:3])
+                except Exception:
+                    pass
+            context_parts.append(
+                f"[{citation_idx}] ({reg.source} · {reg.date}) {reg.title}. "
+                f"{reg.summary or ''}{obligations_str}"
+            )
+            citations.append({
+                "n": citation_idx,
+                "clauseId": f"REG-{str(reg.id)[:8]}",
+                "text": f"{reg.title}. {reg.summary or ''}",
+                "document": f"{reg.source} Regulation",
+                "similarity": round(score, 2),
+            })
+            citation_idx += 1
+
+    # From ChromaDB
+    for sim, source_label, doc_text in chroma_snippets:
+        if sim > 0.05:
+            context_parts.append(f"[{citation_idx}] ({source_label}) {doc_text[:400]}")
+            citations.append({
+                "n": citation_idx,
+                "clauseId": f"CHROMA-{citation_idx}",
+                "text": doc_text[:400],
+                "document": source_label,
+                "similarity": round(sim, 2),
+            })
+            citation_idx += 1
+
+    context = "\n\n".join(context_parts) if context_parts else "(No regulatory context found)"
+
+    # ── Open MAPs context ───────────────────────────────────────────────────────
     open_maps = db.query(Map).filter(
         Map.user_id == user_id,
         Map.status != "Completed",
         Map.copilot_mode == copilot_mode
     ).limit(10).all()
-    
-    # 3. Construct context
-    context_list = []
-    for idx, (c, score) in enumerate(top_matches):
-        context_list.append(f"[{idx+1}] ({c.clause_id} · {c.document.title}) {c.text}")
-        
-    context = "\n".join(context_list)
-    
-    open_maps_desc = []
-    for m in open_maps:
-        open_maps_desc.append(f"MAP: {m.title} | Owner: {m.owner or '—'} | Status: {m.status} | Severity: {m.severity}")
-    maps_context = "\n".join(open_maps_desc)
-    
-    # 4. Generate answer using local Llama 3 AI service
-    from app.core.ai_service import LlamaAIService
-    citations = [{"n": idx+1, "clauseId": c.clause_id, "text": c.text, "document": c.document.title, "similarity": round(score, 2)} for idx, (c, score) in enumerate(top_matches)]
-    
+
+    maps_context = "\n".join(
+        f"MAP: {m.title} | Owner: {m.owner or '—'} | Status: {m.status} | Severity: {m.severity}"
+        for m in open_maps
+    )
+
+    # ── Generate answer via LLM ─────────────────────────────────────────────────
     answer = LlamaAIService.copilot_chat(message, context, maps_context)
-            
-    # Smart preset replies fallback if Llama 3 is missing, fails, or fails to output required headers
-    has_headers = answer and "### Executive Summary" in answer and "### Key Changes" in answer and "### Business Impact" in answer
+
+    # Fallback if LLM is offline or returns bad format
+    has_headers = (
+        answer
+        and "### Executive Summary" in answer
+        and "### Key Changes" in answer
+        and "### Business Impact" in answer
+    )
     if not answer or not has_headers:
-        answer = generate_structured_fallback(message, top_matches, open_maps, db, user_id)
-            
-    # Save chat history
-    user_chat = ChatHistory(user_id=user_id, session_id=session_id, role="user", content=message)
-    assistant_chat = ChatHistory(user_id=user_id, session_id=session_id, role="assistant", content=answer, citations_json=citations)
-    db.add(user_chat)
-    db.add(assistant_chat)
+        answer = generate_structured_fallback(
+            message,
+            top_matches,
+            open_maps,
+            db,
+            user_id,
+            top_regs=top_regs,
+            chroma_snippets=chroma_snippets
+        )
+
+    # ── Persist chat history ────────────────────────────────────────────────────
+    db.add(ChatHistory(user_id=user_id, session_id=session_id, role="user", content=message))
+    db.add(ChatHistory(
+        user_id=user_id,
+        session_id=session_id,
+        role="assistant",
+        content=answer,
+        citations_json=citations,
+    ))
     db.commit()
-    
-    return {
-        "sessionId": session_id,
-        "answer": answer,
-        "citations": citations
-    }
+
+    return {"sessionId": session_id, "answer": answer, "citations": citations}
+
 
 
 # ─── Compliance Document Generation ──────────────────────────────

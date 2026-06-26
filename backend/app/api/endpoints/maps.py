@@ -3,7 +3,7 @@ import uuid
 import json
 import re
 import requests as _requests
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
@@ -15,6 +15,7 @@ from app.models.models import Map, Comparison, Evidence, User, Organization
 from app.schemas.schemas import MapResponse, MapCreate, MapStatusUpdate, EvidenceResponse, EvidenceReviewRequest
 from app.core.config import settings
 from app.core.offline_map_provider import generate_maps_from_regulation
+from app.core.validation.evidence_analyzer import run_evidence_verification
 
 router = APIRouter(prefix="/maps", tags=["MAP Management"])
 
@@ -599,6 +600,7 @@ def update_map_status(
 @router.post("/{map_id}/evidence", response_model=EvidenceResponse)
 def upload_map_evidence(
     map_id: UUID,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     requested_status: str = Form(...),
     current_user: dict = Depends(get_current_user),
@@ -640,7 +642,10 @@ def upload_map_evidence(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Workflow Violation: Cannot transition status directly from '{m.status}' to '{requested_status}'. Sequential flow required."
         )
-        
+    
+    # Capture the MAP's current status before transition (for auto-fail revert)
+    previous_status = m.status
+    
     evidence_id = uuid.uuid4()
     ext = os.path.splitext(file.filename)[1] or ".pdf"
     filename = f"evidence-{evidence_id}{ext}"
@@ -659,7 +664,7 @@ def upload_map_evidence(
         department=user_dept,
         organization_id=org_id,
         requested_status=requested_status,
-        previous_status=m.status,
+        previous_status=previous_status,
         rejection_reason=None
     )
     db.add(db_ev)
@@ -668,6 +673,19 @@ def upload_map_evidence(
     db.commit()
     db.refresh(db_ev)
     db.refresh(m)
+    
+    # ── Trigger AI evidence verification in the background ──────────────────────
+    # Uses MAP title + description as the compliance requirement to verify against.
+    # Auto-approves if AI confidence >= 85% (COMPLETED), auto-fails if NOT_STARTED.
+    map_requirement = f"{m.title}. {m.description or ''}".strip()
+    background_tasks.add_task(
+        run_evidence_verification,
+        evidence_id=evidence_id,
+        map_description=map_requirement,
+        file_path=file_path,
+        requested_status=requested_status,
+        previous_status=previous_status,
+    )
     
     return db_ev
 
