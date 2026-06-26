@@ -4,6 +4,7 @@ import json
 import re
 import requests as _requests
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form, BackgroundTasks
+from app.core.evidence_analyzer import verify_evidence_background
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
@@ -15,7 +16,6 @@ from app.models.models import Map, Comparison, Evidence, User, Organization
 from app.schemas.schemas import MapResponse, MapCreate, MapStatusUpdate, EvidenceResponse, EvidenceReviewRequest
 from app.core.config import settings
 from app.core.offline_map_provider import generate_maps_from_regulation
-from app.core.validation.evidence_analyzer import run_evidence_verification
 
 router = APIRouter(prefix="/maps", tags=["MAP Management"])
 
@@ -674,18 +674,8 @@ def upload_map_evidence(
     db.refresh(db_ev)
     db.refresh(m)
     
-    # ── Trigger AI evidence verification in the background ──────────────────────
-    # Uses MAP title + description as the compliance requirement to verify against.
-    # Auto-approves if AI confidence >= 85% (COMPLETED), auto-fails if NOT_STARTED.
-    map_requirement = f"{m.title}. {m.description or ''}".strip()
-    background_tasks.add_task(
-        run_evidence_verification,
-        evidence_id=evidence_id,
-        map_description=map_requirement,
-        file_path=file_path,
-        requested_status=requested_status,
-        previous_status=previous_status,
-    )
+    # Trigger background compliance verification task
+    background_tasks.add_task(verify_evidence_background, db_ev.id, db)
     
     return db_ev
 

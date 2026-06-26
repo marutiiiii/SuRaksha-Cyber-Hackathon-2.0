@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Date, DateTime, Boolean, ForeignKey, Uuid, JSON, ARRAY, Text, Numeric
+from sqlalchemy import Column, String, Integer, Date, DateTime, Boolean, ForeignKey, Uuid, JSON, ARRAY, Text, Numeric, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -85,6 +85,22 @@ class Regulation(Base):
 
     # Relationships
     findings = relationship("Finding", back_populates="regulation")
+    chunks = relationship("RegulationChunk", back_populates="regulation", cascade="all, delete-orphan")
+
+
+# ─── Regulation Chunk ──────────────────────────────────────────────────────────
+
+class RegulationChunk(Base):
+    __tablename__ = "regulation_chunks"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    regulation_id = Column(Uuid, ForeignKey("regulations.id", ondelete="CASCADE"), nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    regulation = relationship("Regulation", back_populates="chunks")
 
 
 # ─── Document ──────────────────────────────────────────────────────────────────
@@ -186,6 +202,11 @@ class Evidence(Base):
     requested_status = Column(String(50), nullable=True)
     previous_status = Column(String(50), nullable=True)
     rejection_reason = Column(Text, nullable=True)
+    confidence = Column(Float, nullable=True, default=0.0)
+    score = Column(Float, nullable=True, default=0.0)
+    evidence_found = Column(Text, nullable=True)
+    missing_requirements = Column(Text, nullable=True)
+    progress = Column(String(50), nullable=True, default="0%")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

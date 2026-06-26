@@ -6,12 +6,64 @@ from bs4 import BeautifulSoup
 from pypdf import PdfReader
 from sqlalchemy.orm import Session
 from datetime import datetime, date
-from app.models.models import Regulation
+from app.models.models import Regulation, RegulationChunk
 from app.core.ai_service import LlamaAIService
 from app.core.config import settings
 
 RBI_URL = "https://www.rbi.org.in/Scripts/NotificationUser.aspx"
 STORAGE_DIR = os.path.join(settings.STORAGE_PATH, "documents")
+
+_CHROMA_API_KEY    = os.getenv("CHROMA_API_KEY",    "ck-J8T4rhpHwaRyhni6jh2PGkRDNFLTFzxAF7ysxoXcKB49")
+_CHROMA_TENANT     = os.getenv("CHROMA_TENANT",     "8a810af5-e80b-474e-b853-5a7eb2db214c")
+_CHROMA_DB         = os.getenv("CHROMA_DB",          "acris-data")
+_CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION",  "regulations_bge")
+
+HIGH_PRIORITY = [
+    "shall", "shall not", "must", "required to", "mandatory",
+    "obligation", "compliance", "penalty", "violation",
+    "contravention", "under section"
+]
+MEDIUM_PRIORITY = [
+    "amendment", "amended", "modified", "inserted", "replaced",
+    "revised", "withdrawn", "exemption", "waiver", "maintain",
+    "submit", "report", "disclose", "furnish", "audit",
+    "inspect", "monitor", "verify"
+]
+LOW_PRIORITY = [
+    "guidelines", "circular", "threshold", "limit", "ceiling",
+    "maximum", "minimum", "quarterly return", "monthly return",
+    "annual return", "regulatory filing"
+]
+
+def _extract_priority_regulations(text: str) -> str:
+    paragraphs = text.split("\n\n")
+    regulations = []
+    for para in paragraphs:
+        para = para.strip()
+        if len(para) < 50:
+            continue
+        para_lower = para.lower()
+        score = 0
+        for keyword in HIGH_PRIORITY:
+            if keyword in para_lower:
+                score += 3
+        for keyword in MEDIUM_PRIORITY:
+            if keyword in para_lower:
+                score += 2
+        for keyword in LOW_PRIORITY:
+            if keyword in para_lower:
+                score += 1
+        if score >= 3:
+            regulations.append(para)
+    return "\n\n".join(regulations)
+
+def _chunk_text(text: str, chunk_size: int = 500) -> list[str]:
+    words = text.split()
+    chunks = []
+    for i in range(0, len(words), chunk_size):
+        chunk = " ".join(words[i:i + chunk_size])
+        chunks.append(chunk)
+    return chunks
 
 def fetch_notifications():
     """
@@ -178,6 +230,57 @@ def scrape_latest_regulations(db: Session, limit: int = 5) -> int:
             )
             db.add(new_reg)
             db.commit()
+            db.refresh(new_reg)
+            
+            # --- Ingestion & Chunking Pipeline Integration ---
+            try:
+                # 1. Filter out preambles & boilerplate paragraphs (score >= 3 keywords scoring)
+                filtered_text = _extract_priority_regulations(text)
+                
+                # 2. Chunk text in segments of 500 words
+                chunks = _chunk_text(filtered_text or text)
+                
+                # 3. Store chunks in relational database
+                for idx, chunk in enumerate(chunks):
+                    db_chunk = RegulationChunk(
+                        regulation_id=new_reg.id,
+                        chunk_index=idx + 1,
+                        chunk_text=chunk
+                    )
+                    db.add(db_chunk)
+                db.commit()
+                
+                # 4. Generate embeddings and store in ChromaDB Cloud regulations_bge collection
+                import chromadb
+                from app.core.embeddings import EmbeddingService
+                
+                chroma_client = chromadb.CloudClient(
+                    api_key=_CHROMA_API_KEY,
+                    tenant=_CHROMA_TENANT,
+                    database=_CHROMA_DB
+                )
+                collection = chroma_client.get_or_create_collection(_CHROMA_COLLECTION)
+                
+                # Compute embeddings using dynamic embedding service
+                embeddings = EmbeddingService.batch_encode(chunks) if chunks else []
+                
+                for idx, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+                    chunk_id = f"{new_reg.id}_{idx + 1}"
+                    collection.add(
+                        ids=[chunk_id],
+                        documents=[chunk],
+                        embeddings=[emb],
+                        metadatas=[{
+                            "regulation_id": str(new_reg.id),
+                            "pdf_name": title,
+                            "source": "RBI",
+                            "chunk_index": idx + 1
+                        }]
+                    )
+                print(f"[Scraper] Successfully loaded {len(chunks)} chunks to ChromaDB collection {_CHROMA_COLLECTION}.")
+            except Exception as pipe_err:
+                print(f"[Scraper] Warning: Ingestion pipeline / ChromaDB storage failed: {pipe_err}")
+            # -------------------------------------------------
             
             # --- Automation Pipeline ---
             # Create a Document for the scraped regulation for all users

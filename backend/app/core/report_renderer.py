@@ -402,8 +402,12 @@ def populate_report_template(db: Session, user_id: uuid.UUID, report_type: str, 
     template_path = os.path.join("D:\\SuRaksha Hack26\\Report Template", template_filename)
     
     if not os.path.exists(template_path):
-        # Fallback to current folder if template folder not found
-        template_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Report Template", template_filename)
+        # Fallback to project root directory
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        template_path = os.path.join(project_root, "Report Template", template_filename)
+        if not os.path.exists(template_path):
+            # Fallback to backend subdirectory if template folder not found there
+            template_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "Report Template", template_filename)
         
     with open(template_path, "r", encoding="utf-8") as f:
         template_text = f.read()

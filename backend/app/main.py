@@ -68,7 +68,12 @@ try:
         ("evidences", "organization_id", "UUID"),
         ("evidences", "requested_status", "VARCHAR(50)"),
         ("evidences", "previous_status", "VARCHAR(50)"),
-        ("evidences", "rejection_reason", "TEXT")
+        ("evidences", "rejection_reason", "TEXT"),
+        ("evidences", "confidence", "FLOAT DEFAULT 0.0"),
+        ("evidences", "score", "FLOAT DEFAULT 0.0"),
+        ("evidences", "evidence_found", "TEXT"),
+        ("evidences", "missing_requirements", "TEXT"),
+        ("evidences", "progress", "VARCHAR(50) DEFAULT '0%'")
     ]
     for tbl, col, ctype in rbac_columns:
         try:
@@ -281,6 +286,15 @@ try:
         _startup_logger.info(f"[Startup] Embeddings: all-MiniLM-L6-v2 ready (dim={len(test_vec)})")
 except Exception as e:
     _startup_logger.warning(f"[Startup] Embeddings check failed: {e}")
+ 
+# 3. Qwen Vision Model startup check/load
+try:
+    import threading
+    from app.core.qwen_service import load_qwen_model_on_startup
+    _startup_logger.info("[Startup] Qwen: Triggering model load in background thread...")
+    threading.Thread(target=load_qwen_model_on_startup, daemon=True).start()
+except Exception as e:
+    _startup_logger.warning(f"[Startup] Qwen model check failed: {e}")
 
 # 3. ReguFlow Validation — Qwen2.5-VL model pre-load (background thread, non-blocking)
 try:

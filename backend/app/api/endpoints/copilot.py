@@ -1,3 +1,4 @@
+import os
 import uuid
 from datetime import date
 from typing import Optional
@@ -13,6 +14,42 @@ from app.core.config import settings
 from app.core.embeddings import EmbeddingService
 
 router = APIRouter(prefix="/copilot", tags=["AI Copilot"])
+
+def search_chroma_chunks(query_vec: list[float], n_results: int = 5) -> list[dict]:
+    import chromadb
+    try:
+        _CHROMA_API_KEY = os.getenv("CHROMA_API_KEY", "ck-J8T4rhpHwaRyhni6jh2PGkRDNFLTFzxAF7ysxoXcKB49")
+        _CHROMA_TENANT = os.getenv("CHROMA_TENANT", "8a810af5-e80b-474e-b853-5a7eb2db214c")
+        _CHROMA_DB = os.getenv("CHROMA_DB", "acris-data")
+        _CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "regulations")
+        
+        client = chromadb.CloudClient(
+            api_key=_CHROMA_API_KEY,
+            tenant=_CHROMA_TENANT,
+            database=_CHROMA_DB
+        )
+        collection = client.get_or_create_collection(_CHROMA_COLLECTION)
+        results = collection.query(
+            query_embeddings=[query_vec],
+            n_results=n_results,
+            include=["documents", "distances", "metadatas"]
+        )
+        
+        items = []
+        if results and "documents" in results and results["documents"]:
+            docs = results["documents"][0]
+            metas = results["metadatas"][0] if "metadatas" in results and results["metadatas"] else [None] * len(docs)
+            dists = results["distances"][0] if "distances" in results and results["distances"] else [0.0] * len(docs)
+            for doc, meta, dist in zip(docs, metas, dists):
+                items.append({
+                    "text": doc,
+                    "metadata": meta or {},
+                    "distance": dist
+                })
+        return items
+    except Exception as e:
+        print(f"[Copilot] ChromaDB query failed: {e}")
+        return []
 
 def text_similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
@@ -301,6 +338,20 @@ def copilot_chat(
 
     # ── Source 3: ChromaDB semantic search ─────────────────────────────────────
     chroma_snippets = []
+
+    # 3a. Search Cloud ChromaDB
+    if use_semantic:
+        try:
+            cloud_hits = search_chroma_chunks(query_vec, n_results=5)
+            for hit in cloud_hits:
+                doc_title = hit["metadata"].get("source", hit["metadata"].get("pdf_name", "Cloud Circular"))
+                sim = max(0.0, 1.0 - hit["distance"])
+                chroma_snippets.append((sim, doc_title, hit["text"]))
+        except Exception as cloud_err:
+            import logging as _log
+            _log.getLogger("uvicorn.error").warning(f"[Copilot] Cloud ChromaDB query failed: {cloud_err}")
+
+    # 3b. Search local ChromaDB
     try:
         import chromadb
         chroma_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
@@ -325,11 +376,12 @@ def copilot_chat(
             except Exception as col_err:
                 import logging as _log
                 _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB collection '{cname}' query failed: {col_err}")
-        chroma_snippets.sort(key=lambda x: x[0], reverse=True)
-        chroma_snippets = chroma_snippets[:5]
     except Exception as e:
         import logging as _log
         _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB unavailable: {e}")
+
+    chroma_snippets.sort(key=lambda x: x[0], reverse=True)
+    chroma_snippets = chroma_snippets[:5]
 
     # ── Build unified context for the LLM ──────────────────────────────────────
     context_parts = []
@@ -393,13 +445,10 @@ def copilot_chat(
         Map.status != "Completed",
         Map.copilot_mode == copilot_mode
     ).limit(10).all()
-
     maps_context = "\n".join(
         f"MAP: {m.title} | Owner: {m.owner or '—'} | Status: {m.status} | Severity: {m.severity}"
         for m in open_maps
     )
-
-    # ── Generate answer via LLM ─────────────────────────────────────────────────
     answer = LlamaAIService.copilot_chat(message, context, maps_context)
 
     # Fallback if LLM is offline or returns bad format

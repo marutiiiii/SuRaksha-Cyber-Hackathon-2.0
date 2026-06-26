@@ -268,6 +268,11 @@ class EvidenceResponse(BaseModel):
     requested_status: Optional[str] = None
     previous_status: Optional[str] = None
     rejection_reason: Optional[str] = None
+    confidence: Optional[float] = 0.0
+    score: Optional[float] = 0.0
+    evidence_found: Optional[str] = None
+    missing_requirements: Optional[str] = None
+    progress: Optional[str] = "0%"
     created_at: datetime
 
     class Config:

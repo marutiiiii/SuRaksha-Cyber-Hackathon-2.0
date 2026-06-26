@@ -12,21 +12,27 @@ from typing import List, Optional
 
 logger = logging.getLogger("uvicorn.error")
 
+from app.core.config import settings
+
 # ─── Model Loading ─────────────────────────────────────────────────────────────
 
 _model = None
-_model_name = "all-MiniLM-L6-v2"
-_embedding_dim = 384
+_model_name = settings.EMBEDDING_MODEL
+_embedding_dim = 1024 if "bge" in _model_name.lower() else 384
 
 
 def _load_model():
-    global _model
+    global _model, _embedding_dim
     if _model is not None:
         return _model
     try:
         from sentence_transformers import SentenceTransformer
         logger.info(f"Loading embedding model '{_model_name}' …")
         _model = SentenceTransformer(_model_name)
+        if hasattr(_model, "get_embedding_dimension"):
+            _embedding_dim = _model.get_embedding_dimension()
+        elif hasattr(_model, "get_sentence_embedding_dimension"):
+            _embedding_dim = _model.get_sentence_embedding_dimension()
         logger.info(f"Embedding model ready. Dimension: {_embedding_dim}")
         return _model
     except Exception as e:

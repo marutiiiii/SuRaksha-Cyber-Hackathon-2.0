@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     REGUFLOW_API_KEY: str = os.getenv("REGUFLOW_API_KEY", "")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
+    QWEN_MODEL_PATH: str = os.getenv("QWEN_MODEL_PATH", "C:/AI-Models/Qwen2.5-VL-3B-Instruct")
     
     # Embedding Configuration
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-large-en-v1.5")
