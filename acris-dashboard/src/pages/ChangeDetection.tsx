@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { BeginnerHint, EmptyState } from "@/components/shared/States";
 import { useIsBeginner } from "@/state/CopilotContext";
-import { Search, AlertTriangle, Loader2, GitCompare, ArrowRight } from "lucide-react";
+import { Search, AlertTriangle, Loader2, GitCompare, ArrowRight, Layers, FileText, CheckSquare, Sparkles, Calendar, User } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/state/AuthContext";
@@ -27,8 +27,8 @@ const defaultNew = [
 
 function RiskBadge({ risk }: { risk: string }) {
   let badgeClass = "badge-medium";
-  if (risk === "High" || risk === "Critical") badgeClass = "badge-high";
-  if (risk === "Low") badgeClass = "badge-low";
+  if (risk === "High" || risk === "Critical" || risk === "CRITICAL" || risk === "HIGH") badgeClass = "badge-high";
+  if (risk === "Low" || risk === "LOW") badgeClass = "badge-low";
   return (
     <span className={`badge ${badgeClass} text-[9px] font-bold`}>
       <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -43,6 +43,7 @@ export default function ChangeDetection() {
   const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
   const userDepartment = user?.department || user?.user_metadata?.department || "";
 
+  const [activeTab, setActiveTab] = useState<"stacked" | "sideBySide" | "maps">("stacked");
   const [severity, setSeverity] = useState("All");
   const [dept, setDept] = useState(() => {
     return userDepartment ? userDepartment.toLowerCase() : "All";
@@ -53,6 +54,9 @@ export default function ChangeDetection() {
   const [loading, setLoading] = useState(true);
   const [oldText, setOldText] = useState<any[]>(defaultOld);
   const [newText, setNewText] = useState<any[]>(defaultNew);
+  const [comparisonData, setComparisonData] = useState<any>(null);
+  const [associatedMaps, setAssociatedMaps] = useState<any[]>([]);
+  
   const [meta, setMeta] = useState({
     title: "KYC Directives",
     oldTitle: "RBI/2024/MD/KYC",
@@ -63,6 +67,112 @@ export default function ChangeDetection() {
     exposure: "Medium"
   });
 
+  // State variables for manual comparison execution
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [oldDocId, setOldDocId] = useState<string>("");
+  const [newDocId, setNewDocId] = useState<string>("");
+  const [executing, setExecuting] = useState<boolean>(false);
+
+  const loadDocuments = () => {
+    api.listDocuments()
+      .then((res) => {
+        const analyzed = (res.documents || []).filter((d: any) => d.status === "analyzed");
+        setDocuments(analyzed);
+      })
+      .catch((err) => console.error("Failed to load documents", err));
+  };
+
+  const handleRunComparison = async () => {
+    if (!oldDocId || !newDocId || oldDocId === newDocId) {
+      toast({ title: "Please pick two different documents", variant: "destructive" });
+      return;
+    }
+    setExecuting(true);
+    try {
+      toast({ title: "Comparing documents...", description: "Aligning text and detecting modifications..." });
+      const comp = await api.compare(oldDocId, newDocId);
+      
+      toast({ title: "Generating impact analysis...", description: "Analyzing departmental roles and categories..." });
+      await api.impact(comp.comparisonId);
+      
+      toast({ title: "Creating Measurable Action Points (MAPs)...", description: "Mapping audit readiness evidence..." });
+      await api.generateMaps(comp.comparisonId);
+      
+      toast({ title: "Success", description: "Comparison executed successfully!" });
+      
+      // Reload comparisons and select the new one
+      const res = await api.listComparisons();
+      setComparisons(res || []);
+      setSelectedCompId(comp.comparisonId);
+      localStorage.setItem("acris.last_comparison_id", comp.comparisonId);
+      
+      setOldDocId("");
+      setNewDocId("");
+      loadDocuments();
+    } catch (err: any) {
+      toast({ title: "Comparison failed", description: err.message, variant: "destructive" });
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const ComparisonLauncher = () => {
+    if (userType === "department_officer") return null;
+    return (
+      <div className="glass-card p-4 border rounded-xl flex flex-col md:flex-row items-end gap-3 bg-muted/10">
+        <div className="flex-1 w-full space-y-1">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Preceding Version (Old)</label>
+          <select
+            value={oldDocId}
+            onChange={(e) => setOldDocId(e.target.value)}
+            className="premium-select text-xs h-9 w-full bg-background focus:outline-none"
+            disabled={executing}
+          >
+            <option value="">Select predecessor document...</option>
+            {documents.map((doc) => (
+              <option key={doc.id} value={doc.id}>
+                {doc.title} ({new Date(doc.created_at).toLocaleDateString()})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1 w-full space-y-1">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Target Version (New)</label>
+          <select
+            value={newDocId}
+            onChange={(e) => setNewDocId(e.target.value)}
+            className="premium-select text-xs h-9 w-full bg-background focus:outline-none"
+            disabled={executing}
+          >
+            <option value="">Select target document...</option>
+            {documents.map((doc) => (
+              <option key={doc.id} value={doc.id}>
+                {doc.title} ({new Date(doc.created_at).toLocaleDateString()})
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={handleRunComparison}
+          disabled={executing || !oldDocId || !newDocId}
+          className="bg-primary text-primary-foreground font-semibold h-9 px-4 rounded-lg text-xs hover:opacity-90 transition-opacity uppercase tracking-wider flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+        >
+          {executing ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Comparing...
+            </>
+          ) : (
+            <>
+              <GitCompare className="h-3.5 w-3.5" />
+              Compare
+            </>
+          )}
+        </button>
+      </div>
+    );
+  };
+
   useEffect(() => {
     if (userDepartment) {
       setDept(userDepartment.toLowerCase());
@@ -70,6 +180,7 @@ export default function ChangeDetection() {
   }, [userDepartment]);
 
   useEffect(() => {
+    loadDocuments();
     api.listComparisons()
       .then((res) => {
         setComparisons(res || []);
@@ -87,6 +198,8 @@ export default function ChangeDetection() {
     if (!selectedCompId) {
       setOldText(defaultOld);
       setNewText(defaultNew);
+      setComparisonData(null);
+      setAssociatedMaps([]);
       setMeta({
         title: "KYC Directives",
         oldTitle: "RBI/2024/MD/KYC",
@@ -101,13 +214,16 @@ export default function ChangeDetection() {
     }
     localStorage.setItem("acris.last_comparison_id", selectedCompId);
     setLoading(true);
+    
+    // Fetch comparison details
     api.getComparison(selectedCompId)
       .then((res) => {
+        setComparisonData(res);
         setOldText(res.oldAligned || []);
         setNewText(res.newAligned || []);
         const total = (res.added?.length || 0) + (res.modified?.length || 0) + (res.removed?.length || 0);
-        const high = [...(res.added || []), ...(res.modified || []), ...(res.removed || [])].filter((c: any) => c.severity === "High" || c.severity === "Critical").length;
-        const depts = new Set([...(res.added || []), ...(res.modified || []), ...(res.removed || [])].map((c: any) => c.category).filter(Boolean));
+        const high = [...(res.added || []), ...(res.modified || []), ...(res.removed || [])].filter((c: any) => c.severity === "High" || c.severity === "Critical" || c.severity === "HIGH" || c.severity === "CRITICAL").length;
+        const depts = new Set([...(res.added || []), ...(res.modified || []), ...(res.removed || [])].map((c: any) => c.category || c.department).filter(Boolean));
         setMeta({
           title: "Circular Comparison",
           oldTitle: res.oldDocumentTitle || "Old Document",
@@ -131,6 +247,15 @@ export default function ChangeDetection() {
         }
         setLoading(false);
       });
+
+    // Fetch maps
+    api.listMaps()
+      .then((res) => {
+        const filtered = (res || []).filter((m: any) => m.comparison_id === selectedCompId);
+        setAssociatedMaps(filtered);
+      })
+      .catch((err) => console.error("Failed to load maps for comparison", err));
+
   }, [selectedCompId]);
 
   const filterLine = (line: { type: string; text: string; severity?: string; department?: string }) => {
@@ -148,6 +273,44 @@ export default function ChangeDetection() {
 
   const oldFiltered = useMemo(() => oldText.filter(filterLine), [oldText, query, severity, dept]);
   const newFiltered = useMemo(() => newText.filter(filterLine), [newText, query, severity, dept]);
+
+  // Compute filtered modified, added, removed items for the Stacked Diffs Tab
+  const filteredChanges = useMemo(() => {
+    if (!comparisonData) return { modified: [], added: [], removed: [] };
+
+    const filterObj = (text: string, sev?: string, cat?: string) => {
+      if (query && !text.toLowerCase().includes(query.toLowerCase())) return false;
+      if (severity !== "All") {
+        const itemSev = sev || "Low";
+        if (itemSev.toLowerCase() !== severity.toLowerCase()) return false;
+      }
+      if (dept !== "All") {
+        const itemDept = cat || "Compliance";
+        if (itemDept.replace(" Team", "").toLowerCase() !== dept.toLowerCase()) return false;
+      }
+      return true;
+    };
+
+    return {
+      modified: (comparisonData.modified || []).filter((item: any) => filterObj(item.newText || item.oldText, item.severity, item.category)),
+      added: (comparisonData.added || []).filter((item: any) => filterObj(item.text, item.severity, item.category)),
+      removed: (comparisonData.removed || []).filter((item: any) => filterObj(item.text, item.severity, item.category))
+    };
+  }, [comparisonData, query, severity, dept]);
+
+  const filteredMaps = useMemo(() => {
+    return associatedMaps.filter((m: any) => {
+      if (query && !m.title.toLowerCase().includes(query.toLowerCase()) && !m.description?.toLowerCase().includes(query.toLowerCase())) return false;
+      if (severity !== "All") {
+        if (m.severity?.toLowerCase() !== severity.toLowerCase()) return false;
+      }
+      if (dept !== "All") {
+        const mDept = m.assigned_department || m.department || "Compliance";
+        if (mDept.replace(" Team", "").toLowerCase() !== dept.toLowerCase()) return false;
+      }
+      return true;
+    });
+  }, [associatedMaps, query, severity, dept]);
 
   const totalChanges = meta.totalChanges;
   const highRisk = meta.highRisk;
@@ -179,11 +342,19 @@ export default function ChangeDetection() {
             Review the comparison below to identify added, modified, and removed clauses between the chosen circular versions.
           </BeginnerHint>
         )}
+        {userType !== "department_officer" && (
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground font-semibold">
+              Select two parsed documents from your database to run a comparative diff analysis:
+            </div>
+            <ComparisonLauncher />
+          </div>
+        )}
         <EmptyState 
           title="No comparisons available" 
           description={userType === "department_officer" 
             ? "No active comparisons have been generated by your AI Compliance Officer yet." 
-            : "Please upload and execute a document comparison in the Document Analysis Workspace."} 
+            : "No comparative data exists. Select two documents above and click 'Compare' to execute the difference engine."} 
         />
       </div>
     );
@@ -202,8 +373,12 @@ export default function ChangeDetection() {
 
       {isBeginner && (
         <BeginnerHint>
-          The left pane is the preceding regulation, the right pane is the target version. Highlights: green (added), red (removed), amber (modified).
+          Use the tabs below to switch between Stacked Diffs, Side-by-Side Document Alignment, and the Compliance MAPs Action Plan.
         </BeginnerHint>
+      )}
+
+      {userType !== "department_officer" && (
+        <ComparisonLauncher />
       )}
 
       {loading ? (
@@ -259,7 +434,7 @@ export default function ChangeDetection() {
               <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search clauses..."
+                placeholder="Search clauses/MAPs..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="premium-input text-xs pl-9 pr-3 h-9 w-[180px] focus:outline-none"
@@ -307,11 +482,166 @@ export default function ChangeDetection() {
             </div>
           </div>
 
-          {/* Double Pane Aligned Comparisons */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 glass-card overflow-hidden bg-card">
-            <Pane title={`Old Version (${meta.oldTitle})`} lines={oldFiltered} divider />
-            <Pane title={`New Version (${meta.newTitle})`} lines={newFiltered} />
+          {/* Navigation Tabs */}
+          <div className="flex border-b border-border gap-2">
+            <button
+              onClick={() => setActiveTab("stacked")}
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 ${activeTab === "stacked" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Clause Changes (Stacked Diffs)
+            </button>
+            <button
+              onClick={() => setActiveTab("sideBySide")}
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 ${activeTab === "sideBySide" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              <GitCompare className="h-3.5 w-3.5" />
+              Document Alignment (Side-by-Side)
+            </button>
+            <button
+              onClick={() => setActiveTab("maps")}
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 ${activeTab === "maps" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              <CheckSquare className="h-3.5 w-3.5" />
+              Compliance MAPs ({filteredMaps.length})
+            </button>
           </div>
+
+          {/* Tab Panels */}
+          {activeTab === "stacked" && (
+            <div className="space-y-4">
+              {filteredChanges.modified.length === 0 && filteredChanges.added.length === 0 && filteredChanges.removed.length === 0 ? (
+                <div className="glass-card p-12 text-center text-xs text-muted-foreground font-semibold">
+                  No changes match active filters.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {/* Modified sentences */}
+                  {filteredChanges.modified.map((item: any, idx: number) => {
+                    const simPct = Math.round((item.similarity || 0) * 100);
+                    return (
+                      <div key={`mod-${idx}`} className="glass-card p-4 border border-l-4 border-l-amber-500 bg-amber-500/5 rounded-xl space-y-3">
+                        <div className="flex justify-between items-center pb-2 border-b border-border/40">
+                          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Change #{idx + 1} — Modified Clause
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <RiskBadge risk={item.severity || "Medium"} />
+                            <span className="text-[10px] font-semibold text-muted-foreground">{simPct}% match</span>
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Previous version (Database):</div>
+                            <p className="text-xs text-muted-foreground line-through leading-relaxed bg-rose-500/5 p-2 rounded border border-rose-500/10">
+                              {item.oldText || item.old}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold text-amber-500 uppercase mb-1">Updated version (Uploaded PDF):</div>
+                            <p className="text-xs text-foreground font-semibold leading-relaxed bg-emerald-500/5 p-2 rounded border border-emerald-500/10">
+                              {item.newText || item.new}
+                            </p>
+                          </div>
+                          {item.reason && (
+                            <div className="text-[10px] text-muted-foreground italic flex items-start gap-1.5 pt-1.5 border-t border-border/40">
+                              <span className="font-bold uppercase not-italic text-[9px] text-primary">Explanation:</span>
+                              {item.reason}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1">
+                          <span>Clause ID: <span className="font-mono text-primary font-bold">{item.id || item.old_id}</span></span>
+                          <span className="uppercase font-bold tracking-wider">{item.category || "General"}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Added sentences */}
+                  {filteredChanges.added.map((item: any, idx: number) => (
+                    <div key={`add-${idx}`} className="glass-card p-4 border border-l-4 border-l-emerald-500 bg-emerald-500/5 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center pb-2 border-b border-border/40">
+                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <FileText className="h-3.5 w-3.5" />
+                          Added Clause
+                        </span>
+                        <RiskBadge risk={item.severity || "Medium"} />
+                      </div>
+                      <p className="text-xs text-foreground font-semibold leading-relaxed">
+                        {item.text}
+                      </p>
+                      <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1">
+                        <span>Clause ID: <span className="font-mono text-primary font-bold">{item.id}</span></span>
+                        <span className="uppercase font-bold tracking-wider">{item.category || "General"}</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Removed sentences */}
+                  {filteredChanges.removed.map((item: any, idx: number) => (
+                    <div key={`rem-${idx}`} className="glass-card p-4 border border-l-4 border-l-rose-500 bg-rose-500/5 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center pb-2 border-b border-border/40">
+                        <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Removed Clause
+                        </span>
+                        <RiskBadge risk={item.severity || "High"} />
+                      </div>
+                      <p className="text-xs text-muted-foreground line-through leading-relaxed">
+                        {item.text}
+                      </p>
+                      <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1">
+                        <span>Clause ID: <span className="font-mono text-primary font-bold">{item.id}</span></span>
+                        <span className="uppercase font-bold tracking-wider">{item.category || "General"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "sideBySide" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 glass-card overflow-hidden bg-card">
+              <Pane title={`Old Version (${meta.oldTitle})`} lines={oldFiltered} divider />
+              <Pane title={`New Version (${meta.newTitle})`} lines={newFiltered} />
+            </div>
+          )}
+
+          {activeTab === "maps" && (
+            <div className="space-y-4">
+              {filteredMaps.length === 0 ? (
+                <div className="glass-card p-12 text-center text-xs text-muted-foreground font-semibold">
+                  No compliance Action Points (MAPs) generated for this comparison. Click "Compare" or ensure the comparison completed execution.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredMaps.map((map: any) => (
+                    <div key={map.id} className={`glass-card p-4 border-l-4 rounded-xl flex flex-col justify-between ${map.severity === "High" || map.severity === "Critical" ? "border-l-rose-500" : map.severity === "Medium" ? "border-l-amber-500" : "border-l-emerald-500"}`}>
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-[9px] font-mono font-bold text-muted-foreground uppercase">{map.id.substring(0, 8)}</span>
+                          <RiskBadge risk={map.severity} />
+                        </div>
+                        <h4 className="text-xs font-bold text-foreground mb-1">{map.title}</h4>
+                        {map.description && (
+                          <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">{map.description}</p>
+                        )}
+                      </div>
+                      <div className="pt-2 border-t border-border/50 flex flex-wrap justify-between items-center gap-2 text-[10px] text-muted-foreground font-semibold">
+                        <span className="flex items-center gap-1"><User className="h-3 w-3" /> {map.owner || "Unassigned"}</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {map.deadline || "No deadline"}</span>
+                        <span className="badge badge-low text-[8px] uppercase tracking-wider">{map.assigned_department || map.department || "Compliance"}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold ${map.status === "Completed" ? "bg-emerald-500/10 text-emerald-500" : map.status === "Awaiting Validation" ? "bg-amber-500/10 text-amber-500" : "bg-blue-500/10 text-blue-500"}`}>{map.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -363,3 +693,4 @@ function Pane({ title, lines, divider }: { title: string; lines: any[]; divider?
     </div>
   );
 }
+

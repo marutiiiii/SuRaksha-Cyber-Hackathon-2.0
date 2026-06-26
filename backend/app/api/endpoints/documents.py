@@ -2,11 +2,11 @@ import os
 import uuid
 from uuid import UUID
 import json
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pypdf import PdfReader
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.security import get_current_user, require_admin
 from app.models.models import Document, Clause
 from app.schemas.schemas import DocumentResponse, ListDocumentsResponse, ClauseResponse
@@ -30,8 +30,21 @@ def list_documents(
     ).order_by(Document.created_at.desc()).all()
     return {"documents": docs}
 
+def run_expert_pipeline_background(document_id, user_id, copilot_mode: str):
+    from app.core.pipeline import execute_downstream_pipeline
+    db = SessionLocal()
+    try:
+        db_doc = db.query(Document).filter(Document.id == document_id).first()
+        if db_doc:
+            execute_downstream_pipeline(db, db_doc, user_id, copilot_mode)
+    except Exception as e:
+        print(f"[API] Expert mode pipeline execution failed: {e}")
+    finally:
+        db.close()
+
 @router.post("/upload")
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     source: str = Form("Unknown"),
     current_user: dict = Depends(require_admin),
@@ -65,12 +78,7 @@ async def upload_document(
     
     # Trigger downstream pipeline automatically in expert mode
     if copilot_mode == "expert":
-        from app.core.pipeline import execute_downstream_pipeline
-        try:
-            execute_downstream_pipeline(db, db_doc, user_id, "expert")
-            db.refresh(db_doc)
-        except Exception as e:
-            print(f"[API] Expert mode pipeline execution failed: {e}")
+        background_tasks.add_task(run_expert_pipeline_background, db_doc.id, user_id, "expert")
             
     return {"documentId": db_doc.id, "status": db_doc.status, "document": db_doc}
 

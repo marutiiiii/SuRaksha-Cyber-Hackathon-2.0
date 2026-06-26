@@ -227,62 +227,6 @@ try:
                 date=datetime.strptime("2026-04-08", "%Y-%m-%d").date(),
                 link="https://rbi.org.in",
                 summary="Shifts high-risk customer CDD from biennial to annual cadence; elevates V-CIP from permissive to preferred."
-            ),
-            Regulation(
-                source="SEBI",
-                title="LODR Amendment — Materiality Threshold",
-                date=datetime.strptime("2026-04-04", "%Y-%m-%d").date(),
-                link="https://sebi.gov.in",
-                summary="Lowers materiality threshold for event disclosures under Regulation 30, increasing the frequency of mandatory disclosures."
-            ),
-            Regulation(
-                source="NPCI",
-                title="UPI Transaction Limits and Risk Management Circular (2026)",
-                date=datetime.strptime("2026-05-20", "%Y-%m-%d").date(),
-                link="https://www.npci.org.in",
-                summary="Sets daily limits for high-risk accounts and establishes risk alerts for anomalous peer-to-peer payment velocities."
-            ),
-            Regulation(
-                source="NPCI",
-                title="Guidelines on UPI Lite and Offline Transaction Security",
-                date=datetime.strptime("2026-03-12", "%Y-%m-%d").date(),
-                link="https://www.npci.org.in",
-                summary="Upgrades transaction authentication and limit controls for offline wallets and UPI Lite services on mobile devices."
-            ),
-            Regulation(
-                source="CERT-In",
-                title="Cybersecurity Advisory on Ransomware Mitigations for Critical Financial Infrastructure",
-                date=datetime.strptime("2026-06-01", "%Y-%m-%d").date(),
-                link="https://www.cert-in.org.in",
-                summary="Mandates specific application controls, Java middleware updates, and strict 6-hour incident disclosure reporting windows."
-            ),
-            Regulation(
-                source="CERT-In",
-                title="Mandatory Information Security Practices and Log Retention Rules",
-                date=datetime.strptime("2026-02-18", "%Y-%m-%d").date(),
-                link="https://www.cert-in.org.in",
-                summary="Requires system logging for all user operations and mandates 180-day secure offsite retention of security logs."
-            ),
-            Regulation(
-                source="FIU-IND",
-                title="Anti-Money Laundering (AML) and Counter-Terrorism Financing (CFT) Reporting Guidelines",
-                date=datetime.strptime("2026-05-10", "%Y-%m-%d").date(),
-                link="https://fiuindia.gov.in",
-                summary="Clarifies red flag indicators for high-risk trading accounts and outlines structural formatting for Suspicious Transaction Reports (STRs)."
-            ),
-            Regulation(
-                source="MeitY / DPDP",
-                title="Digital Personal Data Protection (DPDP) Rules on Consent Management",
-                date=datetime.strptime("2026-06-15", "%Y-%m-%d").date(),
-                link="https://www.meity.gov.in",
-                summary="Outlines mandatory interfaces for consent withdrawability, user data erasure, and data principal grievance redressal."
-            ),
-            Regulation(
-                source="MeitY / DPDP",
-                title="Information Technology (Reasonable Security Practices and Procedures) Amendment",
-                date=datetime.strptime("2026-01-20", "%Y-%m-%d").date(),
-                link="https://www.meity.gov.in",
-                summary="Specifies data protection audits and independent certification requirements for organizations handling sensitive personal data."
             )
         ]
         db.add_all(seed_regs)
@@ -317,8 +261,8 @@ except Exception as e:
 try:
     import threading
     from app.core.qwen_service import load_qwen_model_on_startup
-    _startup_logger.info("[Startup] Qwen: Triggering model load in background thread...")
-    threading.Thread(target=load_qwen_model_on_startup, daemon=True).start()
+    _startup_logger.info("[Startup] Qwen: Skipping model load in background thread to prevent OOM...")
+    # threading.Thread(target=load_qwen_model_on_startup, daemon=True).start()
 except Exception as e:
     _startup_logger.warning(f"[Startup] Qwen model check failed: {e}")
 
