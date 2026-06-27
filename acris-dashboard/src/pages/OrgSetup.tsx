@@ -97,7 +97,9 @@ export default function OrgSetup() {
         if (sessionStr) {
           try {
             token = JSON.parse(sessionStr)?.access_token || "";
-          } catch {}
+          } catch (e) {
+            // Ignore parse error
+          }
         }
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (token) {
@@ -193,7 +195,7 @@ export default function OrgSetup() {
                 <select
                   required
                   value={orgSize}
-                  onChange={(e) => setOrgSize(e.target.value as any)}
+                  onChange={(e) => setOrgSize(e.target.value as "Startup" | "Small" | "Medium" | "Enterprise" | "")}
                   className="premium-select"
                 >
                   <option value="">Select Size...</option>

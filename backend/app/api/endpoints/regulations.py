@@ -13,9 +13,6 @@ def list_regulations(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    copilot_mode = current_user.get("copilot_mode", "beginner")
-    if copilot_mode == "expert":
-        return []
     return db.query(Regulation).order_by(Regulation.date.desc()).all()
 
 @router.post("/trigger-scrape")

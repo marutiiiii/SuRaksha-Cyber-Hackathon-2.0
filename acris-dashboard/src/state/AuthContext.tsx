@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+
 
 interface AuthCtx {
   user: User | null;
@@ -77,23 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
-      if (localStorage.getItem("mock_user_session") && !s) {
-        return;
-      }
-      setSession(s);
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (localStorage.getItem("mock_user_session")) {
-        return;
-      }
-      setSession(data.session);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
+    setLoading(false);
   }, []);
 
   const signInDemo = (customUser?: { 
@@ -134,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isSetup: false,
       orgName: customUser.orgName,
       industryType: customUser.industryType,
-      orgSize: "" as any,
+      orgSize: "" as "Startup" | "Small" | "Medium" | "Enterprise" | "",
       departments: [],
       services: [],
       enabledSources: ["RBI", "NPCI", "FIU-IND", "CERT-In", "MeitY / DPDP"]
@@ -160,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("acris.registered_org");
     localStorage.removeItem("acris.registered_industry");
     localStorage.removeItem("acris.db_user_id");
-    await supabase.auth.signOut();
+
     setSession(null);
   };
 

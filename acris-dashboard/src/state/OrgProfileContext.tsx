@@ -101,7 +101,7 @@ export function OrgProfileProvider({ children }: { children: ReactNode }) {
         if (sessionStr) {
           try {
             token = JSON.parse(sessionStr)?.access_token || "";
-          } catch {}
+          } catch (e) { /* ignore */ }
         }
         const headers: Record<string, string> = {};
         if (token) {

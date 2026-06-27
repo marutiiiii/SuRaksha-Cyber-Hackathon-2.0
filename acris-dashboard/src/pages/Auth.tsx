@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/state/AuthContext";
@@ -82,7 +83,7 @@ export default function Auth() {
             const err = await res.json();
             throw new Error(err.detail || "Registration failed.");
           }
-        } catch (fetchErr: any) {
+        } catch (fetchErr: AnyObject) {
           if (fetchErr.message?.includes("failed") || fetchErr.message?.includes("exists") || fetchErr.message?.includes("required") || fetchErr.message?.includes("Invalid")) throw fetchErr;
           console.warn("Backend register unavailable, using local fallback:", fetchErr.message);
         }
@@ -163,7 +164,7 @@ export default function Auth() {
             const err = await res.json();
             throw new Error(err.detail || "Invalid credentials.");
           }
-        } catch (fetchErr: any) {
+        } catch (fetchErr: AnyObject) {
           if (fetchErr.message?.includes("credentials") || fetchErr.message?.includes("inactive") || fetchErr.message?.includes("blocked")) throw fetchErr;
           console.warn("Backend login unavailable, using local fallback.");
         }
@@ -194,7 +195,7 @@ export default function Auth() {
 
         navigate("/dashboard");
       }
-    } catch (err: any) {
+    } catch (err: AnyObject) {
       toast({ title: "Auth error", description: err.message ?? String(err), variant: "destructive" });
     } finally {
       setBusy(false);
@@ -379,7 +380,7 @@ export default function Auth() {
                       </label>
                       <select
                         value={userType}
-                        onChange={(e) => setUserType(e.target.value as any)}
+                        onChange={(e) => setUserType(e.target.value as AnyObject)}
                         className="premium-select"
                       >
                         <option value="admin">AI Compliance Officer (Admin)</option>
@@ -426,7 +427,7 @@ export default function Auth() {
                           </label>
                           <select
                             value={industryType}
-                            onChange={(e) => setIndustryType(e.target.value as any)}
+                            onChange={(e) => setIndustryType(e.target.value as AnyObject)}
                             className="premium-select"
                           >
                             <option value="Banking">Banking</option>

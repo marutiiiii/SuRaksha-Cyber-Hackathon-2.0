@@ -30,13 +30,11 @@ def get_dashboard_overview(
     if org_id:
         org_user_ids = [u.id for u in db.query(User).filter(User.organization_id == org_id).all()]
         q = db.query(Map).options(joinedload(Map.evidences)).filter(
-            Map.user_id.in_(org_user_ids),
-            Map.copilot_mode == copilot_mode
+            Map.user_id.in_(org_user_ids)
         )
     else:
         q = db.query(Map).options(joinedload(Map.evidences)).filter(
-            Map.user_id == user_id,
-            Map.copilot_mode == copilot_mode
+            Map.user_id == user_id
         )
         
     if utype == "department_officer" and dept:
@@ -131,33 +129,31 @@ def get_dashboard_overview(
     # 1. Dynamic Recent Activity from DB (Recent Regulations / Document Uploads)
     recent_activity = []
     try:
-        if copilot_mode == "beginner":
-            recent_regs = db.query(Regulation).order_by(Regulation.created_at.desc()).limit(3).all()
-            for reg in recent_regs:
-                recent_activity.append({
-                    "id": str(reg.id),
-                    "title": reg.title,
-                    "source": reg.source,
-                    "changeType": "New" if "guideline" in reg.title.lower() or "direction" in reg.title.lower() else "Updated",
-                    "risk": "High" if reg.source in ["RBI", "SEBI"] else "Medium",
-                    "status": "Active",
-                    "time": "Recent"
-                })
-        else:
-            recent_docs = db.query(Document).filter(
-                Document.user_id == user_id,
-                Document.copilot_mode == "expert"
-            ).order_by(Document.created_at.desc()).limit(3).all()
-            for doc in recent_docs:
-                recent_activity.append({
-                    "id": str(doc.id),
-                    "title": doc.title,
-                    "source": doc.source or "Upload",
-                    "changeType": "Uploaded",
-                    "risk": "Medium",
-                    "status": "Active",
-                    "time": "Recent"
-                })
+        recent_regs = db.query(Regulation).order_by(Regulation.created_at.desc()).limit(3).all()
+        for reg in recent_regs:
+            recent_activity.append({
+                "id": str(reg.id),
+                "title": reg.title,
+                "source": reg.source,
+                "changeType": "New" if "guideline" in reg.title.lower() or "direction" in reg.title.lower() else "Updated",
+                "risk": "High" if reg.source in ["RBI", "SEBI"] else "Medium",
+                "status": "Active",
+                "time": "Recent"
+            })
+            
+        recent_docs = db.query(Document).filter(
+            Document.user_id == user_id
+        ).order_by(Document.created_at.desc()).limit(3).all()
+        for doc in recent_docs:
+            recent_activity.append({
+                "id": str(doc.id),
+                "title": doc.title,
+                "source": doc.source or "Upload",
+                "changeType": "Uploaded",
+                "risk": "Medium",
+                "status": "Active",
+                "time": "Recent"
+            })
     except Exception as e:
         pass
 

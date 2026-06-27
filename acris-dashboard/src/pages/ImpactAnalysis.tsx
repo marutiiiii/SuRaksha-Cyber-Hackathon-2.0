@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Comparison } from "@/types";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import { BeginnerHint, EmptyState } from "@/components/shared/States";
@@ -32,18 +33,43 @@ function RiskBadge({ risk }: { risk: string }) {
   );
 }
 
+export interface MatrixItem {
+  department: string;
+  impact: number;
+  risk: string;
+  priority: string;
+  action: string;
+}
+
+export interface ComparisonItem {
+  comparisonId: string;
+  oldDocumentTitle?: string;
+  newDocumentTitle?: string;
+}
+
+export interface ImpactHistoryItem {
+  id: string;
+  comparisonId: string;
+  oldDocumentTitle: string;
+  newDocumentTitle: string;
+  riskLevel: string;
+  departments: string[];
+  services: string[];
+  created_at: string;
+}
+
 export default function ImpactAnalysis() {
   const isBeginner = useIsBeginner();
   const { orgProfile } = useOrgProfile();
-  const selectedDepts = orgProfile.departments || [];
+  const selectedDepts = useMemo(() => orgProfile.departments || [], [orgProfile.departments]);
   const { user } = useAuth();
   const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
 
-  const [matrix, setMatrix] = useState<any[]>(BASE_MATRIX);
+  const [matrix, setMatrix] = useState<MatrixItem[]>(BASE_MATRIX);
   const [loading, setLoading] = useState(true);
-  const [comparisons, setComparisons] = useState<any[]>([]);
+  const [comparisons, setComparisons] = useState<ComparisonItem[]>([]);
   const [selectedCompId, setSelectedCompId] = useState<string>("");
-  const [impactHistory, setImpactHistory] = useState<any[]>([]);
+  const [impactHistory, setImpactHistory] = useState<ImpactHistoryItem[]>([]);
 
   const loadImpactHistory = () => {
     api.listImpactHistory()
@@ -100,7 +126,7 @@ export default function ImpactAnalysis() {
         setMatrix(BASE_MATRIX);
         setLoading(false);
       });
-  }, [selectedCompId]);
+  }, [selectedCompId, userType]);
 
   const filteredMatrix = useMemo(() => {
     if (selectedDepts.length === 0) return matrix;

@@ -394,8 +394,7 @@ def seed_org_default_maps(org_id, user_id: UUID, db: Session, copilot_mode: str 
     existing_titles: set = set(
         t[0].lower().strip()
         for t in db.query(Map.title).filter(
-            Map.user_id.in_(org_user_ids),
-            Map.copilot_mode == copilot_mode
+            Map.user_id.in_(org_user_ids)
         ).all()
         if t[0]
     )
@@ -504,21 +503,20 @@ def get_user_maps(
         # ── Guard: seed once per ORG, not per user ─────────────────────────────
         # Check if ANY user in the org already has maps; if not, seed once.
         existing_org_maps = db.query(Map).filter(
-            Map.user_id.in_(org_user_ids),
-            Map.copilot_mode == copilot_mode
+            Map.user_id.in_(org_user_ids)
         ).first()
         if not existing_org_maps:
             seed_org_default_maps(org_id=org_id, user_id=user_id, db=db, copilot_mode=copilot_mode)
 
-        q = db.query(Map).filter(Map.user_id.in_(org_user_ids), Map.copilot_mode == copilot_mode)
+        q = db.query(Map).filter(Map.user_id.in_(org_user_ids))
         if utype == "department_officer":
             q = q.filter(Map.assigned_department == dept)
         return q.order_by(Map.created_at.desc()).all()
     else:
-        existing = db.query(Map).filter(Map.user_id == user_id, Map.copilot_mode == copilot_mode).first()
+        existing = db.query(Map).filter(Map.user_id == user_id).first()
         if not existing:
             seed_user_default_maps(user_id, db, copilot_mode=copilot_mode)
-        return db.query(Map).filter(Map.user_id == user_id, Map.copilot_mode == copilot_mode).order_by(Map.created_at.desc()).all()
+        return db.query(Map).filter(Map.user_id == user_id).order_by(Map.created_at.desc()).all()
 
 
 @router.post("", response_model=MapResponse)

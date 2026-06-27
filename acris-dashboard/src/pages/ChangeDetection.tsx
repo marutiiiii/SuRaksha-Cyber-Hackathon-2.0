@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useEffect, useMemo, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { BeginnerHint, EmptyState } from "@/components/shared/States";
@@ -49,13 +50,13 @@ export default function ChangeDetection() {
     return userDepartment ? userDepartment.toLowerCase() : "All";
   });
   const [query, setQuery] = useState("");
-  const [comparisons, setComparisons] = useState<any[]>([]);
+  const [comparisons, setComparisons] = useState<AnyObject[]>([]);
   const [selectedCompId, setSelectedCompId] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [oldText, setOldText] = useState<any[]>(defaultOld);
-  const [newText, setNewText] = useState<any[]>(defaultNew);
-  const [comparisonData, setComparisonData] = useState<any>(null);
-  const [associatedMaps, setAssociatedMaps] = useState<any[]>([]);
+  const [oldText, setOldText] = useState<AnyObject[]>(defaultOld);
+  const [newText, setNewText] = useState<AnyObject[]>(defaultNew);
+  const [comparisonData, setComparisonData] = useState<AnyObject>(null);
+  const [associatedMaps, setAssociatedMaps] = useState<AnyObject[]>([]);
   
   const [meta, setMeta] = useState({
     title: "KYC Directives",
@@ -68,7 +69,7 @@ export default function ChangeDetection() {
   });
 
   // State variables for manual comparison execution
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<AnyObject[]>([]);
   const [oldDocId, setOldDocId] = useState<string>("");
   const [newDocId, setNewDocId] = useState<string>("");
   const [executing, setExecuting] = useState<boolean>(false);
@@ -76,7 +77,7 @@ export default function ChangeDetection() {
   const loadDocuments = () => {
     api.listDocuments()
       .then((res) => {
-        const analyzed = (res.documents || []).filter((d: any) => d.status === "analyzed");
+        const analyzed = (res.documents || []).filter((d: AnyObject) => d.status === "analyzed");
         setDocuments(analyzed);
       })
       .catch((err) => console.error("Failed to load documents", err));
@@ -109,7 +110,7 @@ export default function ChangeDetection() {
       setOldDocId("");
       setNewDocId("");
       loadDocuments();
-    } catch (err: any) {
+    } catch (err: AnyObject) {
       toast({ title: "Comparison failed", description: err.message, variant: "destructive" });
     } finally {
       setExecuting(false);
@@ -222,8 +223,8 @@ export default function ChangeDetection() {
         setOldText(res.oldAligned || []);
         setNewText(res.newAligned || []);
         const total = (res.added?.length || 0) + (res.modified?.length || 0) + (res.removed?.length || 0);
-        const high = [...(res.added || []), ...(res.modified || []), ...(res.removed || [])].filter((c: any) => c.severity === "High" || c.severity === "Critical" || c.severity === "HIGH" || c.severity === "CRITICAL").length;
-        const depts = new Set([...(res.added || []), ...(res.modified || []), ...(res.removed || [])].map((c: any) => c.category || c.department).filter(Boolean));
+        const high = [...(res.added || []), ...(res.modified || []), ...(res.removed || [])].filter((c: AnyObject) => c.severity === "High" || c.severity === "Critical" || c.severity === "HIGH" || c.severity === "CRITICAL").length;
+        const depts = new Set([...(res.added || []), ...(res.modified || []), ...(res.removed || [])].map((c: AnyObject) => c.category || c.department).filter(Boolean));
         setMeta({
           title: "Circular Comparison",
           oldTitle: res.oldDocumentTitle || "Old Document",
@@ -251,7 +252,7 @@ export default function ChangeDetection() {
     // Fetch maps
     api.listMaps()
       .then((res) => {
-        const filtered = (res || []).filter((m: any) => m.comparison_id === selectedCompId);
+        const filtered = (res || []).filter((m: AnyObject) => m.comparison_id === selectedCompId);
         setAssociatedMaps(filtered);
       })
       .catch((err) => console.error("Failed to load maps for comparison", err));
@@ -292,14 +293,14 @@ export default function ChangeDetection() {
     };
 
     return {
-      modified: (comparisonData.modified || []).filter((item: any) => filterObj(item.newText || item.oldText, item.severity, item.category)),
-      added: (comparisonData.added || []).filter((item: any) => filterObj(item.text, item.severity, item.category)),
-      removed: (comparisonData.removed || []).filter((item: any) => filterObj(item.text, item.severity, item.category))
+      modified: (comparisonData.modified || []).filter((item: AnyObject) => filterObj(item.newText || item.oldText, item.severity, item.category)),
+      added: (comparisonData.added || []).filter((item: AnyObject) => filterObj(item.text, item.severity, item.category)),
+      removed: (comparisonData.removed || []).filter((item: AnyObject) => filterObj(item.text, item.severity, item.category))
     };
   }, [comparisonData, query, severity, dept]);
 
   const filteredMaps = useMemo(() => {
-    return associatedMaps.filter((m: any) => {
+    return associatedMaps.filter((m: AnyObject) => {
       if (query && !m.title.toLowerCase().includes(query.toLowerCase()) && !m.description?.toLowerCase().includes(query.toLowerCase())) return false;
       if (severity !== "All") {
         if (m.severity?.toLowerCase() !== severity.toLowerCase()) return false;
@@ -517,7 +518,7 @@ export default function ChangeDetection() {
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {/* Modified sentences */}
-                  {filteredChanges.modified.map((item: any, idx: number) => {
+                  {filteredChanges.modified.map((item: AnyObject, idx: number) => {
                     const simPct = Math.round((item.similarity || 0) * 100);
                     return (
                       <div key={`mod-${idx}`} className="glass-card p-4 border border-l-4 border-l-amber-500 bg-amber-500/5 rounded-xl space-y-3">
@@ -560,7 +561,7 @@ export default function ChangeDetection() {
                   })}
 
                   {/* Added sentences */}
-                  {filteredChanges.added.map((item: any, idx: number) => (
+                  {filteredChanges.added.map((item: AnyObject, idx: number) => (
                     <div key={`add-${idx}`} className="glass-card p-4 border border-l-4 border-l-emerald-500 bg-emerald-500/5 rounded-xl space-y-3">
                       <div className="flex justify-between items-center pb-2 border-b border-border/40">
                         <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -580,7 +581,7 @@ export default function ChangeDetection() {
                   ))}
 
                   {/* Removed sentences */}
-                  {filteredChanges.removed.map((item: any, idx: number) => (
+                  {filteredChanges.removed.map((item: AnyObject, idx: number) => (
                     <div key={`rem-${idx}`} className="glass-card p-4 border border-l-4 border-l-rose-500 bg-rose-500/5 rounded-xl space-y-3">
                       <div className="flex justify-between items-center pb-2 border-b border-border/40">
                         <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -618,7 +619,7 @@ export default function ChangeDetection() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredMaps.map((map: any) => (
+                  {filteredMaps.map((map: AnyObject) => (
                     <div key={map.id} className={`glass-card p-4 border-l-4 rounded-xl flex flex-col justify-between ${map.severity === "High" || map.severity === "Critical" ? "border-l-rose-500" : map.severity === "Medium" ? "border-l-amber-500" : "border-l-emerald-500"}`}>
                       <div>
                         <div className="flex justify-between items-start mb-2">
@@ -657,7 +658,7 @@ function KPI({ label, value, tone = "text-foreground" }: { label: string; value:
   );
 }
 
-function Pane({ title, lines, divider }: { title: string; lines: any[]; divider?: boolean }) {
+function Pane({ title, lines, divider }: { title: string; lines: AnyObject[]; divider?: boolean }) {
   const getLineClasses = (type: string) => {
     if (type === "added") return "bg-emerald-500/5 border-l-4 border-l-emerald-500";
     if (type === "removed") return "bg-rose-500/5 border-l-4 border-l-rose-500";

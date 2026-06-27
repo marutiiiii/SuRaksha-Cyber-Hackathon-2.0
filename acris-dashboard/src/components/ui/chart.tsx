@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
@@ -220,7 +221,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ChartLegendContent = React.forwardRef<HTMLDivElement, any>(
-  ({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }: any, ref: any) => {
+  ({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }: AnyObject, ref: AnyObject) => {
   const { config } = useChart();
 
   if (!payload?.length) {

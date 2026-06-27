@@ -127,8 +127,7 @@ def list_comparisons(
     ).outerjoin(
         DocumentNew, Comparison.new_document_id == DocumentNew.id
     ).filter(
-        Comparison.user_id.in_(org_user_ids),
-        Comparison.copilot_mode == copilot_mode
+        Comparison.user_id.in_(org_user_ids)
     ).order_by(Comparison.created_at.desc()).all()
     
     res = []
@@ -160,12 +159,16 @@ def list_impact_history(
     else:
         org_user_ids = [user_id]
         
+    import uuid
+    system_user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    if system_user_id not in org_user_ids:
+        org_user_ids.append(system_user_id)
+
     history = db.query(ImpactAnalysis).options(
         joinedload(ImpactAnalysis.comparison).joinedload(Comparison.old_document),
         joinedload(ImpactAnalysis.comparison).joinedload(Comparison.new_document)
     ).join(Comparison).filter(
-        ImpactAnalysis.user_id.in_(org_user_ids),
-        Comparison.copilot_mode == copilot_mode
+        ImpactAnalysis.user_id.in_(org_user_ids)
     ).order_by(ImpactAnalysis.created_at.desc()).all()
     
     res = []
@@ -201,6 +204,11 @@ def get_comparison(
     else:
         org_user_ids = [user_id]
         
+    import uuid
+    system_user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    if system_user_id not in org_user_ids:
+        org_user_ids.append(system_user_id)
+
     cmp = db.query(Comparison).options(
         joinedload(Comparison.old_document).joinedload(Document.clauses),
         joinedload(Comparison.new_document).joinedload(Document.clauses)
@@ -294,6 +302,11 @@ def compare_documents(
         org_user_ids = [usr.id for usr in db.query(User).filter(User.organization_id == u.organization_id).all()]
     else:
         org_user_ids = [user_id]
+
+    import uuid
+    system_user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    if system_user_id not in org_user_ids:
+        org_user_ids.append(system_user_id)
 
     docs = db.query(Document).options(joinedload(Document.clauses)).filter(
         Document.id.in_([schema.oldDocumentId, schema.newDocumentId]),

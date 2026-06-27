@@ -65,10 +65,10 @@ export default function PendingApproval() {
       } else {
         throw new Error("Failed to verify status");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Check Failed",
-        description: err.message || "Unable to reach server. Please try again.",
+        description: (err as Error).message || "Unable to reach server. Please try again.",
         variant: "destructive",
       });
     } finally {

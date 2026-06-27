@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useState, useEffect, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { RiskBadge } from "@/components/shared/Badges";
@@ -28,7 +29,7 @@ export default function Alerts() {
   const loadAlerts = () => {
     api.listAlerts()
       .then((res) => {
-        const mapped = (res || []).map((n: any) => ({
+        const mapped = (res || []).map((n: AnyObject) => ({
           id: n.id,
           message: n.title + " — " + n.message,
           time: new Date(n.created_at).toLocaleTimeString() + " today",
@@ -61,7 +62,7 @@ export default function Alerts() {
         // Toggle back to unread locally or ignore
         setLiveAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: false } : a));
       }
-    } catch (err: any) {
+    } catch (err: AnyObject) {
       toast({ title: "Failed to update alert", description: err.message, variant: "destructive" });
     }
   };

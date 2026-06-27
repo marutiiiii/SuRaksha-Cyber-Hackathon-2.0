@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useOrgProfile } from "@/state/OrgProfileContext";
 import { useAuth } from "@/state/AuthContext";
+import { Evidence, MapTask } from "@/types";
 
 const COLUMNS: MapStatus[] = ["Pending", "In Progress", "Awaiting Validation", "Completed"];
 
@@ -147,7 +148,7 @@ export default function Maps() {
   const [loading, setLoading] = useState(true);
 
   // Evidence state variables
-  const [evidenceList, setEvidenceList] = useState<any[]>([]);
+  const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
@@ -166,7 +167,7 @@ export default function Maps() {
   const loadMaps = () => {
     api.listMaps()
       .then((res) => {
-        const mapped = (res || []).map((m: any) => ({
+        const mapped = (res || []).map((m: MapTask) => ({
           id: m.id,
           title: m.title,
           description: m.description,
@@ -231,7 +232,7 @@ export default function Maps() {
             if (newLatest && newLatest.progress === "100%") {
               api.listMaps()
                 .then((maps) => {
-                  const mapped = (maps || []).map((m: any) => ({
+                  const mapped = (maps || []).map((m: MapTask) => ({
                     id: m.id,
                     title: m.title,
                     description: m.description,
@@ -246,7 +247,7 @@ export default function Maps() {
                     impact: m.description
                   }));
                   setItems(mapped);
-                  const updatedMap = mapped.find((m: any) => m.id === open.id);
+                  const updatedMap = mapped.find((m: MapTask) => m.id === open.id);
                   if (updatedMap) {
                     setOpen(updatedMap);
                   }
@@ -286,8 +287,8 @@ export default function Maps() {
         currentMapId = created.id;
         setItems(prev => prev.map(item => item.id === open.id ? { ...item, id: created.id } : item));
         setOpen(prev => prev ? { ...prev, id: created.id } : null);
-      } catch (err: any) {
-        toast({ title: "Upload failed", description: "Failed to initialize MAP task: " + err.message, variant: "destructive" });
+      } catch (err: unknown) {
+        toast({ title: "Upload failed", description: "Failed to initialize MAP task: " + (err as Error).message, variant: "destructive" });
         setUploadingEvidence(false);
         return;
       }
@@ -305,8 +306,8 @@ export default function Maps() {
       loadMaps();
       // Keep drawer open and set status to Awaiting Validation so polling begins immediately
       setOpen(prev => prev ? { ...prev, status: "Awaiting Validation" } : null);
-    } catch (err: any) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
     } finally {
       setUploadingEvidence(false);
     }
@@ -806,8 +807,8 @@ export default function Maps() {
                     setEvidenceModal(null);
                     setModalFile(null);
                     loadMaps();
-                  } catch (err: any) {
-                    toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+                  } catch (err: unknown) {
+                    toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
                   } finally {
                     setModalUploading(false);
                   }

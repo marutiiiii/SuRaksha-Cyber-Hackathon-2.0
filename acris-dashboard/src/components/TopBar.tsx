@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { Bell, Search, Command, Check, X, Home } from "lucide-react";
 import { useCopilot, CopilotMode } from "@/state/CopilotContext";
@@ -69,7 +70,7 @@ export default function TopBar() {
   }, [orgProfile]);
 
   // Alerts states
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<AnyObject[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
 
   const name = user?.user_metadata?.name ?? user?.email ?? "Aarav Mehta";
@@ -96,7 +97,7 @@ export default function TopBar() {
   useEffect(() => {
     api.listAlerts()
       .then((res) => {
-        const mapped = (res || []).map((n: any) => ({
+        const mapped = (res || []).map((n: AnyObject) => ({
           id: n.id,
           message: n.message,
           title: n.title,
@@ -221,7 +222,7 @@ export default function TopBar() {
         if (sessionStr) {
           try {
             token = JSON.parse(sessionStr)?.access_token || "";
-          } catch {}
+          } catch (e) { /* ignore */ }
         }
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (token) {
@@ -567,7 +568,7 @@ export default function TopBar() {
                       <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Industry Type</label>
                       <select
                         value={modalIndustry}
-                        onChange={(e) => setModalIndustry(e.target.value as any)}
+                        onChange={(e) => setModalIndustry(e.target.value as AnyObject)}
                         className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
                       >
                         <option value="Banking">Banking (RBI Regulated)</option>
@@ -578,7 +579,7 @@ export default function TopBar() {
                       <label className="text-[9px] font-mono font-bold uppercase tracking-wider text-muted-foreground block mb-1">Organization Size</label>
                       <select
                         value={modalOrgSize}
-                        onChange={(e) => setModalOrgSize(e.target.value as any)}
+                        onChange={(e) => setModalOrgSize(e.target.value as AnyObject)}
                         className="w-full border border-border px-3 py-2 text-xs text-foreground bg-background focus:border-primary focus:ring-0 focus:outline-none rounded-lg font-semibold h-10"
                       >
                         <option value="Startup">Startup (&lt;50)</option>

@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { BeginnerHint, EmptyState } from "@/components/shared/States";
@@ -51,7 +52,7 @@ export default function DocumentAnalysis() {
   const [draftType, setDraftType] = useState("sop");
   const [docDraftResult, setDocDraftResult] = useState<string | null>(null);
   const [docDraftBusy, setDocDraftBusy] = useState(false);
-  const [savedDrafts, setSavedDrafts] = useState<any[]>([]);
+  const [savedDrafts, setSavedDrafts] = useState<unknown[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   const rowsPerPage = 10;
@@ -81,7 +82,7 @@ export default function DocumentAnalysis() {
     try {
       const data = await api.getDocumentClauses(docId);
       setClauses(data);
-    } catch (e: any) {
+    } catch (e: AnyObject) {
       toast({ title: "Failed to fetch clauses", description: e.message, variant: "destructive" });
     }
   };
@@ -100,8 +101,8 @@ export default function DocumentAnalysis() {
       setDocDraftResult(res.draft);
       toast({ title: "Document Draft Generated", description: `Compiled AI draft for compliance ${draftType.toUpperCase()}.` });
       loadDraftHistory();
-    } catch (e: any) {
-      toast({ title: "Drafting Failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Analysis failed", description: (e as Error).message, variant: "destructive" });
     } finally {
       setDocDraftBusy(false);
     }
@@ -111,7 +112,7 @@ export default function DocumentAnalysis() {
     try {
       const { documents } = await api.listDocuments();
       setHistory(documents);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
     }
   };
@@ -141,7 +142,7 @@ export default function DocumentAnalysis() {
       // Auto-compare pipeline against the previous expert-mode document
       const { documents } = await api.listDocuments();
       const prevDoc = documents.find(
-        (d: any) => d.id !== up.documentId && d.status === "analyzed" && d.copilot_mode === "expert"
+        (d: { id: string, status: string, copilot_mode?: string }) => d.id !== up.documentId && d.status === "analyzed" && d.copilot_mode === "expert"
       );
       if (prevDoc) {
         toast({ title: "Auto-Comparing Revisions...", description: `Comparing against preceding version: ${prevDoc.title}` });
@@ -154,8 +155,8 @@ export default function DocumentAnalysis() {
       } else {
         toast({ title: "Document Indexed", description: "First document uploaded successfully. Upload a subsequent version later to see auto-comparisons." });
       }
-    } catch (e: any) {
-      toast({ title: "Pipeline failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Save failed", description: (e as Error).message, variant: "destructive" });
       setStage(-1);
     }
   };
@@ -191,7 +192,7 @@ export default function DocumentAnalysis() {
       
       setOldDoc("");
       setNewDoc("");
-    } catch (e: any) {
+    } catch (e: AnyObject) {
       toast({ title: "Execution failed", description: e.message, variant: "destructive" });
     } finally {
       setBusy(null);
@@ -518,8 +519,8 @@ export default function DocumentAnalysis() {
                     try {
                       const res = await api.getDraft(d.id);
                       setDocDraftResult(res.content);
-                    } catch (err: any) {
-                      toast({ title: "Failed to open draft", description: err.message, variant: "destructive" });
+                    } catch (err: unknown) {
+                      toast({ title: "Report generation failed", description: (err as Error).message, variant: "destructive" });
                     }
                   }}
                   className="p-3 border border-border hover:bg-muted/40 rounded-lg text-xs cursor-pointer transition-colors"

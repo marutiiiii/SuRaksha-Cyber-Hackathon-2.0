@@ -6,12 +6,13 @@ import { EmptyState, SkeletonPage } from "@/components/shared/States";
 import { useAuth } from "@/state/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { User } from "@/types";
 
 export default function OrganizationMembers() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -33,11 +34,11 @@ export default function OrganizationMembers() {
     try {
       const res = await api.listMembers();
       setMembers(res || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load organization members", err);
       toast({
         title: "Failed to load members",
-        description: err.message || "Could not retrieve organization members list.",
+        description: (err as Error).message || "Could not retrieve organization members list.",
         variant: "destructive"
       });
     } finally {
@@ -58,10 +59,10 @@ export default function OrganizationMembers() {
         description: "The user has been approved and is now active."
       });
       await loadMembers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Approval failed",
-        description: err.message || "Could not approve the member.",
+        description: (err as Error).message || "Could not approve the member.",
         variant: "destructive"
       });
     } finally {
@@ -78,10 +79,10 @@ export default function OrganizationMembers() {
         description: "The user has been blocked from accessing the system."
       });
       await loadMembers();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Block action failed",
-        description: err.message || "Could not block the member.",
+        description: (err as Error).message || "Could not block the member.",
         variant: "destructive"
       });
     } finally {

@@ -60,7 +60,7 @@ export default function CompanyProfile() {
     completeSetup({
       orgName: orgName,
       industryType: industry,
-      orgSize: orgSize as any,
+      orgSize: orgSize as "Startup" | "Small" | "Medium" | "Enterprise" | "",
       departments: selectedDepts,
       services: servicesList,
     });
@@ -73,7 +73,9 @@ export default function CompanyProfile() {
         if (sessionStr) {
           try {
             token = JSON.parse(sessionStr)?.access_token || "";
-          } catch {}
+          } catch (e) {
+          // ignore
+        }
         }
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (token) {
@@ -224,7 +226,7 @@ export default function CompanyProfile() {
                 <select 
                   className="premium-select text-xs h-10 focus:outline-none" 
                   value={industry} 
-                  onChange={(e) => setIndustry(e.target.value as any)}
+                  onChange={(e) => setIndustry(e.target.value as "Banking" | "Insurance" | "FinTech" | "Wealth Management" | "")}
                   disabled={userType === "department_officer"}
                 >
                   <option value="Banking">Banking (RBI Regulated)</option>

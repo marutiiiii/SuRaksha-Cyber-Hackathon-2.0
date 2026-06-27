@@ -13,7 +13,7 @@ export default function EvidenceManagement() {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [evidenceList, setEvidenceList] = useState<any[]>([]);
+  const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
   const [mapLookup, setMapLookup] = useState<Record<string, string>>({});
   const [memberLookup, setMemberLookup] = useState<Record<string, string>>({});
   
@@ -48,19 +48,19 @@ export default function EvidenceManagement() {
 
       // Create lookup maps
       const mapsMap: Record<string, string> = {};
-      (maps || []).forEach((m: any) => {
+      (maps || []).forEach((m: MapTask) => {
         mapsMap[m.id] = m.title;
       });
 
       const membersMap: Record<string, string> = {};
-      (members || []).forEach((u: any) => {
+      (members || []).forEach((u: { id: string; user_metadata?: { name?: string } }) => {
         membersMap[u.id] = u.full_name;
       });
 
       setMapLookup(mapsMap);
       setMemberLookup(membersMap);
       setEvidenceList(evidences || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load evidence reviews", err);
       toast({
         title: "Error loading reviews",
@@ -89,10 +89,10 @@ export default function EvidenceManagement() {
       setRejectingId(null);
       setRejectionReason("");
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Action failed",
-        description: err.message || "Failed to submit review decisions.",
+        description: (err as Error).message || "Failed to submit review decisions.",
         variant: "destructive"
       });
     } finally {

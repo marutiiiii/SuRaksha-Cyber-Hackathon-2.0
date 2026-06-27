@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useEffect, useState, useMemo, Fragment } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import EnhancedKpiCard from "@/components/shared/EnhancedKpiCard";
@@ -51,7 +52,7 @@ export default function DepartmentRouting() {
   useEffect(() => {
     api.listMaps()
       .then((res) => {
-        const mapped = (res || []).map((m: any) => ({
+        const mapped = (res || []).map((m: AnyObject) => ({
           id: m.id,
           title: m.title,
           description: m.description,

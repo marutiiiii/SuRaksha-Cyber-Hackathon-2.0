@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
@@ -30,12 +31,12 @@ interface CardMeta {
 /* ────────────────────────────────────────────────
    CUSTOM TOOLTIP
    ──────────────────────────────────────────────── */
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: AnyObject) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-popover border border-border rounded-lg p-3 shadow-md">
       <div className="text-[11px] text-muted-foreground font-semibold mb-1">{label}</div>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p: AnyObject, i: number) => (
         <div key={i} className="flex items-center gap-2 text-xs text-foreground">
           <div className="width-2 h-2 rounded-full" style={{ width: 8, height: 8, background: p.color }} />
           <span className="text-muted-foreground">{p.name}:</span>
@@ -181,11 +182,11 @@ export default function Dashboard() {
   const { orgProfile } = useOrgProfile();
 
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AnyObject>(null);
   const [activeRegsCount, setActiveRegsCount] = useState(8);
   const [highRiskCount, setHighRiskCount] = useState(3);
-  const [regs, setRegs] = useState<any[]>([]);
-  const [maps, setMaps] = useState<any[]>([]);
+  const [regs, setRegs] = useState<AnyObject[]>([]);
+  const [maps, setMaps] = useState<AnyObject[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -198,20 +199,20 @@ export default function Dashboard() {
       setData(res);
       
       const regList = regRes || [];
-      const filteredRegList = regList.filter((r: any) => 
+      const filteredRegList = regList.filter((r: AnyObject) => 
         orgProfile.enabledSources.length === 0 || orgProfile.enabledSources.includes(r.source)
       );
       setRegs(filteredRegList);
       if (filteredRegList.length > 0) {
         setActiveRegsCount(filteredRegList.length);
-        const highRisk = filteredRegList.filter((r: any) => r.risk === "High" || r.risk_level === "High").length;
+        const highRisk = filteredRegList.filter((r: AnyObject) => r.risk === "High" || r.risk_level === "High").length;
         setHighRiskCount(highRisk);
       } else {
         setActiveRegsCount(0);
         setHighRiskCount(0);
       }
 
-      const mappedMaps = (mapsRes || []).map((m: any) => ({
+      const mappedMaps = (mapsRes || []).map((m: AnyObject) => ({
         id: m.id,
         title: m.title,
         description: m.description,
@@ -250,39 +251,39 @@ export default function Dashboard() {
     if (!data?.departments) return [];
     const selected = orgProfile.departments || [];
     if (selected.length === 0) return data.departments;
-    return data.departments.filter((d: any) => selected.includes(d.department));
+    return data.departments.filter((d: AnyObject) => selected.includes(d.department));
   }, [data?.departments, orgProfile.departments]);
 
   const openFindings = useMemo(() => {
-    return filteredDepartments.reduce((sum: number, d: any) => sum + d.openFindings, 0);
+    return filteredDepartments.reduce((sum: number, d: AnyObject) => sum + d.openFindings, 0);
   }, [filteredDepartments]);
 
   const missingEvidence = useMemo(() => {
-    return filteredDepartments.reduce((sum: number, d: any) => sum + d.missingEvidence, 0);
+    return filteredDepartments.reduce((sum: number, d: AnyObject) => sum + d.missingEvidence, 0);
   }, [filteredDepartments]);
 
   const personalizedScore = useMemo(() => {
     if (filteredDepartments.length === 0) return data?.score || 84;
-    const sum = filteredDepartments.reduce((acc: number, d: any) => acc + d.readinessScore, 0);
+    const sum = filteredDepartments.reduce((acc: number, d: AnyObject) => acc + d.readinessScore, 0);
     return Math.round(sum / filteredDepartments.length);
   }, [filteredDepartments, data?.score]);
 
   const filteredMaps = useMemo(() => {
     const selectedDepts = orgProfile.departments || [];
     if (selectedDepts.length === 0) return maps;
-    return maps.filter((m: any) => selectedDepts.includes(m.department));
+    return maps.filter((m: AnyObject) => selectedDepts.includes(m.department));
   }, [maps, orgProfile.departments]);
 
   const totalMaps = filteredMaps.length;
-  const completedMaps = filteredMaps.filter((m: any) => m.status === "Completed").length;
+  const completedMaps = filteredMaps.filter((m: AnyObject) => m.status === "Completed").length;
   const pendingMaps = totalMaps - completedMaps;
-  const overdueMaps = filteredMaps.filter((m: any) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length;
+  const overdueMaps = filteredMaps.filter((m: AnyObject) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length;
 
   const filteredRecentActivity = useMemo(() => {
     const list = data?.recentActivity || [];
     const enabled = orgProfile.enabledSources || [];
     if (enabled.length === 0) return list;
-    return list.filter((r: any) => enabled.includes(r.source));
+    return list.filter((r: AnyObject) => enabled.includes(r.source));
   }, [data?.recentActivity, orgProfile.enabledSources]);
 
   const riskDist = useMemo(() => {
@@ -341,7 +342,7 @@ export default function Dashboard() {
     }
 
     // Insight 3: Operations & Findings
-    const criticalDepts = filteredDepartments.filter((d: any) => d.risk === "High");
+    const criticalDepts = filteredDepartments.filter((d: AnyObject) => d.risk === "High");
     if (criticalDepts.length > 0) {
       list.push({
         title: "High Risk Exposure in Core Units",
@@ -650,7 +651,7 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-2 flex-1">
-            {personalizedInsights.slice(0, 3).map((insight: any, i: number) => (
+            {personalizedInsights.slice(0, 3).map((insight: AnyObject, i: number) => (
               <InsightRow 
                 key={insight.title || i} 
                 title={insight.title} 
@@ -678,7 +679,7 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-3 flex-1 overflow-y-auto max-h-[220px]">
-            {filteredDepartments.map((dept: any) => {
+            {filteredDepartments.map((dept: AnyObject) => {
               const score = dept.readinessScore;
               const scoreColor = score >= 85 ? "text-emerald-500" : score >= 75 ? "text-amber-500" : "text-rose-500";
               const progressBg = score >= 85 ? "bg-emerald-500" : score >= 75 ? "bg-amber-500" : "bg-rose-500";
@@ -736,7 +737,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMaps.slice(0, 5).map((m: any, idx: number) => (
+                  {filteredMaps.slice(0, 5).map((m: AnyObject, idx: number) => (
                     <tr key={idx} onClick={() => nav("/maps")} className="cursor-pointer">
                       <td>
                         <div className="font-bold text-foreground">{m.title}</div>
@@ -786,7 +787,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRecentActivity.slice(0, 5).map((r: any, idx: number) => (
+                  {filteredRecentActivity.slice(0, 5).map((r: AnyObject, idx: number) => (
                     <tr key={idx} onClick={() => nav("/regulations")} className="cursor-pointer">
                       <td>
                         <div className="font-bold text-foreground">{r.title}</div>

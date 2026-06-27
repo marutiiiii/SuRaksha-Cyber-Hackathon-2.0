@@ -17,8 +17,7 @@ def get_notifications(
     user_id = current_user.get("id")
     copilot_mode = current_user.get("copilot_mode", "beginner")
     notifications = db.query(Notification).filter(
-        Notification.user_id == user_id,
-        Notification.copilot_mode == copilot_mode
+        Notification.user_id == user_id
     ).order_by(Notification.created_at.desc()).all()
     
     return notifications

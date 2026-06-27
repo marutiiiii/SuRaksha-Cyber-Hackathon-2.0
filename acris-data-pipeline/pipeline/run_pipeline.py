@@ -25,7 +25,7 @@ from transform.chunker import (
     chunk_text
 )
 
-from load.supabase_loader import (
+from load.sqlite_loader import (
     insert_regulation,
     insert_chunks,
     regulation_exists

@@ -1,4 +1,4 @@
-from load.supabase_loader import (
+from load.sqlite_loader import (
     get_all_chunks,
     get_regulation_by_id
 )

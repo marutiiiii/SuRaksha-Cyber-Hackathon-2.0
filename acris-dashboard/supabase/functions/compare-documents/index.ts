@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       return errorResponse("Both documents must have extracted clauses", 400);
 
     // pgvector embeddings come back as string "[0.1,0.2,...]" — parse if needed
-    const parse = (e: any): number[] =>
+    const parse = (e: string | number[] | Record<string, unknown>): number[] =>
       Array.isArray(e) ? e : typeof e === "string" ? JSON.parse(e) : [];
 
     const oldEmb = oldClauses.map((c) => parse(c.embedding));
@@ -28,9 +28,9 @@ Deno.serve(async (req) => {
 
     const SIM = 0.85;
     const matchedNew = new Set<number>();
-    const added: any[] = [];
-    const removed: any[] = [];
-    const modified: any[] = [];
+    const added: Record<string, unknown>[] = [];
+    const removed: Record<string, unknown>[] = [];
+    const modified: Record<string, unknown>[] = [];
 
     // For each old clause, find best new match
     for (let i = 0; i < oldClauses.length; i++) {

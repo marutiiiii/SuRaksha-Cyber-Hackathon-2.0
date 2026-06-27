@@ -1,7 +1,7 @@
 from ml.embedding_generator import generate_embedding
 from ml.chroma_loader import search_similar_chunks
 from ml.similarity_engine import calculate_similarity, classify_change
-from load.supabase_loader import get_regulation_by_id
+from load.sqlite_loader import get_regulation_by_id
 from ml.impact_analyzer import analyze_impact
 from ml.action_recommender import recommend_actions
 from ml.metadata_extractor import extract_metadata

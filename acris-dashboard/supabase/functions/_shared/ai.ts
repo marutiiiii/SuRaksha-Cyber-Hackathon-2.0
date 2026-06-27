@@ -93,7 +93,7 @@ export async function embed(texts: string[]): Promise<number[][]> {
     throw new Error(`Embedding ${res.status}: ${t}`);
   }
   const data = await res.json();
-  return data.data.map((d: any) => d.embedding as number[]);
+  return data.data.map((d: { embedding: number[] }) => d.embedding as number[]);
 }
 
 export function cosine(a: number[], b: number[]): number {

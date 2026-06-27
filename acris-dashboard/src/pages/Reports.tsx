@@ -63,8 +63,9 @@ export default function Reports() {
         
         toast({ title: "Report downloaded", description: "PDF saved successfully." });
       }
-    } catch (e: any) {
-      toast({ title: "Report failed", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      console.error("Generate error", e);
+      toast({ title: "Generation failed", description: (e as Error).message, variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -220,8 +221,9 @@ export default function Reports() {
         const fullUrl = signed_url.startsWith("http") ? signed_url : `${backendUrl}${signed_url}`;
         setShareLink(fullUrl);
       }
-    } catch (e: any) {
-      toast({ title: "Failed to generate share link", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      console.error("Reports API error", e);
+      toast({ title: "Failed to load reports", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSharing(false);
     }
@@ -411,7 +413,7 @@ function renderMarkdownToReact(markdown: string) {
   let inList = false;
   
   const renderText = (txt: string) => {
-    let html = txt
+    const html = txt
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")

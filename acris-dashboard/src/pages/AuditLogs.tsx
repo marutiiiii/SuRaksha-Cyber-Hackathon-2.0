@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useState, useMemo, useEffect } from "react";
 import { ArrowUp, ArrowDown, ChevronsUpDown, Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -40,7 +41,7 @@ export default function AuditLogs() {
   const loadLogs = (query?: string) => {
     api.listAuditLogs(query)
       .then((res) => {
-        const mapped = (res || []).map((l: any) => ({
+        const mapped = (res || []).map((l: AnyObject) => ({
           source: l.entity_type,
           clause: l.action,
           reasoning: l.description || "—",

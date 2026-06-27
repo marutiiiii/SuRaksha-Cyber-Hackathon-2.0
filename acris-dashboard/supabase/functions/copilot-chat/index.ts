@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
       .eq("documents.user_id", userId)
       .limit(500);
 
-    const parse = (e: any): number[] =>
+    const parse = (e: string | number[] | Record<string, unknown>): number[] =>
       Array.isArray(e) ? e : typeof e === "string" ? JSON.parse(e) : [];
 
     const scored = (clauses ?? [])
-      .map((c: any) => ({ c, s: cosine(qEmb, parse(c.embedding)) }))
+      .map((c: { embedding: string | number[] }) => ({ c, s: cosine(qEmb, parse(c.embedding)) }))
       .sort((a, b) => b.s - a.s)
       .slice(0, 6);
 

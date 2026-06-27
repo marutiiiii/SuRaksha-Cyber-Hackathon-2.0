@@ -10,6 +10,7 @@ import { useOrgProfile } from "@/state/OrgProfileContext";
 import { toast } from "@/hooks/use-toast";
 import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
 import { useAuth } from "@/state/AuthContext";
+import { Regulation } from "@/types";
 
 const sourcesMetadata = [
   { key: "RBI", name: "Reserve Bank of India", risk: "High" as const },
@@ -53,8 +54,8 @@ export default function Regulations() {
     }
   };
   
-  const [open, setOpen] = useState<any | null>(null);
-  const [live, setLive] = useState<any[]>([]);
+  const [open, setOpen] = useState<Regulation | null>(null);
+  const [live, setLive] = useState<Regulation[]>([]);
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,11 +90,10 @@ export default function Regulations() {
         description: res.message || "Successfully fetched and analyzed new regulations.",
       });
       fetchRegulations();
-    } catch (err: any) {
-      console.error("Scraping failed", err);
+    } catch (err: unknown) {
       toast({
-        title: "Scraping Failed",
-        description: err.message || "An error occurred during regulation scraping.",
+        title: "Sync Failed",
+        description: (err as Error).message || "Could not sync latest guidelines.",
         variant: "destructive",
       });
     } finally {
@@ -103,12 +103,12 @@ export default function Regulations() {
 
   const combinedRegulations = useMemo(() => {
     const base = live;
-    const baseFiltered = base.filter((r: any) => 
+    const baseFiltered = base.filter((r: Regulation) => 
       orgProfile.enabledSources.length === 0 || orgProfile.enabledSources.includes(r.source)
     );
     
     return baseFiltered.filter(
-      (r: any) =>
+      (r: Regulation) =>
         (source === "All" || r.source === source) &&
         (risk === "All" || r.risk === risk || r.risk_level === risk) &&
         (query === "" || 
@@ -275,7 +275,7 @@ export default function Regulations() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedRegulations.map((r: any) => (
+                  {paginatedRegulations.map((r: Regulation) => (
                     <tr key={r.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setOpen(r)}>
                       <td className="font-mono text-xs font-bold text-primary">{r.id || "Circular"}</td>
                       <td className="font-semibold text-foreground max-w-[420px] truncate">{r.title}</td>

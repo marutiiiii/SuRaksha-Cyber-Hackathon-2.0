@@ -23,10 +23,14 @@ def list_documents(
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
-    copilot_mode = current_user.get("copilot_mode", "beginner")
+    from sqlalchemy import or_
+    system_user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    
     docs = db.query(Document).filter(
-        Document.user_id == user_id,
-        Document.copilot_mode == copilot_mode
+        or_(
+            Document.user_id == user_id,
+            Document.user_id == system_user_id
+        )
     ).order_by(Document.created_at.desc()).all()
     return {"documents": docs}
 

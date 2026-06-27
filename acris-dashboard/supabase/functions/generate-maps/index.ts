@@ -14,8 +14,8 @@ Deno.serve(async (req) => {
     if (error || !cmp) return errorResponse("Comparison not found", 404);
 
     const changes = [
-      ...(cmp.result_json.added ?? []).map((c: any) => ({ ...c, type: "added" })),
-      ...(cmp.result_json.modified ?? []).map((c: any) => ({ id: c.id, text: c.newText, category: c.category, severity: c.severity, type: "modified" })),
+      ...(cmp.result_json.added ?? []).map((c: Record<string, unknown>) => ({ ...c, type: "added" })),
+      ...(cmp.result_json.modified ?? []).map((c: { id: string; newText: string; category: string; severity: string }) => ({ id: c.id, text: c.newText, category: c.category, severity: c.severity, type: "modified" })),
     ].slice(0, 25);
 
     if (changes.length === 0) return json({ maps: [] });
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       "Return strict JSON: { \"maps\": [{ \"clauseRef\": \"C001\", \"title\": \"...\", \"description\": \"...\", \"owner\": \"...\", \"severity\": \"...\", \"deadline\": \"YYYY-MM-DD\" }] }";
 
     const today = new Date().toISOString().slice(0, 10);
-    const result = await chatJSON<{ maps: any[] }>({
+    const result = await chatJSON<{ maps: Record<string, unknown>[] }>({
       system,
       user: `Today is ${today}.\n\nChanges:\n${JSON.stringify(changes)}`,
     });

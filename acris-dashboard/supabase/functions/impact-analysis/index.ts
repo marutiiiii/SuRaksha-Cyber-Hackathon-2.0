@@ -16,9 +16,9 @@ Deno.serve(async (req) => {
     if (error || !cmp) return errorResponse("Comparison not found", 404);
 
     const changes = [
-      ...(cmp.result_json.added ?? []).map((c: any) => ({ ...c, type: "added" })),
-      ...(cmp.result_json.modified ?? []).map((c: any) => ({ id: c.id, text: c.newText, category: c.category, severity: c.severity, type: "modified" })),
-      ...(cmp.result_json.removed ?? []).map((c: any) => ({ ...c, type: "removed" })),
+      ...(cmp.result_json.added ?? []).map((c: Record<string, unknown>) => ({ ...c, type: "added" })),
+      ...(cmp.result_json.modified ?? []).map((c: { id: string; newText: string; category: string; severity: string }) => ({ id: c.id, text: c.newText, category: c.category, severity: c.severity, type: "modified" })),
+      ...(cmp.result_json.removed ?? []).map((c: Record<string, unknown>) => ({ ...c, type: "removed" })),
     ].slice(0, 25);
 
     if (changes.length === 0) return json({ matrix: [], perClause: [] });
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       "For each clause, return impact scores 0-100 across all 6 departments and a one-line reason for the highest-scoring one. " +
       "Return strict JSON: { \"items\": [{ \"clauseId\": \"...\", \"scores\": { \"Compliance\": 0-100, ... }, \"primary\": \"Compliance\", \"reason\": \"...\" }] }";
 
-    const result = await chatJSON<{ items: any[] }>({
+    const result = await chatJSON<{ items: Record<string, unknown>[] }>({
       system,
       user: JSON.stringify({ changes }),
     });

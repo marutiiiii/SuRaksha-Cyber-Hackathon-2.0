@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useRef, useState, useEffect, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import { BeginnerHint } from "@/components/shared/States";
@@ -28,12 +29,12 @@ export default function AIExplanation() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Document Drafting State
-  const [comparisons, setComparisons] = useState<any[]>([]);
+  const [comparisons, setComparisons] = useState<AnyObject[]>([]);
   const [selectedComp, setSelectedComp] = useState("");
   const [docType, setDocType] = useState("sop");
   const [drafting, setDrafting] = useState(false);
   const [draftResult, setDraftResult] = useState<string | null>(null);
-  const [savedDrafts, setSavedDrafts] = useState<any[]>([]);
+  const [savedDrafts, setSavedDrafts] = useState<AnyObject[]>([]);
 
   const loadDraftHistory = () => {
     api.listDraftHistory()
@@ -70,7 +71,7 @@ export default function AIExplanation() {
         {
           role: "assistant",
           content: res.answer,
-          citations: (res.citations ?? []).map((c: any) => ({
+          citations: (res.citations ?? []).map((c: AnyObject) => ({
             regulation: c.document,
             clause: c.clauseId,
             text: c.text,
@@ -78,7 +79,7 @@ export default function AIExplanation() {
           })),
         },
       ]);
-    } catch (e: any) {
+    } catch (e: AnyObject) {
       toast({ title: "Copilot error", description: e.message, variant: "destructive" });
     } finally {
       setThinking(false);
@@ -96,7 +97,7 @@ export default function AIExplanation() {
       setDraftResult(res.draft);
       toast({ title: "Document Draft Generated", description: `Compiled AI draft for a compliance ${docType.toUpperCase()}.` });
       loadDraftHistory();
-    } catch (err: any) {
+    } catch (err: AnyObject) {
       toast({ title: "Drafting Failed", description: err.message, variant: "destructive" });
     } finally {
       setDrafting(false);
@@ -313,7 +314,7 @@ export default function AIExplanation() {
                       try {
                         const res = await api.getDraft(d.id);
                         setDraftResult(res.content);
-                      } catch (err: any) {
+                      } catch (err: AnyObject) {
                         toast({ title: "Failed to open draft", description: err.message, variant: "destructive" });
                       }
                     }}

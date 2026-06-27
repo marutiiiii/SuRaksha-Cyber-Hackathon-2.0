@@ -1,3 +1,4 @@
+import { AnyObject } from "@/types";
 import { useEffect, useState, useMemo } from "react";
 import PageHeader from "@/components/shared/PageHeader";
 import KpiCard from "@/components/shared/KpiCard";
@@ -25,7 +26,7 @@ function CircleScore({ score }: { score: number }) {
 
 export default function AuditReadiness() {
   const [loading, setLoading] = useState(true);
-  const [liveData, setLiveData] = useState<any>(null);
+  const [liveData, setLiveData] = useState<AnyObject>(null);
 
   useEffect(() => {
     api.auditReadiness()
@@ -95,7 +96,7 @@ export default function AuditReadiness() {
     return steps;
   }, [liveData, departments, totals]);
 
-  const readinessScore = liveData?.score ?? (departments.length > 0 ? Math.round(departments.reduce((acc: number, d: any) => acc + d.readinessScore, 0) / departments.length) : 0);
+  const readinessScore = liveData?.score ?? (departments.length > 0 ? Math.round(departments.reduce((acc: number, d: AnyObject) => acc + d.readinessScore, 0) / departments.length) : 0);
 
   if (loading) return <SkeletonPage />;
 
@@ -177,7 +178,7 @@ export default function AuditReadiness() {
               </tr>
             </thead>
             <tbody>
-              {departments.map((d: any) => {
+              {departments.map((d: AnyObject) => {
                 const cell = (v: number, c: string) => (
                   <td className="p-1 w-1/5">
                     <div
