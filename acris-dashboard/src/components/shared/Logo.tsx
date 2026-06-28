@@ -77,17 +77,7 @@ export default function Logo({ size = "md", theme = "default", className, onClic
   );
 
   if (collapsed) {
-    return (
-      <div 
-        onClick={handleClick}
-        className={cn(
-          "flex items-center justify-center cursor-pointer select-none",
-          className
-        )}
-      >
-        {renderIcon()}
-      </div>
-    );
+    return null;
   }
 
   return (
