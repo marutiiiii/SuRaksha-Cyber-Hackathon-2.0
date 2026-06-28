@@ -189,8 +189,8 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnyObject>(null);
-  const [activeRegsCount, setActiveRegsCount] = useState(8);
-  const [highRiskCount, setHighRiskCount] = useState(3);
+  const [activeRegsCount, setActiveRegsCount] = useState(0);
+  const [highRiskCount, setHighRiskCount] = useState(0);
   const [regs, setRegs] = useState<AnyObject[]>([]);
   const [maps, setMaps] = useState<AnyObject[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);

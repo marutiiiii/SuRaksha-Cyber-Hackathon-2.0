@@ -9,22 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/state/AuthContext";
 import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
 
-const defaultOld = [
-  { type: "unchanged", text: "Section 3.1: All regulated entities must maintain KYC records for a minimum period of 5 years.", severity: "Low", department: "Compliance" },
-  { type: "removed", text: "Section 3.2: Periodic updates of KYC shall be done every 2 years for high-risk customers.", severity: "High", department: "Operations" },
-  { type: "unchanged", text: "Section 3.3: Customer identification procedures must comply with PMLA guidelines.", severity: "Low", department: "Compliance" },
-  { type: "modified", text: "Section 4.1: Digital KYC (V-CIP) may be used as an alternative to in-person verification.", severity: "Medium", department: "IT" },
-  { type: "unchanged", text: "Section 5.1: Non-compliance shall attract penalties as prescribed under Section 13 of PMLA.", severity: "Low", department: "Legal" },
-];
 
-const defaultNew = [
-  { type: "unchanged", text: "Section 3.1: All regulated entities must maintain KYC records for a minimum period of 5 years.", severity: "Low", department: "Compliance" },
-  { type: "added", text: "Section 3.2: Periodic updates of KYC shall be done annually for high-risk customers and every 2 years for medium-risk customers.", severity: "High", department: "Operations" },
-  { type: "unchanged", text: "Section 3.3: Customer identification procedures must comply with PMLA guidelines.", severity: "Low", department: "Compliance" },
-  { type: "modified", text: "Section 4.1: Digital KYC (V-CIP) shall be the preferred method for customer verification, replacing in-person verification where feasible.", severity: "Medium", department: "IT" },
-  { type: "unchanged", text: "Section 5.1: Non-compliance shall attract penalties as prescribed under Section 13 of PMLA.", severity: "Low", department: "Legal" },
-  { type: "added", text: "Section 5.2: Regulated entities must report KYC compliance status quarterly to RBI.", severity: "Medium", department: "Compliance" },
-];
 
 function RiskBadge({ risk }: { risk: string }) {
   let badgeClass = "badge-medium";
@@ -53,19 +38,19 @@ export default function ChangeDetection() {
   const [comparisons, setComparisons] = useState<AnyObject[]>([]);
   const [selectedCompId, setSelectedCompId] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [oldText, setOldText] = useState<AnyObject[]>(defaultOld);
-  const [newText, setNewText] = useState<AnyObject[]>(defaultNew);
+  const [oldText, setOldText] = useState<AnyObject[]>([]);
+  const [newText, setNewText] = useState<AnyObject[]>([]);
   const [comparisonData, setComparisonData] = useState<AnyObject>(null);
   const [associatedMaps, setAssociatedMaps] = useState<AnyObject[]>([]);
   
   const [meta, setMeta] = useState({
-    title: "KYC Directives",
-    oldTitle: "RBI/2024/MD/KYC",
-    newTitle: "RBI/2026/MD/KYC",
-    totalChanges: 3,
-    highRisk: 1,
-    impactedDepts: 3,
-    exposure: "Medium"
+    title: "",
+    oldTitle: "",
+    newTitle: "",
+    totalChanges: 0,
+    highRisk: 0,
+    impactedDepts: 0,
+    exposure: "—"
   });
 
   // State variables for manual comparison execution
@@ -206,19 +191,11 @@ export default function ChangeDetection() {
 
   useEffect(() => {
     if (!selectedCompId) {
-      setOldText(defaultOld);
-      setNewText(defaultNew);
+      setOldText([]);
+      setNewText([]);
       setComparisonData(null);
       setAssociatedMaps([]);
-      setMeta({
-        title: "KYC Directives",
-        oldTitle: "RBI/2024/MD/KYC",
-        newTitle: "RBI/2026/MD/KYC",
-        totalChanges: 3,
-        highRisk: 1,
-        impactedDepts: 3,
-        exposure: "Medium"
-      });
+      setMeta({ title: "", oldTitle: "", newTitle: "", totalChanges: 0, highRisk: 0, impactedDepts: 0, exposure: "—" });
       setLoading(false);
       return;
     }

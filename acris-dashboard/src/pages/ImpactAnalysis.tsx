@@ -11,15 +11,7 @@ import { Loader2, TrendingUp, AlertTriangle, ShieldCheck, ShieldAlert, Award } f
 import { useAuth } from "@/state/AuthContext";
 import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
 
-const BASE_MATRIX = [
-  { department: "Compliance", impact: 92, risk: "High", priority: "P1", action: "Update KYC procedures within 30 days" },
-  { department: "Legal", impact: 58, risk: "Medium", priority: "P2", action: "Re-paper FLDG contracts with LSPs" },
-  { department: "IT", impact: 65, risk: "Medium", priority: "P2", action: "Build DLA quarterly reporting pipeline" },
-  { department: "Cybersecurity", impact: 88, risk: "High", priority: "P1", action: "Patch CVE-2026-3344 across CBS nodes" },
-  { department: "Operations", impact: 71, risk: "Medium", priority: "P2", action: "Roll out V-CIP as preferred onboarding" },
-  { department: "Audit", impact: 34, risk: "Low", priority: "P3", action: "Refresh audit evidence repository" },
-  { department: "Risk Management", impact: 50, risk: "Medium", priority: "P2", action: "Align risk thresholds with new guidelines" }
-];
+
 
 function RiskBadge({ risk }: { risk: string }) {
   let badgeClass = "badge-medium";
@@ -65,7 +57,7 @@ export default function ImpactAnalysis() {
   const { user } = useAuth();
   const userType = user?.user_type || user?.user_metadata?.user_type || "admin";
 
-  const [matrix, setMatrix] = useState<MatrixItem[]>(BASE_MATRIX);
+  const [matrix, setMatrix] = useState<MatrixItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [comparisons, setComparisons] = useState<ComparisonItem[]>([]);
   const [selectedCompId, setSelectedCompId] = useState<string>("");
@@ -101,7 +93,7 @@ export default function ImpactAnalysis() {
 
   useEffect(() => {
     if (!selectedCompId) {
-      setMatrix(BASE_MATRIX);
+      setMatrix([]);
       setLoading(false);
       return;
     }
@@ -109,7 +101,7 @@ export default function ImpactAnalysis() {
     setLoading(true);
     api.impact(selectedCompId)
       .then((res) => {
-        setMatrix(res.matrix || BASE_MATRIX);
+        setMatrix(res.matrix && res.matrix.length > 0 ? res.matrix : []);
         setLoading(false);
         loadImpactHistory();
       })
@@ -123,7 +115,7 @@ export default function ImpactAnalysis() {
         } else {
           toast({ title: "Failed to load impact analysis", description: err.message, variant: "destructive" });
         }
-        setMatrix(BASE_MATRIX);
+        setMatrix([]);
         setLoading(false);
       });
   }, [selectedCompId, userType]);
@@ -152,6 +144,7 @@ export default function ImpactAnalysis() {
   }, [filteredMatrix]);
 
   const totalExposureVal = useMemo(() => {
+    if (filteredMatrix.length === 0) return "—";
     const sumImpact = filteredMatrix.reduce((acc, m) => acc + m.impact, 0);
     if (sumImpact === 0) return "₹0";
     const lakhs = (sumImpact * 15000) / 100000;
@@ -159,8 +152,8 @@ export default function ImpactAnalysis() {
   }, [filteredMatrix]);
 
   const avgReadiness = useMemo(() => {
+    if (filteredMatrix.length === 0) return "N/A";
     const sumImpact = filteredMatrix.reduce((acc, m) => acc + m.impact, 0);
-    if (filteredMatrix.length === 0) return "100%";
     const score = Math.max(10, Math.min(100, 100 - Math.round((sumImpact / filteredMatrix.length) * 0.3)));
     return `${score}%`;
   }, [filteredMatrix]);
