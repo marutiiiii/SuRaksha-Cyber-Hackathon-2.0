@@ -155,6 +155,7 @@ export default function DocumentAnalysis() {
       } else {
         toast({ title: "Document Indexed", description: "First document uploaded successfully. Upload a subsequent version later to see auto-comparisons." });
       }
+      setStage(4);
     } catch (e: unknown) {
       toast({ title: "Save failed", description: (e as Error).message, variant: "destructive" });
       setStage(-1);

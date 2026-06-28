@@ -185,11 +185,17 @@ export default function Regulations() {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-foreground">{s.key}</span>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                  status === "Healthy" ? "text-emerald-500" : status === "Attention" ? "text-amber-500" : "text-rose-500"
-                }`}>
-                  {status}
-                </span>
+                {s.key === "RBI" ? (
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                    status === "Healthy" ? "text-emerald-500" : status === "Attention" ? "text-amber-500" : "text-rose-500"
+                  }`}>
+                    {status}
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-bold uppercase bg-violet-500/10 text-violet-500 px-1.5 py-0.5 rounded border border-violet-500/20">
+                    Coming Soon
+                  </span>
+                )}
               </div>
               <div className="text-[11px] text-muted-foreground line-clamp-1 mb-3">{s.name}</div>
               <div className="flex items-end justify-between">

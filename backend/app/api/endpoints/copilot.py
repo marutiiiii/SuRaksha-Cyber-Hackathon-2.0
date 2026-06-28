@@ -70,19 +70,20 @@ def generate_structured_fallback(
     
     # 1. Clause records from database
     for c, score in (top_matches or []):
-        sources.append({
-            "type": "clause",
-            "ref": f"Clause {c.clause_id}",
-            "doc": c.document.title,
-            "text": c.text,
-            "obligation": c.obligation or c.text[:200],
-            "category": c.category or "General",
-            "severity": c.severity or "Medium"
-        })
+        if score > 0.20:
+            sources.append({
+                "type": "clause",
+                "ref": f"Clause {c.clause_id}",
+                "doc": c.document.title,
+                "text": c.text,
+                "obligation": c.obligation or c.text[:200],
+                "category": c.category or "General",
+                "severity": c.severity or "Medium"
+            })
         
     # 2. Regulation table
     for reg, score in (top_regs or []):
-        if score > 0.05:
+        if score > 0.20:
             obs = []
             if reg.obligations:
                 try:
@@ -101,7 +102,7 @@ def generate_structured_fallback(
             
     # 3. ChromaDB snippets
     for sim, source_label, doc_text in (chroma_snippets or []):
-        if sim > 0.05:
+        if sim > 0.20:
             sources.append({
                 "type": "chroma",
                 "ref": source_label,
@@ -113,13 +114,25 @@ def generate_structured_fallback(
             })
 
     if not sources:
-        return (
-            "I searched the compliance database, but couldn't find any specific regulatory clauses or documents related to your query.\n\n"
-            "To help me assist you better, you can:\n"
-            "1. Upload a PDF Circular or regulatory document via the **Regulations** or **Document Upload** dashboard.\n"
-            "2. Run a **Comparison** between circular versions to generate clause differences.\n"
-            "3. Verify that your query contains the correct keywords (e.g. 'KCC', 'cybersecurity', etc.) that match your uploaded documents."
-        )
+        keyword = ""
+        for word in ["kcc", "kisan", "fldg", "cybersecurity", "sebi", "npci", "cert-in", "basel", "audit", "sop", "evidence"]:
+            if word in msg_lower:
+                keyword = word.upper()
+                break
+                
+        if keyword:
+            return (
+                f"I searched the active compliance database but couldn't find any regulatory clauses or documents specifically related to **{keyword}**.\n\n"
+                f"Currently, the workspace contains RBI circulars covering KYC, Digital Lending guidelines, Credit Derivatives, FEMA reporting, and SBR frameworks. "
+                f"If you have a circular PDF concerning **{keyword}**, you can upload it in the **Document Workspace** (in Expert Mode). "
+                f"Once uploaded and indexed, I will be able to explain its requirements, generate compliance checklists, and create MAP tasks for you."
+            )
+        else:
+            return (
+                "I searched the active database but couldn't find any specific regulatory clauses or documents related to your query.\n\n"
+                "To help me assist you, you can upload the relevant regulatory PDF circulars in the **Document Workspace** (in Expert Mode). "
+                "Once indexed, I will parse the clauses and explain the requirements, checklists, and operational steps in detail."
+            )
 
     # Classify intent
     is_comparison = any(k in msg_lower for k in ["compare", "comparison", "difference", "changed", "change", "versus", "vs", "new version", "old version"])
@@ -136,110 +149,120 @@ def generate_structured_fallback(
             modified = latest_comp.result_json.get("modified", []) if latest_comp.result_json else []
             removed = latest_comp.result_json.get("removed", []) if latest_comp.result_json else []
             
-            response_parts = [
-                "Here is a comparative analysis based on the latest document comparison run:",
-                f"- **Added Obligations ({len(added)})**: Mandatory new requirements that the organization must adopt.",
-                f"- **Modified Obligations ({len(modified)})**: Existing guidelines where thresholds, reporting timelines, or terms changed.",
-                f"- **Removed Obligations ({len(removed)})**: Rules that are no longer active."
-            ]
+            p1 = (
+                f"Here is a comparative analysis based on the latest document comparison run between the circular versions. "
+                f"The analysis identified {len(added)} new rules added to the guidelines, {len(modified)} modified guidelines "
+                f"where requirements or thresholds changed, and {len(removed)} retired clauses that are no longer active."
+            )
             
-            if added:
-                response_parts.append("\n**Key Added Requirements:**")
-                for a in added[:3]:
-                    response_parts.append(f"- **Clause {a.get('id', 'N/A')}**: {a.get('text', '')[:150]}...")
-            if modified:
-                response_parts.append("\n**Key Modified Requirements:**")
-                for m in modified[:3]:
-                    response_parts.append(f"- **Clause {m.get('id', 'N/A')}**:\n  - *Old*: {m.get('oldText', '')[:120]}...\n  - *New*: {m.get('newText', '')[:120]}...")
-            if removed:
-                response_parts.append("\n**Key Removed Requirements:**")
-                for r in removed[:3]:
-                    response_parts.append(f"- **Clause {r.get('id', 'N/A')}**: {r.get('text', '')[:150]}...")
-                    
-            response_parts.append("\n**Operational Checklist & Action Plan:**")
-            response_parts.append("1. Run the MAP Task Generator to assign owners and deadlines to the added/modified rules.")
-            response_parts.append("2. Deprecate outdated procedures mapped to the removed clauses.")
-            return "\n".join(response_parts)
+            p2 = (
+                f"For the new and modified rules, you need to assign tasks and deadlines in the MAP module. "
+                f"Ensure SOPs and internal checklists are adjusted to match the updated clauses, and archive legacy "
+                f"compliance protocols that are no longer required."
+            )
+            
+            return f"{p1}\n\n{p2}"
         else:
-            response_parts = [
-                "I could not find a formal document comparison run in your dashboard history.",
-                "However, comparing the retrieved regulations and clauses related to your query, here are the different rules identified:",
-            ]
-            for idx, src in enumerate(sources[:3]):
-                response_parts.append(f"{idx+1}. **{src['ref']}** (from *{src['doc']}*): {src['text'][:150]}...")
-            response_parts.append("\n*To perform a precise side-by-side version comparison, please upload both the old and new circular PDF versions in the Comparison dashboard.*")
-            return "\n".join(response_parts)
+            unique_docs = list(dict.fromkeys(src['doc'] for src in sources))
+            docs_str = " and ".join(f"**{d}**" for d in unique_docs[:2])
+            
+            p1 = (
+                f"I searched the active workspace history but could not find a direct comparative differential run. "
+                f"However, comparing the retrieved regulations related to your query (including {docs_str}), the "
+                f"guidelines outline compliance requirements that must be verified."
+            )
+            
+            p2 = (
+                f"To perform a precise side-by-side version comparison, please go to the Comparison tab and upload the "
+                f"older and newer versions of the circular."
+            )
+            
+            return f"{p1}\n\n{p2}"
 
     # 2. Compliance Checklist/Steps Intent
     elif is_checklist:
-        response_parts = [
-            "Based on your query, here is the compliance checklist and necessary action steps to ensure system alignment:\n",
-            "### 📋 Regulatory Compliance Checklist"
-        ]
+        unique_docs = list(dict.fromkeys(src['doc'] for src in sources))
+        docs_str = " and ".join(f"**{d}**" for d in unique_docs[:2])
         
-        # List obligations from sources
-        for src in sources[:4]:
-            response_parts.append(f"- [ ] **[{src['category']}]** obligation under **{src['ref']}**: {src['obligation']}")
-            
-        # List active MAP tasks if any matching
-        map_bullets = []
-        for m in open_maps[:5]:
-            map_bullets.append(f"- [ ] **[MAP Task] {m.title}** (Owner: {m.owner or 'Unassigned'}, Severity: {m.severity or 'Medium'}): {m.description or ''}")
-            
-        if map_bullets:
-            response_parts.append("\n### ⚙️ Active Action Items (Pending MAP Tasks)")
-            response_parts.extend(map_bullets)
-            
-        response_parts.append("\n**Next Steps to Compliance:**")
-        response_parts.append("1. Assign owners and timelines to any unassigned action items.")
-        response_parts.append("2. Update Standard Operating Procedures (SOPs) for the affected systems.")
-        response_parts.append("3. Upload required audit evidence to the dashboard once implementation is complete.")
+        p1 = (
+            f"To help you comply with the requirements in {docs_str}, you should follow a clear path to completion. "
+            f"First, acknowledge the circulars and verify that your systems meet the guidelines described in "
+            f"the relevant clauses (specifically {sources[0]['ref']})."
+        )
         
-        return "\n".join(response_parts)
+        p2 = (
+            f"Second, you need to update your internal operating procedures. Review and amend the Standard "
+            f"Operating Procedures (SOPs) for the affected departments. If there are any open Mitigation "
+            f"Action Plans (MAPs) or pending tasks, ensure they are assigned to clear owners with deadlines."
+        )
+        
+        p3 = (
+            f"Finally, adjust validation rules and operational thresholds on backend systems to align "
+            f"with this mandate. Once implementation is complete, upload required audit evidence into the "
+            f"Evidence Management workspace to document and close the files."
+        )
+        
+        return f"{p1}\n\n{p2}\n\n{p3}"
 
     # 3. Summary Intent
     elif is_summary:
-        response_parts = [
-            "Here is a concise executive summary of the regulations related to your query:\n",
-            "### 🔍 Key Findings & Overview"
-        ]
+        unique_docs = list(dict.fromkeys(src['doc'] for src in sources))
+        docs_str = " and ".join(f"**{d}**" for d in unique_docs[:2])
         
-        for src in sources[:3]:
-            snippet = src['text'].strip().replace("\n", " ")
-            if len(snippet) > 200:
-                snippet = snippet[:200] + "..."
-            response_parts.append(f"- **{src['ref']}** ({src['doc']}): {snippet}")
-            
-        response_parts.append("\n### 💼 Business Impact")
-        response_parts.append("These rules introduce compliance mandates. Non-compliance could result in audit findings, financial penalties, or security vulnerabilities.")
+        p1 = (
+            f"Here is a concise summary of the regulations related to your query. We analyzed the active regulatory "
+            f"updates, including {docs_str}. These circulars outline mandatory requirements for updating system "
+            f"thresholds, capital adequacy, and reporting processes."
+        )
         
-        response_parts.append("\n### 👥 Affected Departments")
-        depts = set(src['category'] for src in sources if src['category'] != "General")
-        if not depts:
-            depts = {"Compliance", "Operations"}
-        response_parts.append(f"The operational changes primarily affect the **{', '.join(depts)}** department(s).")
+        p2 = (
+            f"To prevent compliance discrepancies, the organization must update its internal control policies, system "
+            f"validation thresholds, and risk reporting cycles. Non-compliance could result in audit flags or operational "
+            f"risks."
+        )
         
-        return "\n".join(response_parts)
+        p3 = (
+            f"Implementing these guidelines primarily affects the compliance and operations departments, who should "
+            f"collaborate to update operating procedures and verify that all systems are aligned."
+        )
+        
+        return f"{p1}\n\n{p2}\n\n{p3}"
 
     # 4. Detailed Explanation Intent (Default)
     else:
-        response_parts = [
-            "Here is a detailed explanation of the regulations and requirements matching your inquiry:\n",
-            "### 📖 Regulatory Context & Requirements"
-        ]
-        
-        for idx, src in enumerate(sources[:3]):
-            response_parts.append(
-                f"**{idx+1}. {src['ref']}** (Category: *{src['category']}*, Severity: *{src['severity']}*)\n"
-                f"Source Document: {src['doc']}\n"
-                f"Obligation details: {src['obligation']}\n"
-            )
+        unique_docs = list(dict.fromkeys(src['doc'] for src in sources))
+        docs_str = " and ".join(f"**{d}**" for d in unique_docs[:2])
+        if len(unique_docs) > 2:
+            docs_str += f", and other regulatory updates"
             
-        response_parts.append("### ⚡ Operational Guidance & Next Actions")
-        response_parts.append("- **Business Exposure**: Review the system parameters to ensure thresholds match the mandate. Ensure audit trails are maintained for review.")
-        response_parts.append("- **Action Plan**: Stakeholders should prioritize any open Mitigation Action Points (MAPs) matching this regulation.")
+        first_src = sources[0]
         
-        return "\n".join(response_parts)
+        p1 = (
+            f"The requirements and guidelines matching your inquiry primarily come from the {docs_str}. "
+            f"These directions aim to align operational flows with specific regulatory requirements, ensuring compliance "
+            f"with the guidelines set forth in the respective circulars."
+        )
+        
+        clause_list = []
+        for idx, src in enumerate(sources[:3]):
+            clean_text = src['text'].strip()
+            if len(clean_text) > 200:
+                clean_text = clean_text[:200] + "..."
+            clause_list.append(f"{src['ref']} ({clean_text})")
+        
+        p2 = (
+            f"To summarize, the relevant guidelines retrieved (specifically {', '.join(clause_list[:2])}) "
+            f"require operational compliance review. This involves aligning operational systems and workflows with "
+            f"the corresponding circular directives."
+        )
+        
+        p3 = (
+            f"For your organization, this means you need to update your internal compliance policy documentation, "
+            f"review system parameters in the affected departments, and address any pending task assignments in the "
+            f"dashboard."
+        )
+        
+        return f"{p1}\n\n{p2}\n\n{p3}"
 
 @router.post("/chat", response_model=CopilotResponse)
 def copilot_chat(
@@ -282,65 +305,68 @@ def copilot_chat(
     top_matches = clause_scored[:5]
 
     # ── Source 2: Regulation table (summaries + titles) ────────────────────────
-    # Always pull from the Regulation table — it is always populated (seeded + scraped)
-    all_regulations = db.query(Regulation).order_by(Regulation.date.desc()).limit(100).all()
+    top_regs = []
+    if copilot_mode != "expert":
+        # Always pull from the Regulation table — it is always populated (seeded + scraped)
+        all_regulations = db.query(Regulation).order_by(Regulation.date.desc()).limit(100).all()
 
-    reg_scored = []
-    for reg in all_regulations:
-        reg_text = f"{reg.title}. {reg.summary or ''}".strip()
-        if use_semantic:
-            reg_vec = EmbeddingService.encode(reg_text)
-            score = EmbeddingService.cosine_similarity(query_vec, reg_vec)
-        else:
-            score = text_similarity(message.lower(), reg_text.lower())
-        reg_scored.append((reg, score))
+        reg_scored = []
+        for reg in all_regulations:
+            reg_text = f"{reg.title}. {reg.summary or ''}".strip()
+            if use_semantic:
+                reg_vec = EmbeddingService.encode(reg_text)
+                score = EmbeddingService.cosine_similarity(query_vec, reg_vec)
+            else:
+                score = text_similarity(message.lower(), reg_text.lower())
+            reg_scored.append((reg, score))
 
-    reg_scored.sort(key=lambda x: x[1], reverse=True)
-    top_regs = reg_scored[:8]
+        reg_scored.sort(key=lambda x: x[1], reverse=True)
+        top_regs = reg_scored[:8]
 
     # ── Source 3: ChromaDB semantic search ─────────────────────────────────────
     chroma_snippets = []
 
-    # 3a. Search Cloud ChromaDB
-    if use_semantic:
-        try:
-            cloud_hits = search_chroma_chunks(query_vec, n_results=5)
-            for hit in cloud_hits:
-                doc_title = hit["metadata"].get("source", hit["metadata"].get("pdf_name", "Cloud Circular"))
-                sim = max(0.0, 1.0 - hit["distance"])
-                chroma_snippets.append((sim, doc_title, hit["text"]))
-        except Exception as cloud_err:
-            import logging as _log
-            _log.getLogger("uvicorn.error").warning(f"[Copilot] Cloud ChromaDB query failed: {cloud_err}")
-
-    # 3b. Search local ChromaDB
-    try:
-        import chromadb
-        chroma_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
-        collection_names = [c.name for c in chroma_client.list_collections()]
-        for cname in collection_names:
+    if copilot_mode != "expert":
+        # 3a. Search Cloud ChromaDB
+        if use_semantic:
             try:
-                col = chroma_client.get_collection(cname)
-                results = col.query(
-                    query_embeddings=[query_vec] if use_semantic else None,
-                    query_texts=[message] if not use_semantic else None,
-                    n_results=min(5, col.count()),
-                    include=["documents", "metadatas", "distances"],
-                )
-                docs = results.get("documents", [[]])[0]
-                metas = results.get("metadatas", [[]])[0]
-                dists = results.get("distances", [[]])[0]
-                for doc_text, meta, dist in zip(docs, metas, dists):
-                    # ChromaDB returns L2 distance; convert to similarity score 0-1
-                    sim = max(0.0, 1.0 - (dist / 2.0))
-                    source_label = meta.get("source", meta.get("title", cname))
-                    chroma_snippets.append((sim, source_label, doc_text))
-            except Exception as col_err:
+                cloud_hits = search_chroma_chunks(query_vec, n_results=5)
+                for hit in cloud_hits:
+                    doc_title = hit["metadata"].get("source", hit["metadata"].get("pdf_name", "Cloud Circular"))
+                    sim = max(0.0, 1.0 - hit["distance"])
+                    chroma_snippets.append((sim, doc_title, hit["text"]))
+            except Exception as cloud_err:
                 import logging as _log
-                _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB collection '{cname}' query failed: {col_err}")
-    except Exception as e:
-        import logging as _log
-        _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB unavailable: {e}")
+                _log.getLogger("uvicorn.error").warning(f"[Copilot] Cloud ChromaDB query failed: {cloud_err}")
+
+        # 3b. Search local ChromaDB
+        try:
+            import chromadb
+            chroma_client = chromadb.PersistentClient(path=settings.CHROMADB_PATH)
+            collection_names = [c.name for c in chroma_client.list_collections()]
+            for cname in collection_names:
+                try:
+                    col = chroma_client.get_collection(cname)
+                    results = col.query(
+                        query_embeddings=[query_vec] if use_semantic else None,
+                        query_texts=[message] if not use_semantic else None,
+                        n_results=min(5, col.count()),
+                        include=["documents", "metadatas", "distances"],
+                    )
+                    docs = results.get("documents", [[]])[0]
+                    metas = results.get("metadatas", [[]])[0]
+                    dists = results.get("distances", [[]])[0]
+                    for doc_text, meta, dist in zip(docs, metas, dists):
+                        # ChromaDB returns L2 distance; convert to similarity score 0-1
+                        sim = max(0.0, 1.0 - (dist / 2.0))
+                        source_label = meta.get("source", meta.get("title", cname))
+                        chroma_snippets.append((sim, source_label, doc_text))
+                except Exception as col_err:
+                    import logging as _log
+                    _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB collection '{cname}' query failed: {col_err}")
+        except Exception as e:
+            import logging as _log
+            _log.getLogger("uvicorn.error").warning(f"[Copilot] ChromaDB unavailable: {e}")
 
     chroma_snippets.sort(key=lambda x: x[0], reverse=True)
     chroma_snippets = chroma_snippets[:5]
@@ -352,19 +378,20 @@ def copilot_chat(
     # From Clause records
     citations = []
     for c, score in top_matches:
-        context_parts.append(f"[{citation_idx}] (Clause {c.clause_id} · {c.document.title}) {c.text}")
-        citations.append({
-            "n": citation_idx,
-            "clauseId": c.clause_id,
-            "text": c.text,
-            "document": c.document.title,
-            "similarity": round(score, 2),
-        })
-        citation_idx += 1
+        if score > 0.20:
+            context_parts.append(f"[{citation_idx}] (Clause {c.clause_id} · {c.document.title}) {c.text}")
+            citations.append({
+                "n": citation_idx,
+                "clauseId": c.clause_id,
+                "text": c.text,
+                "document": c.document.title,
+                "similarity": round(score, 2),
+            })
+            citation_idx += 1
 
     # From Regulation table — always included even when no docs are uploaded
     for reg, score in top_regs:
-        if score > 0.05:  # only include if somewhat relevant
+        if score > 0.20:  # only include if relevant
             obligations_str = ""
             if reg.obligations:
                 try:
@@ -388,7 +415,7 @@ def copilot_chat(
 
     # From ChromaDB
     for sim, source_label, doc_text in chroma_snippets:
-        if sim > 0.05:
+        if sim > 0.20:
             context_parts.append(f"[{citation_idx}] ({source_label}) {doc_text[:400]}")
             citations.append({
                 "n": citation_idx,

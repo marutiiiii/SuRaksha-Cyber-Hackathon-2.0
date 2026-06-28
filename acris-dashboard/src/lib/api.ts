@@ -83,7 +83,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message, sessionId }),
     }),
-  auditReadiness: () =>
+  auditReadiness: (date?: string) =>
     callApi<{
       score: number;
       total: number;
@@ -94,7 +94,7 @@ export const api = {
       insights: AnyObject[];
       complianceTrend: AnyObject[];
       mapProgress: AnyObject[];
-    }>("dashboard/overview"),
+    }>(`dashboard/overview${date ? `?date_filter=${date}` : ""}`),
   regulationsLatest: () =>
     callApi<AnyObject>("regulations").then((res) => {
       if (Array.isArray(res)) {

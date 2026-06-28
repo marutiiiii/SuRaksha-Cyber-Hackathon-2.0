@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import date
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.core.database import get_db
 from app.core.security import get_current_user, require_admin
 from app.models.models import Map, Regulation, Finding, ImpactAnalysis, Document
@@ -13,11 +13,18 @@ DEPARTMENTS = ["Compliance", "Legal", "IT", "Cybersecurity", "Operations", "Audi
 
 @router.get("/overview", response_model=DashboardOverviewResponse)
 def get_dashboard_overview(
+    date_filter: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     user_id = current_user.get("id")
-    today = date.today()
+    target_date = date.today()
+    if date_filter:
+        try:
+            from datetime import datetime
+            target_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+        except ValueError:
+            pass
     copilot_mode = current_user.get("copilot_mode", "beginner")
     org_id = current_user.get("organization_id")
     utype = current_user.get("user_type", "admin")
@@ -41,13 +48,19 @@ def get_dashboard_overview(
         q = q.filter(Map.assigned_department == dept)
         
     all_maps = q.all()
+    # Filter maps by created_at date <= target_date
+    if date_filter:
+        all_maps = [
+            m for m in all_maps 
+            if m.created_at is None or m.created_at.date() <= target_date
+        ]
     total = len(all_maps)
     completed = len([m for m in all_maps if m.status == "Completed"])
     
-    # Calculate overdue: status != Completed and deadline < today
+    # Calculate overdue: status != Completed and deadline < target_date
     overdue = 0
     for m in all_maps:
-        if m.status != "Completed" and m.deadline and m.deadline < today:
+        if m.status != "Completed" and m.deadline and m.deadline < target_date:
             overdue += 1
             
     score = round((completed / total) * 100) if total > 0 else 0
@@ -129,7 +142,9 @@ def get_dashboard_overview(
     # 1. Dynamic Recent Activity from DB (Recent Regulations / Document Uploads)
     recent_activity = []
     try:
-        recent_regs = db.query(Regulation).order_by(Regulation.created_at.desc()).limit(3).all()
+        recent_regs = db.query(Regulation).filter(
+            Regulation.date <= target_date
+        ).order_by(Regulation.date.desc(), Regulation.created_at.desc()).limit(3).all()
         for reg in recent_regs:
             recent_activity.append({
                 "id": str(reg.id),
@@ -138,12 +153,24 @@ def get_dashboard_overview(
                 "changeType": "New" if "guideline" in reg.title.lower() or "direction" in reg.title.lower() else "Updated",
                 "risk": "High" if reg.source in ["RBI", "SEBI"] else "Medium",
                 "status": "Active",
-                "time": "Recent"
+                "time": "Recent",
+                "date": reg.date.isoformat() if reg.date else reg.created_at.date().isoformat()
             })
             
-        recent_docs = db.query(Document).filter(
+        recent_docs_list = db.query(Document).filter(
             Document.user_id == user_id
-        ).order_by(Document.created_at.desc()).limit(3).all()
+        ).all()
+        recent_docs_filtered = [
+            d for d in recent_docs_list
+            if d.created_at is None or d.created_at.date() <= target_date
+        ]
+        # Sort using datetime.datetime.min (with timezone UTC) to prevent comparing timezone-naive and timezone-aware datetimes
+        recent_docs_filtered.sort(
+            key=lambda x: x.created_at if x.created_at else datetime.datetime.min.replace(tzinfo=datetime.timezone.utc), 
+            reverse=True
+        )
+        recent_docs = recent_docs_filtered[:3]
+        
         for doc in recent_docs:
             recent_activity.append({
                 "id": str(doc.id),
@@ -152,7 +179,8 @@ def get_dashboard_overview(
                 "changeType": "Uploaded",
                 "risk": "Medium",
                 "status": "Active",
-                "time": "Recent"
+                "time": "Recent",
+                "date": doc.created_at.date().isoformat() if doc.created_at else target_date.isoformat()
             })
     except Exception as e:
         pass
@@ -221,7 +249,7 @@ def get_dashboard_overview(
 
     # 3. Dynamic Compliance Trend (6-month timeline)
     compliance_trend = []
-    current_date = datetime.date.today()
+    current_date = target_date
     for i in range(5, -1, -1):
         m = current_date.month - i
         y = current_date.year
@@ -248,7 +276,7 @@ def get_dashboard_overview(
     in_progress_count = len([m for m in all_maps if m.status == "In Progress"])
     open_count = len([m for m in all_maps if m.status == "Open"])
 
-    today_dt = datetime.datetime.now(datetime.timezone.utc)
+    today_dt = datetime.datetime.combine(target_date, datetime.time.max, tzinfo=datetime.timezone.utc)
     w1_maps, w2_maps, w3_maps, w4_maps = [], [], [], []
     for m in all_maps:
         m_created = m.created_at or today_dt

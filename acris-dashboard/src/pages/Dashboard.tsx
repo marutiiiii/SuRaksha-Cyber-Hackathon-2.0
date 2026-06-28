@@ -8,13 +8,18 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, BookOpen, KanbanSquare, ShieldCheck, Activity,
   Lightbulb, ArrowUpRight, ArrowDownRight, TrendingUp,
-  Globe, ExternalLink, ShieldAlert
+  Globe, ExternalLink, ShieldAlert, Calendar as CalendarIcon
 } from "lucide-react";
 import { BeginnerHint, SkeletonPage } from "@/components/shared/States";
 import ViewOnlyBanner from "@/components/shared/ViewOnlyBanner";
 import { useIsBeginner, useIsExpert } from "@/state/CopilotContext";
 import { api } from "@/lib/api";
 import { useOrgProfile } from "@/state/OrgProfileContext";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CardMeta {
   label: string;
@@ -26,6 +31,7 @@ interface CardMeta {
   glowColor: string;
   icon: React.ElementType;
   ring?: { current: number; max: number };
+  path?: string;
 }
 
 /* ────────────────────────────────────────────────
@@ -187,11 +193,21 @@ export default function Dashboard() {
   const [highRiskCount, setHighRiskCount] = useState(3);
   const [regs, setRegs] = useState<AnyObject[]>([]);
   const [maps, setMaps] = useState<AnyObject[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const formatDateString = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    const dateStr = selectedDate ? formatDateString(selectedDate) : undefined;
     Promise.all([
-      api.auditReadiness(),
+      api.auditReadiness(dateStr),
       api.regulationsLatest(),
       api.listMaps().catch(() => [])
     ]).then(([res, regRes, mapsRes]) => {
@@ -222,7 +238,8 @@ export default function Dashboard() {
         dueDate: m.deadline || new Date().toISOString().slice(0, 10),
         severity: m.severity,
         status: m.status,
-        regulationId: m.clause_ref || "Circular"
+        regulationId: m.clause_ref || "Circular",
+        createdAt: m.created_at
       }));
 
       setMaps(mappedMaps);
@@ -245,7 +262,7 @@ export default function Dashboard() {
       setLoading(false);
     });
     return () => { active = false; };
-  }, [orgProfile.services]);
+  }, [orgProfile.services, selectedDate]);
 
   const filteredDepartments = useMemo(() => {
     if (!data?.departments) return [];
@@ -263,10 +280,23 @@ export default function Dashboard() {
   }, [filteredDepartments]);
 
   const personalizedScore = useMemo(() => {
-    if (filteredDepartments.length === 0) return data?.score || 84;
+    if (filteredDepartments.length === 0) return data?.score || 0;
     const sum = filteredDepartments.reduce((acc: number, d: AnyObject) => acc + d.readinessScore, 0);
     return Math.round(sum / filteredDepartments.length);
   }, [filteredDepartments, data?.score]);
+
+  const filteredRegsByDate = useMemo(() => {
+    if (!selectedDate) return regs;
+    const target = formatDateString(selectedDate);
+    return regs.filter((r: AnyObject) => {
+      const rDateStr = typeof r.date === 'string' ? r.date : new Date(r.date).toISOString().slice(0, 10);
+      return rDateStr === target;
+    });
+  }, [regs, selectedDate]);
+
+  const filteredRegsHighRiskCount = useMemo(() => {
+    return filteredRegsByDate.filter((r: AnyObject) => r.risk === "High" || r.risk_level === "High").length;
+  }, [filteredRegsByDate]);
 
   const filteredMaps = useMemo(() => {
     const selectedDepts = orgProfile.departments || [];
@@ -274,10 +304,26 @@ export default function Dashboard() {
     return maps.filter((m: AnyObject) => selectedDepts.includes(m.department));
   }, [maps, orgProfile.departments]);
 
-  const totalMaps = filteredMaps.length;
-  const completedMaps = filteredMaps.filter((m: AnyObject) => m.status === "Completed").length;
+  const filteredMapsByDate = useMemo(() => {
+    let result = filteredMaps;
+    if (selectedDate) {
+      const target = formatDateString(selectedDate);
+      result = result.filter((m: AnyObject) => {
+        const createdStr = m.createdAt || m.created_at;
+        if (createdStr) {
+          const createdDateStr = new Date(createdStr).toISOString().slice(0, 10);
+          return createdDateStr <= target;
+        }
+        return true;
+      });
+    }
+    return result;
+  }, [filteredMaps, selectedDate]);
+
+  const totalMaps = filteredMapsByDate.length;
+  const completedMaps = filteredMapsByDate.filter((m: AnyObject) => m.status === "Completed").length;
   const pendingMaps = totalMaps - completedMaps;
-  const overdueMaps = filteredMaps.filter((m: AnyObject) => m.status !== "Completed" && new Date(m.dueDate) < new Date()).length;
+  const overdueMaps = filteredMapsByDate.filter((m: AnyObject) => m.status !== "Completed" && new Date(m.dueDate) < (selectedDate || new Date())).length;
 
   const filteredRecentActivity = useMemo(() => {
     const list = data?.recentActivity || [];
@@ -287,80 +333,28 @@ export default function Dashboard() {
   }, [data?.recentActivity, orgProfile.enabledSources]);
 
   const riskDist = useMemo(() => {
-    const high = filteredMaps.filter((m) => m.severity === "High" || m.severity === "Critical").length;
-    const medium = filteredMaps.filter((m) => m.severity === "Medium").length;
-    const low = filteredMaps.filter((m) => m.severity === "Low").length;
+    const high = filteredMapsByDate.filter((m) => m.severity === "High" || m.severity === "Critical").length;
+    const medium = filteredMapsByDate.filter((m) => m.severity === "Medium").length;
+    const low = filteredMapsByDate.filter((m) => m.severity === "Low").length;
     return [
       { name: "High", value: high },
       { name: "Medium", value: medium },
       { name: "Low", value: low },
     ];
-  }, [filteredMaps]);
+  }, [filteredMapsByDate]);
 
-  const personalizedInsights = useMemo(() => {
-    const list = [];
-    
-    // Insight 1: Industry-specific urgent warning
-    if (orgProfile.industryType === "Banking") {
-      list.push({
-        title: "Urgent: RBI & CERT-In alignment required",
-        description: `For ${orgProfile.orgName || "your bank"}, RBI's new IT Governance directions require alignment with CERT-In incident reporting SLAs. Check IT and Cybersecurity workflows.`,
-        severity: "High",
-        trend: { value: 14, suffix: "%" }
-      });
-    } else {
-      list.push({
-        title: "Urgent: FinTech FLDG & KYC Compliance",
-        description: "New RBI guidelines require FinTechs offering digital lending to audit First Loss Default Guarantee agreements and enforce V-CIP journeys.",
-        severity: "High",
-        trend: { value: 18, suffix: "%" }
-      });
-    }
-
-    // Insight 2: Size-specific recommendation
-    if (orgProfile.orgSize === "Enterprise") {
-      list.push({
-        title: "Enterprise Audit Readiness Recommendation",
-        description: `With ${filteredDepartments.length} departments active, enforce quarterly internal cross-audits to clear ${openFindings} open findings before final regulatory submission.`,
-        severity: "Medium",
-        trend: { value: 8, suffix: "%" }
-      });
-    } else if (orgProfile.orgSize === "Startup" || orgProfile.orgSize === "Small") {
-      list.push({
-        title: "Lean Startup Compliance Recommendation",
-        description: "Focus resources on core IT & Cybersecurity patch compliance (7-day CERT-In SLA) to avoid penalties. Delegate minor compliance tasks.",
-        severity: "Medium",
-        trend: { value: 12, suffix: "%" }
-      });
-    } else {
-      list.push({
-        title: "Compliance Readiness Recommendation",
-        description: `Ensure the ${filteredDepartments.map(d => d.department).join(", ") || "selected"} departments review recent circular updates.`,
-        severity: "Medium",
-        trend: { value: 5, suffix: "%" }
-      });
-    }
-
-    // Insight 3: Operations & Findings
-    const criticalDepts = filteredDepartments.filter((d: AnyObject) => d.risk === "High");
-    if (criticalDepts.length > 0) {
-      list.push({
-        title: "High Risk Exposure in Core Units",
-        description: `Critical findings detected in ${criticalDepts.map(d => d.department).join(", ")}. Prioritize MAP task assignments immediately.`,
-        severity: "High",
-        trend: { value: -5, suffix: "%" }
-      });
-    } else {
-      list.push({
-        title: "Operational Compliance Health",
-        description: `Overall compliance health is stable. ${missingEvidence} pieces of evidence are missing across active units.`,
-        severity: "Low",
-        trend: { value: 4, suffix: "%" }
-      });
-    }
-
-    return list;
-  }, [orgProfile, filteredDepartments, openFindings, missingEvidence]);
+  const trendComparison = useMemo(() => {
+    const trend = data?.complianceTrend || [];
+    if (trend.length < 2) return { value: 0, label: "vs baseline" };
+    const first = trend[0].score || 0;
+    const latest = trend[trend.length - 1].score || 0;
+    const diff = latest - first;
+    const sign = diff >= 0 ? "+" : "";
+    return {
+      value: diff,
+      label: `${sign}${diff}% vs ${trend[0].month}`
+    };
+  }, [data?.complianceTrend]);
 
   const RISK_COLORS: Record<string, string> = {
     High: "#EF4444",
@@ -377,6 +371,7 @@ export default function Dashboard() {
       glowColor: "rgba(59,130,246,0.1)",
       icon: Activity,
       ring: { current: personalizedScore, max: 100 },
+      path: "/audit-readiness",
     },
     {
       label: "Audit Readiness",
@@ -385,14 +380,16 @@ export default function Dashboard() {
       color: "#06B6D4",
       glowColor: "rgba(6,182,212,0.1)",
       icon: ShieldCheck,
+      path: "/evidence-management",
     },
     {
       label: "Active Regulations",
-      value: regs.length,
-      subtitle: `${highRiskCount} critical priority updates`,
+      value: filteredRegsByDate.length,
+      subtitle: `${filteredRegsHighRiskCount} critical priority updates`,
       color: "#8B5CF6",
       glowColor: "rgba(139,92,246,0.1)",
       icon: BookOpen,
+      path: "/regulations",
     },
     {
       label: "Pending MAPs",
@@ -402,14 +399,16 @@ export default function Dashboard() {
       glowColor: "rgba(245,158,11,0.1)",
       icon: KanbanSquare,
       ring: { current: completedMaps, max: totalMaps || 1 },
+      path: "/maps",
     },
     {
       label: "Risk Exposure",
-      value: `${highRiskCount + overdueMaps}`,
+      value: `${filteredRegsHighRiskCount + overdueMaps}`,
       subtitle: "High priority flags detected",
       color: "#EF4444",
       glowColor: "rgba(239,68,68,0.1)",
       icon: ShieldAlert,
+      path: "/impact-analysis",
     }
   ];
 
@@ -475,6 +474,41 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2 h-auto rounded-lg text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors uppercase tracking-wider",
+                  selectedDate && "bg-primary/20 text-primary border-primary/30"
+                )}
+              >
+                <CalendarIcon style={{ width: 14, height: 14 }} />
+                {selectedDate ? format(selectedDate, "PPP") : "Select Date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                initialFocus
+              />
+              {selectedDate && (
+                <div className="p-2 border-t border-border flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[10px] font-semibold h-7 uppercase tracking-wider px-2"
+                    onClick={() => setSelectedDate(undefined)}
+                  >
+                    Clear Filter
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+
           <button
             onClick={() => nav("/reports")}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors uppercase tracking-wider"
@@ -499,6 +533,7 @@ export default function Dashboard() {
             key={card.label}
             glowColor={card.glowColor}
             className="flex flex-col justify-between"
+            onClick={card.path ? () => nav(card.path) : undefined}
           >
             <div className="flex items-center justify-between mb-4">
               <div 
@@ -555,9 +590,17 @@ export default function Dashboard() {
               <h3 className="text-sm font-bold text-foreground">Compliance Trend</h3>
               <p className="text-[11px] text-muted-foreground">6-month rolling posture score against target</p>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-500">
-              <ArrowUpRight className="h-3.5 w-3.5" />
-              <span>+6.2% vs Q1</span>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
+              trendComparison.value >= 0 
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" 
+                : "bg-rose-500/10 border-rose-500/20 text-rose-500"
+            }`}>
+              {trendComparison.value >= 0 ? (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              )}
+              <span>{trendComparison.label}</span>
             </div>
           </div>
 
@@ -651,7 +694,7 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-2 flex-1">
-            {personalizedInsights.slice(0, 3).map((insight: AnyObject, i: number) => (
+            {(data.insights || []).slice(0, 3).map((insight: AnyObject, i: number) => (
               <InsightRow 
                 key={insight.title || i} 
                 title={insight.title} 
@@ -660,7 +703,7 @@ export default function Dashboard() {
                 trend={insight.trend} 
               />
             ))}
-            {personalizedInsights.length === 0 && (
+            {(!data.insights || data.insights.length === 0) && (
               <p className="text-xs text-muted-foreground text-center py-6">All systems nominal. No urgent insights detected.</p>
             )}
           </div>
@@ -737,7 +780,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMaps.slice(0, 5).map((m: AnyObject, idx: number) => (
+                  {filteredMapsByDate.slice(0, 5).map((m: AnyObject, idx: number) => (
                     <tr key={idx} onClick={() => nav("/maps")} className="cursor-pointer">
                       <td>
                         <div className="font-bold text-foreground">{m.title}</div>
@@ -765,7 +808,7 @@ export default function Dashboard() {
                       <td className="text-xs text-muted-foreground font-medium">{m.dueDate}</td>
                     </tr>
                   ))}
-                  {filteredMaps.length === 0 && (
+                  {filteredMapsByDate.length === 0 && (
                     <tr>
                       <td colSpan={6} className="text-center text-muted-foreground py-8 text-xs font-medium">
                         No MAP tasks generated. Upload documents to synthesize compliance actions.
