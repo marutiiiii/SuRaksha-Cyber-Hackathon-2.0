@@ -102,7 +102,7 @@ export default function Logo({ size = "md", theme = "default", className, onClic
         src="/logo.png" 
         alt="ReguFlow AI Logo" 
         className={cn(
-          size === "sm" ? "h-8" : size === "lg" ? "h-[52px]" : "h-[44px]",
+          size === "sm" ? "h-10" : size === "lg" ? "h-[70px]" : "h-[60px]",
           "w-auto object-contain"
         )}
       />
