@@ -85,7 +85,7 @@ const App = () => (
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/pending-approval" element={<Suspense fallback={<SkeletonPage />}><PendingApproval /></Suspense>} />
                     <Route path="/setup" element={<ProtectedRoute><OrgSetup /></ProtectedRoute>} />
-                    <Route path="/" element={<Landing />} />
+                    <Route path="/" element={<Auth />} />
                     <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                       <Route path="/dashboard" element={<Suspense fallback={<SkeletonPage />}><Dashboard /></Suspense>} />
                       <Route path="/regulations" element={<Suspense fallback={<SkeletonPage />}><Regulations /></Suspense>} />
