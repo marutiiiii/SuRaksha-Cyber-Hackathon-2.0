@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/state/ThemeContext";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -11,6 +12,7 @@ interface LogoProps {
 
 export default function Logo({ size = "md", theme = "default", className, onClick, collapsed = false }: LogoProps) {
   const navigate = useNavigate();
+  const { theme: appTheme } = useTheme();
   
   const textClass = theme === "dark" 
     ? "text-white" 
@@ -80,6 +82,9 @@ export default function Logo({ size = "md", theme = "default", className, onClic
     return null;
   }
 
+  const isLight = theme === "light" || (theme === "default" && appTheme !== "dark");
+  const logoSrc = isLight ? "/logo-light.png" : "/logo.png";
+
   return (
     <div 
       onClick={handleClick}
@@ -89,7 +94,7 @@ export default function Logo({ size = "md", theme = "default", className, onClic
       )}
     >
       <img 
-        src="/logo.png" 
+        src={logoSrc} 
         alt="ReguFlow AI Logo" 
         className={cn(
           size === "sm" ? "h-10" : size === "lg" ? "h-[70px]" : "h-[60px]",
