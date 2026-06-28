@@ -12,7 +12,8 @@ from app.api.endpoints import (
     reports,
     audit_logs,
     ai_endpoints,
-    offline_readiness
+    offline_readiness,
+    system
 )
 
 api_router = APIRouter()
@@ -31,3 +32,4 @@ api_router.include_router(reports.router)
 api_router.include_router(audit_logs.router)
 api_router.include_router(ai_endpoints.router)
 api_router.include_router(offline_readiness.router)
+api_router.include_router(system.router, prefix="/system", tags=["system"])

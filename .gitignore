@@ -45,3 +45,9 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# PyInstaller ignores
+backend/dist/
+backend/build/
+*.spec
+

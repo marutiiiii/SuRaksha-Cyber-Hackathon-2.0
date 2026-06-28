@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -292,9 +292,33 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 # Mount local storage folder to serve documents and reports
 app.mount("/storage", StaticFiles(directory=settings.STORAGE_PATH), name="storage")
 
-@app.get("/", include_in_schema=False)
-def root():
-    return RedirectResponse(url="/docs")
+import sys
+from fastapi.responses import FileResponse
+
+if getattr(sys, 'frozen', False):
+    base_dir = sys._MEIPASS
+else:
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+frontend_dist = os.path.join(base_dir, "acris-dashboard", "dist")
+
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API route not found")
+        path = os.path.join(frontend_dist, full_path)
+        if os.path.exists(path) and os.path.isfile(path):
+            return FileResponse(path)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    @app.get("/", include_in_schema=False)
+    def root():
+        return RedirectResponse(url="/docs")
 
 @app.get(f"{settings.API_V1_STR}", include_in_schema=False)
 def api_root():
