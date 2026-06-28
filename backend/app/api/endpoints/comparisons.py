@@ -308,16 +308,61 @@ def compare_documents(
     if system_user_id not in org_user_ids:
         org_user_ids.append(system_user_id)
 
-    docs = db.query(Document).options(joinedload(Document.clauses)).filter(
-        Document.id.in_([schema.oldDocumentId, schema.newDocumentId]),
-        Document.user_id.in_(org_user_ids)
-    ).all()
-    
-    old_doc = next((d for d in docs if d.id == schema.oldDocumentId), None)
-    new_doc = next((d for d in docs if d.id == schema.newDocumentId), None)
-    
-    if not old_doc or not new_doc:
-        raise HTTPException(status_code=404, detail="One or both documents not found")
+    # If oldDocumentId is not provided, dynamically find the most similar document in the database
+    if not schema.oldDocumentId:
+        new_doc = db.query(Document).options(joinedload(Document.clauses)).filter(
+            Document.id == schema.newDocumentId,
+            Document.user_id.in_(org_user_ids)
+        ).first()
+        if not new_doc:
+            raise HTTPException(status_code=404, detail="Target document not found")
+            
+        other_docs = db.query(Document).options(joinedload(Document.clauses)).filter(
+            Document.id != schema.newDocumentId,
+            Document.user_id.in_(org_user_ids),
+            Document.status == "analyzed"
+        ).all()
+        
+        if not other_docs:
+            raise HTTPException(status_code=404, detail="No other analyzed documents found in the database to compare against.")
+            
+        best_doc = None
+        best_score = -1.0
+        new_clauses = new_doc.clauses
+        if not new_clauses:
+            raise HTTPException(status_code=400, detail="Target document must have extracted clauses first")
+            
+        for od in other_docs:
+            if not od.clauses:
+                continue
+            matches = 0
+            for oc in od.clauses:
+                for nc in new_clauses:
+                    if _text_similarity(oc.text.lower(), nc.text.lower()) > 0.60:
+                        matches += 1
+                        break
+            score = matches / max(1, len(od.clauses))
+            if score > best_score:
+                best_score = score
+                best_doc = od
+                
+        if not best_doc:
+            best_doc = other_docs[0]
+            
+        old_doc = best_doc
+        schema.oldDocumentId = old_doc.id
+        docs = [old_doc, new_doc]
+    else:
+        docs = db.query(Document).options(joinedload(Document.clauses)).filter(
+            Document.id.in_([schema.oldDocumentId, schema.newDocumentId]),
+            Document.user_id.in_(org_user_ids)
+        ).all()
+        
+        old_doc = next((d for d in docs if d.id == schema.oldDocumentId), None)
+        new_doc = next((d for d in docs if d.id == schema.newDocumentId), None)
+        
+        if not old_doc or not new_doc:
+            raise HTTPException(status_code=404, detail="One or both documents not found")
         
     old_clauses = old_doc.clauses
     new_clauses = new_doc.clauses

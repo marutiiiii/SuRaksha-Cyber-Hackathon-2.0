@@ -84,14 +84,21 @@ export default function ChangeDetection() {
   };
 
   const handleRunComparison = async () => {
-    if (!oldDocId || !newDocId || oldDocId === newDocId) {
-      toast({ title: "Please pick two different documents", variant: "destructive" });
-      return;
+    if (isBeginner) {
+      if (!newDocId) {
+        toast({ title: "Please pick a target document", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!oldDocId || !newDocId || oldDocId === newDocId) {
+        toast({ title: "Please pick two different documents", variant: "destructive" });
+        return;
+      }
     }
     setExecuting(true);
     try {
       toast({ title: "Comparing documents...", description: "Aligning text and detecting modifications..." });
-      const comp = await api.compare(oldDocId, newDocId);
+      const comp = await api.compare(isBeginner ? "" : oldDocId, newDocId);
       
       toast({ title: "Generating impact analysis...", description: "Analyzing departmental roles and categories..." });
       await api.impact(comp.comparisonId);
@@ -121,24 +128,26 @@ export default function ChangeDetection() {
     if (userType === "department_officer") return null;
     return (
       <div className="glass-card p-4 border rounded-xl flex flex-col md:flex-row items-end gap-3 bg-muted/10">
+        {!isBeginner && (
+          <div className="flex-1 w-full space-y-1">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Preceding Version (Old)</label>
+            <select
+              value={oldDocId}
+              onChange={(e) => setOldDocId(e.target.value)}
+              className="premium-select text-xs h-9 w-full bg-background focus:outline-none"
+              disabled={executing}
+            >
+              <option value="">Select predecessor document...</option>
+              {documents.map((doc) => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.title} ({new Date(doc.created_at).toLocaleDateString()})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex-1 w-full space-y-1">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Preceding Version (Old)</label>
-          <select
-            value={oldDocId}
-            onChange={(e) => setOldDocId(e.target.value)}
-            className="premium-select text-xs h-9 w-full bg-background focus:outline-none"
-            disabled={executing}
-          >
-            <option value="">Select predecessor document...</option>
-            {documents.map((doc) => (
-              <option key={doc.id} value={doc.id}>
-                {doc.title} ({new Date(doc.created_at).toLocaleDateString()})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex-1 w-full space-y-1">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Target Version (New)</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Target PDF (New)</label>
           <select
             value={newDocId}
             onChange={(e) => setNewDocId(e.target.value)}
@@ -155,7 +164,7 @@ export default function ChangeDetection() {
         </div>
         <button
           onClick={handleRunComparison}
-          disabled={executing || !oldDocId || !newDocId}
+          disabled={executing || (!isBeginner && !oldDocId) || !newDocId}
           className="bg-primary text-primary-foreground font-semibold h-9 px-4 rounded-lg text-xs hover:opacity-90 transition-opacity uppercase tracking-wider flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
         >
           {executing ? (

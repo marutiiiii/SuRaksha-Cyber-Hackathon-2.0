@@ -149,7 +149,7 @@ class ClauseResponse(BaseModel):
 # ─── Comparisons ─────────────────────────────────────────────────────────────
 
 class ComparisonRequest(BaseModel):
-    oldDocumentId: UUID
+    oldDocumentId: Optional[UUID] = None
     newDocumentId: UUID
 
 class ComparisonResponse(BaseModel):

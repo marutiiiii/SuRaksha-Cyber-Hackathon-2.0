@@ -65,10 +65,10 @@ export const api = {
     callApi<{ documentId: string; count: number; clauses: AnyObject[] }>(`documents/${documentId}/extract-clauses`, {
       method: "POST",
     }),
-  compare: (oldDocumentId: string, newDocumentId: string) =>
+  compare: (oldDocumentId: string | null | undefined, newDocumentId: string) =>
     callApi<{ comparisonId: string; added: AnyObject[]; removed: AnyObject[]; modified: AnyObject[]; counts: AnyObject }>("comparisons", {
       method: "POST",
-      body: JSON.stringify({ oldDocumentId, newDocumentId }),
+      body: JSON.stringify({ oldDocumentId: oldDocumentId || undefined, newDocumentId }),
     }),
   impact: (comparisonId: string) =>
     callApi<{ matrix: AnyObject[]; perClause: AnyObject[] }>(`comparisons/${comparisonId}/impact`, {
