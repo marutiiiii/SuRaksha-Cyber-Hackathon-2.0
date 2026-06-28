@@ -11,10 +11,12 @@ const STAGES = ["Uploading", "Extracting Text", "Extracting Clauses", "Indexed"]
 
 interface DocRow {
   id: string;
+  user_id?: string;
   title: string;
   source?: string;
   status: string;
   pages?: number;
+  copilot_mode?: string;
   created_at: string;
 }
 interface Clause {
@@ -111,7 +113,11 @@ export default function DocumentAnalysis() {
   const loadHistory = async () => {
     try {
       const { documents } = await api.listDocuments();
-      setHistory(documents);
+      const system_user_id = "00000000-0000-0000-0000-000000000000";
+      const filtered = !isBeginner
+        ? (documents || []).filter((d: DocRow) => d.user_id && d.user_id !== system_user_id)
+        : (documents || []);
+      setHistory(filtered);
     } catch (e: unknown) {
       console.error(e);
     }

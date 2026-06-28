@@ -119,11 +119,13 @@ class RegulationResponse(RegulationBase):
 
 class DocumentResponse(BaseModel):
     id: UUID
+    user_id: Optional[UUID] = None
     title: str
     source: Optional[str] = None
     pages: Optional[int] = None
     status: str
     file_path: str
+    copilot_mode: Optional[str] = None
     created_at: datetime
 
     class Config:
