@@ -98,10 +98,14 @@ export default function Logo({ size = "md", theme = "default", className, onClic
         className
       )}
     >
-      {renderIcon()}
-      <span className={cn("font-extrabold", currentSize.text, textClass)}>
-        REGUFLOW <span className="text-primary font-black">AI</span>
-      </span>
+      <img 
+        src="/logo.png" 
+        alt="ReguFlow AI Logo" 
+        className={cn(
+          size === "sm" ? "h-6" : size === "lg" ? "h-10" : "h-8",
+          "w-auto object-contain"
+        )}
+      />
     </div>
   );
 }
