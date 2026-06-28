@@ -113,9 +113,8 @@ export default function DocumentAnalysis() {
   const loadHistory = async () => {
     try {
       const { documents } = await api.listDocuments();
-      const system_user_id = "00000000-0000-0000-0000-000000000000";
       const filtered = !isBeginner
-        ? (documents || []).filter((d: DocRow) => d.user_id && d.user_id !== system_user_id)
+        ? (documents || []).filter((d: DocRow) => d.copilot_mode === "expert")
         : (documents || []);
       setHistory(filtered);
     } catch (e: unknown) {
