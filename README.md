@@ -16,21 +16,6 @@
 ## 🏗️ Architecture
 
 ## 🏗️ Architecture
-ReguFlow AI is composed of several tightly integrated microservices and modules, running seamlessly on your local hardware:
-```mermaid
-graph TD
-    User([End User]) --> |Interacts via App| Dashboard[acris-dashboard <br> React/TypeScript]
-    Dashboard --> |REST API| Backend[Backend API <br> Python]
-    
-    Backend --> |Validates rules & Copilot| Validator[ReguFlow-Validator <br> Local AI Engine]
-    Backend --> |Reads/Writes| DB[(Local Database <br> backend.db)]
-    
-    Pipeline[acris-data-pipeline <br> Data Ingestion] --> |Parses regulatory docs| DB
-
-- **`acris-dashboard/`**: The modern web frontend built with TypeScript and React, providing the interactive user interface.
-- **`backend/`**: A robust Python-based API server that handles business logic, authentication, and database operations.
-- **`ReguFlow-Validator/`**: The core AI engine responsible for processing text, validating compliance rules, and powering the Copilot.
-- **`acris-data-pipeline/`**: Services dedicated to ingesting, cleaning, and formatting large regulatory datasets.
 
 ## 🛠️ Installation & Getting Started
 
