@@ -1,5 +1,8 @@
 # ReguFlow AI 🚀
 
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)
 
 **ReguFlow AI** is a privacy-first, locally-hosted platform designed for intelligent regulatory compliance mapping and validation. Built with a focus on data security, ReguFlow AI runs intensive machine learning models entirely on your local hardware, ensuring that sensitive organizational data never leaves your environment.
 
@@ -15,6 +18,12 @@
 
 ## 🏗️ Architecture
 
+ReguFlow AI is composed of several tightly integrated microservices and modules:
+
+- **`acris-dashboard/`**: The modern web frontend built with TypeScript and React, providing the interactive user interface.
+- **`backend/`**: A robust Python-based API server that handles business logic, authentication, and database operations.
+- **`ReguFlow-Validator/`**: The core AI engine responsible for processing text, validating compliance rules, and powering the Copilot.
+- **`acris-data-pipeline/`**: Services dedicated to ingesting, cleaning, and formatting large regulatory datasets.
 ## 🛠️ Installation & Getting Started
 
 ### For End Users (Desktop Application)
@@ -25,6 +34,7 @@ ReguFlow AI is packaged as a standalone executable for ease of use.
 3. *Note:* On first launch, the application will download necessary offline AI models and initialize the local database. This may take a few moments.
 4. Once loaded, the interactive dashboard will open automatically.
 
+For detailed instructions and troubleshooting, please see our [Installation Guide](./INSTALLATION_GUIDE.md).
 
 ### For Developers (Source Setup)
 
