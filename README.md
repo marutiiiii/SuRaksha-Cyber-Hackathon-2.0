@@ -15,8 +15,6 @@
 
 ## 🏗️ Architecture
 
-## 🏗️ Architecture
-
 ## 🛠️ Installation & Getting Started
 
 ### For End Users (Desktop Application)
