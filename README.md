@@ -25,7 +25,6 @@ ReguFlow AI is packaged as a standalone executable for ease of use.
 3. *Note:* On first launch, the application will download necessary offline AI models and initialize the local database. This may take a few moments.
 4. Once loaded, the interactive dashboard will open automatically.
 
-For detailed instructions and troubleshooting, please see our [Installation Guide](./INSTALLATION_GUIDE.md).
 
 ### For Developers (Source Setup)
 
